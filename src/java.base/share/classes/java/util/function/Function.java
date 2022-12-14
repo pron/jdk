@@ -34,19 +34,21 @@ import java.util.Objects;
  *
  * @param <T> the type of the input to the function
  * @param <R> the type of the result of the function
+ * @param <X> the type of the exception that can be thrown
  *
  * @since 1.8
  */
 @FunctionalInterface
-public interface Function<T, R> {
+public interface Function<T, R, X extends Exception> {
 
     /**
      * Applies this function to the given argument.
      *
      * @param t the function argument
      * @return the function result
+     * @throws X throws
      */
-    R apply(T t);
+    R apply(T t) throws X;
 
     /**
      * Returns a composed function that first applies the {@code before}
@@ -61,9 +63,11 @@ public interface Function<T, R> {
      * function and then applies this function
      * @throws NullPointerException if before is null
      *
+     * @param <X1> throws
+     *
      * @see #andThen(Function)
      */
-    default <V> Function<V, R> compose(Function<? super V, ? extends T> before) {
+    default <V, X1 extends Exception> Function<V, R, ? extends X|X1> compose(Function<? super V, ? extends T, X1> before) {
         Objects.requireNonNull(before);
         return (V v) -> apply(before.apply(v));
     }
@@ -76,6 +80,7 @@ public interface Function<T, R> {
      *
      * @param <V> the type of output of the {@code after} function, and of the
      *           composed function
+     * @param <X1> throws
      * @param after the function to apply after this function is applied
      * @return a composed function that first applies this function and then
      * applies the {@code after} function
@@ -83,7 +88,8 @@ public interface Function<T, R> {
      *
      * @see #compose(Function)
      */
-    default <V> Function<T, V> andThen(Function<? super R, ? extends V> after) {
+    default <V, X1 extends Exception>
+    Function<T, V, ? extends X|X1> andThen(Function<? super R, ? extends V, ? extends X1> after) {
         Objects.requireNonNull(after);
         return (T t) -> after.apply(apply(t));
     }

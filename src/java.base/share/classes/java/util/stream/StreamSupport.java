@@ -58,13 +58,14 @@ public final class StreamSupport {
      * more details.
      *
      * @param <T> the type of stream elements
+     * @param <X> throws
      * @param spliterator a {@code Spliterator} describing the stream elements
      * @param parallel if {@code true} then the returned stream is a parallel
      *        stream; if {@code false} the returned stream is a sequential
      *        stream.
      * @return a new sequential or parallel {@code Stream}
      */
-    public static <T> Stream<T> stream(Spliterator<T> spliterator, boolean parallel) {
+    public static <T, X extends Exception> Stream<T, X> stream(Spliterator<T, X> spliterator, boolean parallel) {
         Objects.requireNonNull(spliterator);
         return new ReferencePipeline.Head<>(spliterator,
                                             StreamOpFlag.fromCharacteristics(spliterator),

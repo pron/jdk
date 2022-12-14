@@ -51,11 +51,11 @@ final class DistinctOps {
      * @param upstream a reference stream with element type T
      * @return the new stream
      */
-    static <T> ReferencePipeline<T, T> makeRef(AbstractPipeline<?, T, ?> upstream) {
-        return new ReferencePipeline.StatefulOp<T, T>(upstream, StreamShape.REFERENCE,
+    static <T, X extends Exception> ReferencePipeline<T, X, T, X> makeRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream) {
+        return new ReferencePipeline.StatefulOp<T, X, T, X>(upstream, StreamShape.REFERENCE,
                                                       StreamOpFlag.IS_DISTINCT | StreamOpFlag.NOT_SIZED) {
 
-            <P_IN> Node<T> reduce(PipelineHelper<T> helper, Spliterator<P_IN> spliterator) {
+            <P_IN, X_IN extends X> Node<T> reduce(PipelineHelper<T, X_IN> helper, Spliterator<P_IN, ? extends X_IN> spliterator) throws X {
                 // If the stream is SORTED then it should also be ORDERED so the following will also
                 // preserve the sort order
                 TerminalOp<T, LinkedHashSet<T>> reduceOp
@@ -65,9 +65,9 @@ final class DistinctOps {
             }
 
             @Override
-            <P_IN> Node<T> opEvaluateParallel(PipelineHelper<T> helper,
-                                              Spliterator<P_IN> spliterator,
-                                              IntFunction<T[]> generator) {
+            <P_IN, XX extends X> Node<T> opEvaluateParallel(PipelineHelper<T, XX> helper,
+                                              Spliterator<P_IN, ? extends XX> spliterator,
+                                              IntFunction<T[]> generator) throws X {
                 if (StreamOpFlag.DISTINCT.isKnown(helper.getStreamAndOpFlags())) {
                     // No-op
                     return helper.evaluate(spliterator, false, generator);
@@ -100,7 +100,7 @@ final class DistinctOps {
             }
 
             @Override
-            <P_IN> Spliterator<T> opEvaluateParallelLazy(PipelineHelper<T> helper, Spliterator<P_IN> spliterator) {
+            <P_IN, X_IN extends X> Spliterator<T, ? extends X> opEvaluateParallelLazy(PipelineHelper<T, X_IN> helper, Spliterator<P_IN, ? extends X_IN> spliterator) throws X {
                 if (StreamOpFlag.DISTINCT.isKnown(helper.getStreamAndOpFlags())) {
                     // No-op
                     return helper.wrapSpliterator(spliterator);
@@ -116,13 +116,14 @@ final class DistinctOps {
             }
 
             @Override
-            Sink<T> opWrapSink(int flags, Sink<T> sink) {
+            <X3 extends Exception>
+            Sink<T, ? extends X3> opWrapSink(int flags, Sink<T, X3> sink) {
                 Objects.requireNonNull(sink);
 
                 if (StreamOpFlag.DISTINCT.isKnown(flags)) {
                     return sink;
                 } else if (StreamOpFlag.SORTED.isKnown(flags)) {
-                    return new Sink.ChainedReference<>(sink) {
+                    return new Sink.ChainedReference<T, X3, T, X3>(sink) {
                         boolean seenNull;
                         T lastSeen;
 
@@ -134,14 +135,14 @@ final class DistinctOps {
                         }
 
                         @Override
-                        public void end() {
+                        public void end() throws X3 {
                             seenNull = false;
                             lastSeen = null;
                             downstream.end();
                         }
 
                         @Override
-                        public void accept(T t) {
+                        public void accept(T t) throws X3 {
                             if (t == null) {
                                 if (!seenNull) {
                                     seenNull = true;
@@ -153,7 +154,7 @@ final class DistinctOps {
                         }
                     };
                 } else {
-                    return new Sink.ChainedReference<>(sink) {
+                    return new Sink.ChainedReference<T, X3, T, X3>(sink) {
                         Set<T> seen;
 
                         @Override
@@ -163,13 +164,13 @@ final class DistinctOps {
                         }
 
                         @Override
-                        public void end() {
+                        public void end() throws X3 {
                             seen = null;
                             downstream.end();
                         }
 
                         @Override
-                        public void accept(T t) {
+                        public void accept(T t) throws X3 {
                             if (seen.add(t)) {
                                 downstream.accept(t);
                             }

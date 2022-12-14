@@ -33,11 +33,12 @@ import java.util.Objects;
  * whose functional method is {@link #test(Object)}.
  *
  * @param <T> the type of the input to the predicate
+ * @param <X> the type of the exception that can be thrown
  *
  * @since 1.8
  */
 @FunctionalInterface
-public interface Predicate<T> {
+public interface Predicate<T, X extends Exception> {
 
     /**
      * Evaluates this predicate on the given argument.
@@ -45,8 +46,9 @@ public interface Predicate<T> {
      * @param t the input argument
      * @return {@code true} if the input argument matches the predicate,
      * otherwise {@code false}
+     * @throws X throws
      */
-    boolean test(T t);
+    boolean test(T t) throws X;
 
     /**
      * Returns a composed predicate that represents a short-circuiting logical
@@ -63,8 +65,10 @@ public interface Predicate<T> {
      * @return a composed predicate that represents the short-circuiting logical
      * AND of this predicate and the {@code other} predicate
      * @throws NullPointerException if other is null
+     *
+     * @param <X1> throws
      */
-    default Predicate<T> and(Predicate<? super T> other) {
+    default <X1 extends Exception> Predicate<T, ? extends X|X1> and(Predicate<? super T, ? extends X1> other) {
         Objects.requireNonNull(other);
         return (t) -> test(t) && other.test(t);
     }
@@ -76,7 +80,7 @@ public interface Predicate<T> {
      * @return a predicate that represents the logical negation of this
      * predicate
      */
-    default Predicate<T> negate() {
+    default Predicate<T, X> negate() {
         return (t) -> !test(t);
     }
 
@@ -95,8 +99,10 @@ public interface Predicate<T> {
      * @return a composed predicate that represents the short-circuiting logical
      * OR of this predicate and the {@code other} predicate
      * @throws NullPointerException if other is null
+     *
+     * @param <X1> throws
      */
-    default Predicate<T> or(Predicate<? super T> other) {
+    default <X1 extends Exception> Predicate<T, ? extends X|X1> or(Predicate<? super T, ? extends X1> other) {
         Objects.requireNonNull(other);
         return (t) -> test(t) || other.test(t);
     }
@@ -123,6 +129,7 @@ public interface Predicate<T> {
      * {@code target.negate()}.
      *
      * @param <T>     the type of arguments to the specified predicate
+     * @param <X>     throws
      * @param target  predicate to negate
      *
      * @return a predicate that negates the results of the supplied
@@ -133,8 +140,8 @@ public interface Predicate<T> {
      * @since 11
      */
     @SuppressWarnings("unchecked")
-    static <T> Predicate<T> not(Predicate<? super T> target) {
+    static <T, X extends Exception> Predicate<T, X> not(Predicate<? super T, X> target) {
         Objects.requireNonNull(target);
-        return (Predicate<T>)target.negate();
+        return (Predicate<T, X>)target.negate();
     }
 }

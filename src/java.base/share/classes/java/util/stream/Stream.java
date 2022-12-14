@@ -157,13 +157,14 @@ import java.util.function.UnaryOperator;
  * the {@link #isParallel()} method.
  *
  * @param <T> the type of the stream elements
+ * @param <X> the type of the exception that can be thrown
  * @since 1.8
  * @see IntStream
  * @see LongStream
  * @see DoubleStream
  * @see <a href="package-summary.html">java.util.stream</a>
  */
-public interface Stream<T> extends BaseStream<T, Stream<T>> {
+public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<T, X>> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match
@@ -177,8 +178,10 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *                  predicate to apply to each element to determine if it
      *                  should be included
      * @return the new stream
+     *
+     * @param <X1> throws
      */
-    Stream<T> filter(Predicate<? super T> predicate);
+    <X1 extends Exception> Stream<T, ? extends X|X1> filter(Predicate<? super T, ? extends X1> predicate);
 
     /**
      * Returns a stream consisting of the results of applying the given
@@ -192,8 +195,11 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *               <a href="package-summary.html#Statelessness">stateless</a>
      *               function to apply to each element
      * @return the new stream
+     *
+     *
+     * @param <X1> throws
      */
-    <R> Stream<R> map(Function<? super T, ? extends R> mapper);
+    <R, X1 extends Exception> Stream<R, ? extends X|X1> map(Function<? super T, ? extends R, ? extends X1> mapper);
 
     /**
      * Returns an {@code IntStream} consisting of the results of applying the
@@ -279,8 +285,11 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *               of new values
      * @return the new stream
      * @see #mapMulti mapMulti
+     * @param <X1> throws
+     * @param <X2> throws
      */
-    <R> Stream<R> flatMap(Function<? super T, ? extends Stream<? extends R>> mapper);
+    <R, X1 extends Exception, X2 extends Exception>
+    Stream<R, ? extends X|X1|X2> flatMap(Function<? super T, ? extends Stream<? extends R, ? extends X2>, ? extends X1> mapper);
 
     /**
      * Returns an {@code IntStream} consisting of the results of replacing each
@@ -418,6 +427,7 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * }</pre>
      *
      * @param <R> The element type of the new stream
+     * @param <X1> throws
      * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
      *               <a href="package-summary.html#Statelessness">stateless</a>
      *               function that generates replacement elements
@@ -425,7 +435,8 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @see #flatMap flatMap
      * @since 16
      */
-    default <R> Stream<R> mapMulti(BiConsumer<? super T, ? super Consumer<R>> mapper) {
+    default <R, X1 extends Exception>
+    Stream<R, ? extends X|X1> mapMulti(BiConsumer<? super T, ? super Consumer<R>, ? extends X1> mapper) {
         Objects.requireNonNull(mapper);
         return flatMap(e -> {
             SpinedBuffer<R> buffer = new SpinedBuffer<>();
@@ -575,7 +586,7 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *
      * @return the new stream
      */
-    Stream<T> distinct();
+    Stream<T, X> distinct();
 
     /**
      * Returns a stream consisting of the elements of this stream, sorted
@@ -591,7 +602,7 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *
      * @return the new stream
      */
-    Stream<T> sorted();
+    Stream<T, X> sorted();
 
     /**
      * Returns a stream consisting of the elements of this stream, sorted
@@ -608,7 +619,7 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *                   {@code Comparator} to be used to compare stream elements
      * @return the new stream
      */
-    Stream<T> sorted(Comparator<? super T> comparator);
+    Stream<T, X> sorted(Comparator<? super T> comparator);
 
     /**
      * Returns a stream consisting of the elements of this stream, additionally
@@ -644,7 +655,7 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *                 they are consumed from the stream
      * @return the new stream
      */
-    Stream<T> peek(Consumer<? super T> action);
+    Stream<T, ? extends X> peek(Consumer<? super T> action);
 
     /**
      * Returns a stream consisting of the elements of this stream, truncated
@@ -671,7 +682,7 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @return the new stream
      * @throws IllegalArgumentException if {@code maxSize} is negative
      */
-    Stream<T> limit(long maxSize);
+    Stream<T, X> limit(long maxSize);
 
     /**
      * Returns a stream consisting of the remaining elements of this stream
@@ -700,7 +711,7 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @return the new stream
      * @throws IllegalArgumentException if {@code n} is negative
      */
-    Stream<T> skip(long n);
+    Stream<T, X> skip(long n);
 
     /**
      * Returns, if this stream is ordered, a stream consisting of the longest
@@ -758,7 +769,7 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @return the new stream
      * @since 9
      */
-    default Stream<T> takeWhile(Predicate<? super T> predicate) {
+    default Stream<T, ? extends X> takeWhile(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
@@ -824,7 +835,7 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @return the new stream
      * @since 9
      */
-    default Stream<T> dropWhile(Predicate<? super T> predicate) {
+    default Stream<T, ? extends X> dropWhile(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
@@ -849,8 +860,11 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *
      * @param action a <a href="package-summary.html#NonInterference">
      *               non-interfering</a> action to perform on the elements
+     * @param <X1> throws
+     * @throws X1 throws
+     * @throws X throws
      */
-    void forEach(Consumer<? super T> action);
+    <X1 extends Exception> void forEach(Consumer<? super T, X1> action) throws X, X1;
 
     /**
      * Performs an action for each element of this stream, in the encounter
@@ -867,9 +881,12 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *
      * @param action a <a href="package-summary.html#NonInterference">
      *               non-interfering</a> action to perform on the elements
+     * @param <X1> throws
+     * @throws X1 throws
+     * @throws X throws
      * @see #forEach(Consumer)
      */
-    void forEachOrdered(Consumer<? super T> action);
+    <X1 extends Exception> void forEachOrdered(Consumer<? super T, X1> action) throws X, X1;
 
     /**
      * Returns an array containing the elements of this stream.
@@ -879,8 +896,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *
      * @return an array, whose {@linkplain Class#getComponentType runtime component
      * type} is {@code Object}, containing the elements of this stream
+     * @throws X throws
      */
-    Object[] toArray();
+    Object[] toArray() throws X;
 
     /**
      * Returns an array containing the elements of this stream, using the
@@ -908,8 +926,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @throws ArrayStoreException if the runtime type of any element of this
      *         stream is not assignable to the {@linkplain Class#getComponentType
      *         runtime component type} of the generated array
+     * @throws X throws
      */
-    <A> A[] toArray(IntFunction<A[]> generator);
+    <A> A[] toArray(IntFunction<A[]> generator) throws X;
 
     /**
      * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
@@ -959,8 +978,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *                    <a href="package-summary.html#Statelessness">stateless</a>
      *                    function for combining two values
      * @return the result of the reduction
+     * @throws X throws
      */
-    T reduce(T identity, BinaryOperator<T> accumulator);
+    T reduce(T identity, BinaryOperator<T> accumulator) throws X;
 
     /**
      * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
@@ -999,8 +1019,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @see #reduce(Object, BinaryOperator)
      * @see #min(Comparator)
      * @see #max(Comparator)
+     * @throws X throws
      */
-    Optional<T> reduce(BinaryOperator<T> accumulator);
+    Optional<T> reduce(BinaryOperator<T> accumulator) throws X;
 
     /**
      * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
@@ -1048,10 +1069,11 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @return the result of the reduction
      * @see #reduce(BinaryOperator)
      * @see #reduce(Object, BinaryOperator)
+     * @throws X throws
      */
     <U> U reduce(U identity,
                  BiFunction<U, ? super T, U> accumulator,
-                 BinaryOperator<U> combiner);
+                 BinaryOperator<U> combiner) throws X;
 
     /**
      * Returns a stream consisting of the results of applying the given
@@ -1159,10 +1181,11 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *                    the elements from the second result container into the
      *                    first result container.
      * @return the result of the reduction
+     * @throws X throws
      */
     <R> R collect(Supplier<R> supplier,
                   BiConsumer<R, ? super T> accumulator,
-                  BiConsumer<R, R> combiner);
+                  BiConsumer<R, R> combiner) throws X;
 
     /**
      * Performs a <a href="package-summary.html#MutableReduction">mutable
@@ -1215,8 +1238,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @return the result of the reduction
      * @see #collect(Supplier, BiConsumer, BiConsumer)
      * @see Collectors
+     * @throws X throws
      */
-    <R, A> R collect(Collector<? super T, A, R> collector);
+    <R, A> R collect(Collector<? super T, A, R> collector) throws X;
 
     /**
      * Accumulates the elements of this stream into a {@code List}. The elements in
@@ -1244,11 +1268,11 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * that is highly optimized compared to the implementation in this interface.
      *
      * @return a List containing the stream elements
-     *
      * @since 16
+     * @throws X throws
      */
     @SuppressWarnings("unchecked")
-    default List<T> toList() {
+    default List<T> toList() throws X {
         return (List<T>) Collections.unmodifiableList(new ArrayList<>(Arrays.asList(this.toArray())));
     }
 
@@ -1265,8 +1289,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @return an {@code Optional} describing the minimum element of this stream,
      * or an empty {@code Optional} if the stream is empty
      * @throws NullPointerException if the minimum element is null
+     * @throws X throws
      */
-    Optional<T> min(Comparator<? super T> comparator);
+    Optional<T> min(Comparator<? super T> comparator) throws X;
 
     /**
      * Returns the maximum element of this stream according to the provided
@@ -1282,8 +1307,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @return an {@code Optional} describing the maximum element of this stream,
      * or an empty {@code Optional} if the stream is empty
      * @throws NullPointerException if the maximum element is null
+     * @throws X throws
      */
-    Optional<T> max(Comparator<? super T> comparator);
+    Optional<T> max(Comparator<? super T> comparator) throws X;
 
     /**
      * Returns the count of elements in this stream.  This is a special case of
@@ -1315,8 +1341,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * and, as a side-effect, print out the list elements.
      *
      * @return the count of elements in this stream
+     * @throws X throws
      */
-    long count();
+    long count() throws X;
 
     /**
      * Returns whether any elements of this stream match the provided
@@ -1336,8 +1363,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *                  predicate to apply to elements of this stream
      * @return {@code true} if any elements of the stream match the provided
      * predicate, otherwise {@code false}
+     * @throws X throws
      */
-    boolean anyMatch(Predicate<? super T> predicate);
+    boolean anyMatch(Predicate<? super T> predicate) throws X;
 
     /**
      * Returns whether all elements of this stream match the provided predicate.
@@ -1359,8 +1387,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *                  predicate to apply to elements of this stream
      * @return {@code true} if either all elements of the stream match the
      * provided predicate or the stream is empty, otherwise {@code false}
+     * @throws X throws
      */
-    boolean allMatch(Predicate<? super T> predicate);
+    boolean allMatch(Predicate<? super T> predicate) throws X;
 
     /**
      * Returns whether no elements of this stream match the provided predicate.
@@ -1382,8 +1411,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *                  predicate to apply to elements of this stream
      * @return {@code true} if either no elements of the stream match the
      * provided predicate or the stream is empty, otherwise {@code false}
+     * @throws X throws
      */
-    boolean noneMatch(Predicate<? super T> predicate);
+    boolean noneMatch(Predicate<? super T> predicate) throws X;
 
     /**
      * Returns an {@link Optional} describing the first element of this stream,
@@ -1396,8 +1426,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * @return an {@code Optional} describing the first element of this stream,
      * or an empty {@code Optional} if the stream is empty
      * @throws NullPointerException if the element selected is null
+     * @throws X throws
      */
-    Optional<T> findFirst();
+    Optional<T> findFirst() throws X;
 
     /**
      * Returns an {@link Optional} describing some element of the stream, or an
@@ -1416,8 +1447,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * empty {@code Optional} if the stream is empty
      * @throws NullPointerException if the element selected is null
      * @see #findFirst()
+     * @throws X throws
      */
-    Optional<T> findAny();
+    Optional<T> findAny() throws X;
 
     // Static factories
 

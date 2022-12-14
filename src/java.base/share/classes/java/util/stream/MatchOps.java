@@ -109,7 +109,7 @@ final class MatchOps {
                                                        MatchKind matchKind) {
         Objects.requireNonNull(predicate);
         Objects.requireNonNull(matchKind);
-        class MatchSink extends BooleanTerminalSink<Integer> implements Sink.OfInt {
+        class MatchSink extends BooleanTerminalSink<Integer> implements Sink.OfInt<RuntimeException> {
             MatchSink() {
                 super(matchKind);
             }
@@ -138,7 +138,7 @@ final class MatchOps {
                                                      MatchKind matchKind) {
         Objects.requireNonNull(predicate);
         Objects.requireNonNull(matchKind);
-        class MatchSink extends BooleanTerminalSink<Long> implements Sink.OfLong {
+        class MatchSink extends BooleanTerminalSink<Long> implements Sink.OfLong<RuntimeException> {
 
             MatchSink() {
                 super(matchKind);
@@ -168,7 +168,7 @@ final class MatchOps {
                                                          MatchKind matchKind) {
         Objects.requireNonNull(predicate);
         Objects.requireNonNull(matchKind);
-        class MatchSink extends BooleanTerminalSink<Double> implements Sink.OfDouble {
+        class MatchSink extends BooleanTerminalSink<Double> implements Sink.OfDouble<RuntimeException> {
 
             MatchSink() {
                 super(matchKind);
@@ -225,14 +225,14 @@ final class MatchOps {
         }
 
         @Override
-        public <S> Boolean evaluateSequential(PipelineHelper<T> helper,
-                                              Spliterator<S> spliterator) {
+        public <S, X_IN extends Exception, X extends Exception> Boolean evaluateSequential(PipelineHelper<T, X_IN, X> helper,
+                                                                      Spliterator<S, ? extends X_IN> spliterator) throws X_IN, X {
             return helper.wrapAndCopyInto(sinkSupplier.get(), spliterator).getAndClearState();
         }
 
         @Override
-        public <S> Boolean evaluateParallel(PipelineHelper<T> helper,
-                                            Spliterator<S> spliterator) {
+        public <S, X_IN extends Exception, X extends Exception> Boolean evaluateParallel(PipelineHelper<T, X_IN, X> helper,
+                                                                    Spliterator<S, ? extends X_IN> spliterator) throws X_IN, X {
             // Approach for parallel implementation:
             // - Decompose as per usual
             // - run match on leaf chunks, call result "b"
@@ -282,8 +282,8 @@ final class MatchOps {
         /**
          * Constructor for root node
          */
-        MatchTask(MatchOp<P_OUT> op, PipelineHelper<P_OUT> helper,
-                  Spliterator<P_IN> spliterator) {
+        MatchTask(MatchOp<P_OUT> op, PipelineHelper<P_OUT, ?, ?> helper,
+                  Spliterator<P_IN, ?> spliterator) {
             super(helper, spliterator);
             this.op = op;
         }
@@ -291,18 +291,18 @@ final class MatchOps {
         /**
          * Constructor for non-root node
          */
-        MatchTask(MatchTask<P_IN, P_OUT> parent, Spliterator<P_IN> spliterator) {
+        MatchTask(MatchTask<P_IN, P_OUT> parent, Spliterator<P_IN, ?> spliterator) {
             super(parent, spliterator);
             this.op = parent.op;
         }
 
         @Override
-        protected MatchTask<P_IN, P_OUT> makeChild(Spliterator<P_IN> spliterator) {
+        protected MatchTask<P_IN, P_OUT> makeChild(Spliterator<P_IN, ?> spliterator) {
             return new MatchTask<>(this, spliterator);
         }
 
         @Override
-        protected Boolean doLeaf() {
+        protected Boolean doLeaf() throws Exception {
             boolean b = helper.wrapAndCopyInto(op.sinkSupplier.get(), spliterator).getAndClearState();
             if (b == op.matchKind.shortCircuitResult)
                 shortCircuit(b);

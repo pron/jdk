@@ -65,8 +65,8 @@ abstract class AbstractShortCircuitTask<P_IN, P_OUT, R,
      * @param spliterator the {@code Spliterator} describing the source for this
      *                    pipeline
      */
-    protected AbstractShortCircuitTask(PipelineHelper<P_OUT> helper,
-                                       Spliterator<P_IN> spliterator) {
+    protected AbstractShortCircuitTask(PipelineHelper<P_OUT, ?, ?> helper,
+                                       Spliterator<P_IN, ?> spliterator) {
         super(helper, spliterator);
         sharedResult = new AtomicReference<>();
     }
@@ -79,7 +79,7 @@ abstract class AbstractShortCircuitTask<P_IN, P_OUT, R,
      *                    computation tree described by this task
      */
     protected AbstractShortCircuitTask(K parent,
-                                       Spliterator<P_IN> spliterator) {
+                                       Spliterator<P_IN, ?> spliterator) {
         super(parent, spliterator);
         sharedResult = parent.sharedResult;
     }
@@ -99,42 +99,45 @@ abstract class AbstractShortCircuitTask<P_IN, P_OUT, R,
      */
     @Override
     public void compute() {
-        Spliterator<P_IN> rs = spliterator, ls;
+        Spliterator<P_IN, ?> rs = spliterator, ls;
         long sizeEstimate = rs.estimateSize();
         long sizeThreshold = getTargetSize(sizeEstimate);
         boolean forkRight = false;
         @SuppressWarnings("unchecked") K task = (K) this;
         AtomicReference<R> sr = sharedResult;
-        R result;
-        while ((result = sr.get()) == null) {
-            if (task.taskCanceled()) {
-                result = task.getEmptyResult();
-                break;
+        try {
+            R result;
+            while ((result = sr.get()) == null) {
+                if (task.taskCanceled()) {
+                    result = task.getEmptyResult();
+                    break;
+                }
+                if (sizeEstimate <= sizeThreshold || (ls = rs.trySplit()) == null) {
+                    result = task.doLeaf();
+                    break;
+                }
+                K leftChild, rightChild, taskToFork;
+                task.leftChild = leftChild = task.makeChild(ls);
+                task.rightChild = rightChild = task.makeChild(rs);
+                task.setPendingCount(1);
+                if (forkRight) {
+                    forkRight = false;
+                    rs = ls;
+                    task = leftChild;
+                    taskToFork = rightChild;
+                } else {
+                    forkRight = true;
+                    task = rightChild;
+                    taskToFork = leftChild;
+                }
+                taskToFork.fork();
+                sizeEstimate = rs.estimateSize();
             }
-            if (sizeEstimate <= sizeThreshold || (ls = rs.trySplit()) == null) {
-                result = task.doLeaf();
-                break;
-            }
-            K leftChild, rightChild, taskToFork;
-            task.leftChild  = leftChild = task.makeChild(ls);
-            task.rightChild = rightChild = task.makeChild(rs);
-            task.setPendingCount(1);
-            if (forkRight) {
-                forkRight = false;
-                rs = ls;
-                task = leftChild;
-                taskToFork = rightChild;
-            }
-            else {
-                forkRight = true;
-                task = rightChild;
-                taskToFork = leftChild;
-            }
-            taskToFork.fork();
-            sizeEstimate = rs.estimateSize();
+            task.setLocalResult(result);
+            task.tryComplete(); // TODO: move to finally?
+        } catch (Exception ex) {
+            throw CheckedExceptions.wrap(ex);
         }
-        task.setLocalResult(result);
-        task.tryComplete();
     }
 
 

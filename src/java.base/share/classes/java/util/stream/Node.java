@@ -202,7 +202,7 @@ interface Node<T> {
         /**
          * Specialized {@code Node.Builder} for int elements
          */
-        interface OfInt extends Node.Builder<Integer>, Sink.OfInt {
+        interface OfInt extends Node.Builder<Integer>, Sink.OfInt<RuntimeException> {
             @Override
             Node.OfInt build();
         }
@@ -210,7 +210,7 @@ interface Node<T> {
         /**
          * Specialized {@code Node.Builder} for long elements
          */
-        interface OfLong extends Node.Builder<Long>, Sink.OfLong {
+        interface OfLong extends Node.Builder<Long>, Sink.OfLong<RuntimeException> {
             @Override
             Node.OfLong build();
         }
@@ -218,7 +218,7 @@ interface Node<T> {
         /**
          * Specialized {@code Node.Builder} for double elements
          */
-        interface OfDouble extends Node.Builder<Double>, Sink.OfDouble {
+        interface OfDouble extends Node.Builder<Double>, Sink.OfDouble<RuntimeException> {
             @Override
             Node.OfDouble build();
         }

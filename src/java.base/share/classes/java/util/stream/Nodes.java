@@ -312,8 +312,12 @@ final class Nodes {
      * @param generator the array generator
      * @return a {@link Node} describing the output elements
      */
-    public static <P_IN, P_OUT> Node<P_OUT> collect(PipelineHelper<P_OUT> helper,
-                                                    Spliterator<P_IN> spliterator,
+//    final <P_IN, XIN extends X_OUT> Node<P_OUT> evaluateToNode(PipelineHelper<P_OUT, X_OUT> helper,
+//                                                               Spliterator<P_IN, XIN> spliterator,
+//                                                               boolean flattenTree,
+//                                                               IntFunction<P_OUT[]> generator) {
+    public static <P_IN, P_OUT> Node<P_OUT> collect(PipelineHelper<P_OUT, ?, ?> helper,
+                                                    Spliterator<P_IN, ?> spliterator,
                                                     boolean flattenTree,
                                                     IntFunction<P_OUT[]> generator) {
         long size = helper.exactOutputSizeIfKnown(spliterator);
@@ -351,7 +355,7 @@ final class Nodes {
      * @return a {@link Node.OfInt} describing the output elements
      */
     public static <P_IN> Node.OfInt collectInt(PipelineHelper<Integer> helper,
-                                               Spliterator<P_IN> spliterator,
+                                               Spliterator<P_IN, ? extends RuntimeException> spliterator,
                                                boolean flattenTree) {
         long size = helper.exactOutputSizeIfKnown(spliterator);
         if (size >= 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
@@ -389,7 +393,7 @@ final class Nodes {
      * @return a {@link Node.OfLong} describing the output elements
      */
     public static <P_IN> Node.OfLong collectLong(PipelineHelper<Long> helper,
-                                                 Spliterator<P_IN> spliterator,
+                                                 Spliterator<P_IN, ? extends RuntimeException> spliterator,
                                                  boolean flattenTree) {
         long size = helper.exactOutputSizeIfKnown(spliterator);
         if (size >= 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
@@ -427,7 +431,7 @@ final class Nodes {
      * @return a {@link Node.OfDouble} describing the output elements
      */
     public static <P_IN> Node.OfDouble collectDouble(PipelineHelper<Double> helper,
-                                                     Spliterator<P_IN> spliterator,
+                                                     Spliterator<P_IN, ? extends RuntimeException> spliterator,
                                                      boolean flattenTree) {
         long size = helper.exactOutputSizeIfKnown(spliterator);
         if (size >= 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
@@ -1831,16 +1835,16 @@ final class Nodes {
                                                      K extends SizedCollectorTask<P_IN, P_OUT, T_SINK, K>>
             extends CountedCompleter<Void>
             implements Sink<P_OUT> {
-        protected final Spliterator<P_IN> spliterator;
-        protected final PipelineHelper<P_OUT> helper;
+        protected final Spliterator<P_IN, ?> spliterator;
+        protected final PipelineHelper<P_OUT, ?, ?> helper;
         protected final long targetSize;
         protected long offset;
         protected long length;
         // For Sink implementation
         protected int index, fence;
 
-        SizedCollectorTask(Spliterator<P_IN> spliterator,
-                           PipelineHelper<P_OUT> helper,
+        SizedCollectorTask(Spliterator<P_IN, ?> spliterator,
+                           PipelineHelper<P_OUT, ?, ?> helper,
                            int arrayLength) {
             assert spliterator.hasCharacteristics(Spliterator.SUBSIZED);
             this.spliterator = spliterator;
@@ -1850,7 +1854,7 @@ final class Nodes {
             this.length = arrayLength;
         }
 
-        SizedCollectorTask(K parent, Spliterator<P_IN> spliterator,
+        SizedCollectorTask(K parent, Spliterator<P_IN, ?> spliterator,
                            long offset, long length, int arrayLength) {
             super(parent);
             assert spliterator.hasCharacteristics(Spliterator.SUBSIZED);
@@ -1870,7 +1874,7 @@ final class Nodes {
         @Override
         public void compute() {
             SizedCollectorTask<P_IN, P_OUT, T_SINK, K> task = this;
-            Spliterator<P_IN> rightSplit = spliterator, leftSplit;
+            Spliterator<P_IN, ?> rightSplit = spliterator, leftSplit;
             while (rightSplit.estimateSize() > task.targetSize &&
                    (leftSplit = rightSplit.trySplit()) != null) {
                 task.setPendingCount(1);
@@ -1883,11 +1887,15 @@ final class Nodes {
             assert task.offset + task.length < MAX_ARRAY_SIZE;
             @SuppressWarnings("unchecked")
             T_SINK sink = (T_SINK) task;
-            task.helper.wrapAndCopyInto(sink, rightSplit);
-            task.propagateCompletion();
+            try {
+                task.helper.wrapAndCopyInto(sink, rightSplit);
+                task.propagateCompletion(); // TODO: move to finally?
+            } catch (Exception ex) {
+                throw CheckedExceptions.wrap(ex);
+            }
         }
 
-        abstract K makeChild(Spliterator<P_IN> spliterator, long offset, long size);
+        abstract K makeChild(Spliterator<P_IN, ?> spliterator, long offset, long size);
 
         @Override
         public void begin(long size) {
@@ -1906,19 +1914,19 @@ final class Nodes {
                 implements Sink<P_OUT> {
             private final P_OUT[] array;
 
-            OfRef(Spliterator<P_IN> spliterator, PipelineHelper<P_OUT> helper, P_OUT[] array) {
+            OfRef(Spliterator<P_IN, ?> spliterator, PipelineHelper<P_OUT, ?, ?> helper, P_OUT[] array) {
                 super(spliterator, helper, array.length);
                 this.array = array;
             }
 
-            OfRef(OfRef<P_IN, P_OUT> parent, Spliterator<P_IN> spliterator,
+            OfRef(OfRef<P_IN, P_OUT> parent, Spliterator<P_IN, ?> spliterator,
                   long offset, long length) {
                 super(parent, spliterator, offset, length, parent.array.length);
                 this.array = parent.array;
             }
 
             @Override
-            OfRef<P_IN, P_OUT> makeChild(Spliterator<P_IN> spliterator,
+            OfRef<P_IN, P_OUT> makeChild(Spliterator<P_IN, ?> spliterator,
                                          long offset, long size) {
                 return new OfRef<>(this, spliterator, offset, size);
             }
@@ -1934,23 +1942,23 @@ final class Nodes {
 
         @SuppressWarnings("serial")
         static final class OfInt<P_IN>
-                extends SizedCollectorTask<P_IN, Integer, Sink.OfInt, OfInt<P_IN>>
-                implements Sink.OfInt {
+                extends SizedCollectorTask<P_IN, Integer, Sink.OfInt<RuntimeException>, OfInt<P_IN>>
+                implements Sink.OfInt<RuntimeException> {
             private final int[] array;
 
-            OfInt(Spliterator<P_IN> spliterator, PipelineHelper<Integer> helper, int[] array) {
+            OfInt(Spliterator<P_IN, ?> spliterator, PipelineHelper<Integer> helper, int[] array) {
                 super(spliterator, helper, array.length);
                 this.array = array;
             }
 
-            OfInt(SizedCollectorTask.OfInt<P_IN> parent, Spliterator<P_IN> spliterator,
+            OfInt(SizedCollectorTask.OfInt<P_IN> parent, Spliterator<P_IN, ?> spliterator,
                   long offset, long length) {
                 super(parent, spliterator, offset, length, parent.array.length);
                 this.array = parent.array;
             }
 
             @Override
-            SizedCollectorTask.OfInt<P_IN> makeChild(Spliterator<P_IN> spliterator,
+            SizedCollectorTask.OfInt<P_IN> makeChild(Spliterator<P_IN, ?> spliterator,
                                                      long offset, long size) {
                 return new SizedCollectorTask.OfInt<>(this, spliterator, offset, size);
             }
@@ -1966,23 +1974,23 @@ final class Nodes {
 
         @SuppressWarnings("serial")
         static final class OfLong<P_IN>
-                extends SizedCollectorTask<P_IN, Long, Sink.OfLong, OfLong<P_IN>>
-                implements Sink.OfLong {
+                extends SizedCollectorTask<P_IN, Long, Sink.OfLong<RuntimeException>, OfLong<P_IN>>
+                implements Sink.OfLong<RuntimeException> {
             private final long[] array;
 
-            OfLong(Spliterator<P_IN> spliterator, PipelineHelper<Long> helper, long[] array) {
+            OfLong(Spliterator<P_IN, ?> spliterator, PipelineHelper<Long> helper, long[] array) {
                 super(spliterator, helper, array.length);
                 this.array = array;
             }
 
-            OfLong(SizedCollectorTask.OfLong<P_IN> parent, Spliterator<P_IN> spliterator,
+            OfLong(SizedCollectorTask.OfLong<P_IN> parent, Spliterator<P_IN, ?> spliterator,
                    long offset, long length) {
                 super(parent, spliterator, offset, length, parent.array.length);
                 this.array = parent.array;
             }
 
             @Override
-            SizedCollectorTask.OfLong<P_IN> makeChild(Spliterator<P_IN> spliterator,
+            SizedCollectorTask.OfLong<P_IN> makeChild(Spliterator<P_IN, ?> spliterator,
                                                       long offset, long size) {
                 return new SizedCollectorTask.OfLong<>(this, spliterator, offset, size);
             }
@@ -1998,23 +2006,23 @@ final class Nodes {
 
         @SuppressWarnings("serial")
         static final class OfDouble<P_IN>
-                extends SizedCollectorTask<P_IN, Double, Sink.OfDouble, OfDouble<P_IN>>
-                implements Sink.OfDouble {
+                extends SizedCollectorTask<P_IN, Double, Sink.OfDouble<RuntimeException>, OfDouble<P_IN>>
+                implements Sink.OfDouble<RuntimeException> {
             private final double[] array;
 
-            OfDouble(Spliterator<P_IN> spliterator, PipelineHelper<Double> helper, double[] array) {
+            OfDouble(Spliterator<P_IN, ?> spliterator, PipelineHelper<Double> helper, double[] array) {
                 super(spliterator, helper, array.length);
                 this.array = array;
             }
 
-            OfDouble(SizedCollectorTask.OfDouble<P_IN> parent, Spliterator<P_IN> spliterator,
+            OfDouble(SizedCollectorTask.OfDouble<P_IN> parent, Spliterator<P_IN, ?> spliterator,
                      long offset, long length) {
                 super(parent, spliterator, offset, length, parent.array.length);
                 this.array = parent.array;
             }
 
             @Override
-            SizedCollectorTask.OfDouble<P_IN> makeChild(Spliterator<P_IN> spliterator,
+            SizedCollectorTask.OfDouble<P_IN> makeChild(Spliterator<P_IN, ?> spliterator,
                                                         long offset, long size) {
                 return new SizedCollectorTask.OfDouble<>(this, spliterator, offset, size);
             }
@@ -2157,12 +2165,12 @@ final class Nodes {
     @SuppressWarnings("serial")
     private static class CollectorTask<P_IN, P_OUT, T_NODE extends Node<P_OUT>, T_BUILDER extends Node.Builder<P_OUT>>
             extends AbstractTask<P_IN, P_OUT, T_NODE, CollectorTask<P_IN, P_OUT, T_NODE, T_BUILDER>> {
-        protected final PipelineHelper<P_OUT> helper;
+        protected final PipelineHelper<P_OUT, ?, ?> helper;
         protected final LongFunction<T_BUILDER> builderFactory;
         protected final BinaryOperator<T_NODE> concFactory;
 
-        CollectorTask(PipelineHelper<P_OUT> helper,
-                      Spliterator<P_IN> spliterator,
+        CollectorTask(PipelineHelper<P_OUT, ?, ?> helper,
+                      Spliterator<P_IN, ?> spliterator,
                       LongFunction<T_BUILDER> builderFactory,
                       BinaryOperator<T_NODE> concFactory) {
             super(helper, spliterator);
@@ -2172,7 +2180,7 @@ final class Nodes {
         }
 
         CollectorTask(CollectorTask<P_IN, P_OUT, T_NODE, T_BUILDER> parent,
-                      Spliterator<P_IN> spliterator) {
+                      Spliterator<P_IN, ?> spliterator) {
             super(parent, spliterator);
             helper = parent.helper;
             builderFactory = parent.builderFactory;
@@ -2180,13 +2188,13 @@ final class Nodes {
         }
 
         @Override
-        protected CollectorTask<P_IN, P_OUT, T_NODE, T_BUILDER> makeChild(Spliterator<P_IN> spliterator) {
+        protected CollectorTask<P_IN, P_OUT, T_NODE, T_BUILDER> makeChild(Spliterator<P_IN, ?> spliterator) {
             return new CollectorTask<>(this, spliterator);
         }
 
         @Override
         @SuppressWarnings("unchecked")
-        protected T_NODE doLeaf() {
+        protected T_NODE doLeaf() throws Exception {
             T_BUILDER builder = builderFactory.apply(helper.exactOutputSizeIfKnown(spliterator));
             return (T_NODE) helper.wrapAndCopyInto(builder, spliterator).build();
         }
@@ -2201,9 +2209,9 @@ final class Nodes {
         @SuppressWarnings("serial")
         private static final class OfRef<P_IN, P_OUT>
                 extends CollectorTask<P_IN, P_OUT, Node<P_OUT>, Node.Builder<P_OUT>> {
-            OfRef(PipelineHelper<P_OUT> helper,
+            OfRef(PipelineHelper<P_OUT, ?, ?> helper,
                   IntFunction<P_OUT[]> generator,
-                  Spliterator<P_IN> spliterator) {
+                  Spliterator<P_IN, ?> spliterator) {
                 super(helper, spliterator, s -> builder(s, generator), ConcNode::new);
             }
         }
@@ -2211,7 +2219,7 @@ final class Nodes {
         @SuppressWarnings("serial")
         private static final class OfInt<P_IN>
                 extends CollectorTask<P_IN, Integer, Node.OfInt, Node.Builder.OfInt> {
-            OfInt(PipelineHelper<Integer> helper, Spliterator<P_IN> spliterator) {
+            OfInt(PipelineHelper<Integer> helper, Spliterator<P_IN, ?> spliterator) {
                 super(helper, spliterator, Nodes::intBuilder, ConcNode.OfInt::new);
             }
         }
@@ -2219,7 +2227,7 @@ final class Nodes {
         @SuppressWarnings("serial")
         private static final class OfLong<P_IN>
                 extends CollectorTask<P_IN, Long, Node.OfLong, Node.Builder.OfLong> {
-            OfLong(PipelineHelper<Long> helper, Spliterator<P_IN> spliterator) {
+            OfLong(PipelineHelper<Long> helper, Spliterator<P_IN, ?> spliterator) {
                 super(helper, spliterator, Nodes::longBuilder, ConcNode.OfLong::new);
             }
         }
@@ -2227,7 +2235,7 @@ final class Nodes {
         @SuppressWarnings("serial")
         private static final class OfDouble<P_IN>
                 extends CollectorTask<P_IN, Double, Node.OfDouble, Node.Builder.OfDouble> {
-            OfDouble(PipelineHelper<Double> helper, Spliterator<P_IN> spliterator) {
+            OfDouble(PipelineHelper<Double> helper, Spliterator<P_IN, ?> spliterator) {
                 super(helper, spliterator, Nodes::doubleBuilder, ConcNode.OfDouble::new);
             }
         }

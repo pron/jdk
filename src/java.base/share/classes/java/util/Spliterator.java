@@ -289,11 +289,12 @@ import java.util.function.LongConsumer;
  * primitive values occur when operating on primitive subtype specializations.
  *
  * @param <T> the type of elements returned by this Spliterator
+ * @param <X> throws
  *
  * @see Collection
  * @since 1.8
  */
-public interface Spliterator<T> {
+public interface Spliterator<T, X extends Exception> {
     /**
      * If a remaining element exists: performs the given action on it,
      * returning {@code true}; else returns {@code false}.  If this
@@ -308,8 +309,9 @@ public interface Spliterator<T> {
      * @return {@code false} if no remaining elements existed
      * upon entry to this method, else {@code true}.
      * @throws NullPointerException if the specified action is null
+     * @throws X throws
      */
-    boolean tryAdvance(Consumer<? super T> action);
+     boolean tryAdvance(Consumer<? super T> action) throws X;
 
     /**
      * Performs the given action for each remaining element, sequentially in
@@ -327,8 +329,9 @@ public interface Spliterator<T> {
      *
      * @param action The action
      * @throws NullPointerException if the specified action is null
+     * @throws X throws
      */
-    default void forEachRemaining(Consumer<? super T> action) {
+    default void forEachRemaining(Consumer<? super T> action) throws X {
         do { } while (tryAdvance(action));
     }
 
@@ -373,7 +376,7 @@ public interface Spliterator<T> {
      * @return a {@code Spliterator} covering some portion of the
      * elements, or {@code null} if this spliterator cannot be split
      */
-    Spliterator<T> trySplit();
+    Spliterator<T, ? extends X> trySplit();
 
     /**
      * Returns an estimate of the number of elements that would be

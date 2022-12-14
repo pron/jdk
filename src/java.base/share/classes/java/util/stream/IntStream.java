@@ -70,7 +70,7 @@ import java.util.function.Supplier;
  * @see Stream
  * @see <a href="package-summary.html">java.util.stream</a>
  */
-public interface IntStream extends BaseStream<Integer, IntStream> {
+public interface IntStream extends BaseStream<Integer, RuntimeException, IntStream> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match

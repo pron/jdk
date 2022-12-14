@@ -57,9 +57,9 @@ class StreamSpliterators {
      * <p>A wrapping spliterator produced from a sequential stream
      * cannot be split if there are stateful operations present.
      */
-    private abstract static class AbstractWrappingSpliterator<P_IN, P_OUT,
+    private abstract static class AbstractWrappingSpliterator<P_IN, P_OUT, X_OUT extends Exception, X extends X_OUT,
                                                               T_BUFFER extends AbstractSpinedBuffer>
-            implements Spliterator<P_OUT> {
+            implements Spliterator<P_OUT, X_OUT> {
 
         // @@@ Detect if stateful operations are present or not
         //     If not then can split otherwise cannot
@@ -69,25 +69,25 @@ class StreamSpliterators {
          */
         final boolean isParallel;
 
-        final PipelineHelper<P_OUT> ph;
+        final PipelineHelper<P_OUT, ? extends X_OUT, ? extends X> ph;
 
         /**
          * Supplier for the source spliterator.  Client provides either a
          * spliterator or a supplier.
          */
-        private Supplier<Spliterator<P_IN>> spliteratorSupplier;
+        private Supplier<? extends Spliterator<P_IN, ? extends X_OUT>> spliteratorSupplier;
 
         /**
          * Source spliterator.  Either provided from client or obtained from
          * supplier.
          */
-        Spliterator<P_IN> spliterator;
+        Spliterator<P_IN, ? extends X_OUT> spliterator;
 
         /**
          * Sink chain for the downstream stages of the pipeline, ultimately
          * leading to the buffer. Used during partial traversal.
          */
-        Sink<P_IN> bufferSink;
+        Sink<P_IN, ? extends X> bufferSink;
 
         /**
          * A function that advances one element of the spliterator, pushing
@@ -112,8 +112,8 @@ class StreamSpliterators {
          * Construct an AbstractWrappingSpliterator from a
          * {@code Supplier<Spliterator>}.
          */
-        AbstractWrappingSpliterator(PipelineHelper<P_OUT> ph,
-                                    Supplier<Spliterator<P_IN>> spliteratorSupplier,
+        AbstractWrappingSpliterator(PipelineHelper<P_OUT, ? extends X_OUT, ? extends X> ph,
+                                    Supplier<? extends Spliterator<P_IN, ? extends X_OUT>> spliteratorSupplier,
                                     boolean parallel) {
             this.ph = ph;
             this.spliteratorSupplier = spliteratorSupplier;
@@ -125,8 +125,8 @@ class StreamSpliterators {
          * Construct an AbstractWrappingSpliterator from a
          * {@code Spliterator}.
          */
-        AbstractWrappingSpliterator(PipelineHelper<P_OUT> ph,
-                                    Spliterator<P_IN> spliterator,
+        AbstractWrappingSpliterator(PipelineHelper<P_OUT, ? extends X_OUT, ? extends X> ph,
+                                    Spliterator<P_IN, ? extends X_OUT> spliterator,
                                     boolean parallel) {
             this.ph = ph;
             this.spliteratorSupplier = null;
@@ -149,7 +149,7 @@ class StreamSpliterators {
          * setting up the buffer if needed
          * @return whether there are elements to consume from the buffer
          */
-        final boolean doAdvance() {
+        final boolean doAdvance() throws X_OUT {
             if (buffer == null) {
                 if (finished)
                     return false;
@@ -176,7 +176,7 @@ class StreamSpliterators {
          * Invokes the shape-specific constructor with the provided arguments
          * and returns the result.
          */
-        abstract AbstractWrappingSpliterator<P_IN, P_OUT, ?> wrap(Spliterator<P_IN> s);
+        abstract AbstractWrappingSpliterator<P_IN, P_OUT, X_OUT, ?, ?> wrap(Spliterator<P_IN, ? extends X_OUT> s);
 
         /**
          * Initializes buffer, sink chain, and pusher for a shape-specific
@@ -185,11 +185,11 @@ class StreamSpliterators {
         abstract void initPartialTraversalState();
 
         @Override
-        public Spliterator<P_OUT> trySplit() {
+        public Spliterator<P_OUT, X_OUT> trySplit() {
             if (isParallel && buffer == null && !finished) {
                 init();
 
-                Spliterator<P_IN> split = spliterator.trySplit();
+                var split = spliterator.trySplit();
                 return (split == null) ? null : wrap(split);
             }
             else
@@ -201,18 +201,22 @@ class StreamSpliterators {
          * the source is empty or cancellation is requested.
          * @return whether there are elements to consume from the buffer
          */
-        private boolean fillBuffer() {
-            while (buffer.count() == 0) {
-                if (bufferSink.cancellationRequested() || !pusher.getAsBoolean()) {
-                    if (finished)
-                        return false;
-                    else {
-                        bufferSink.end(); // might trigger more elements
-                        finished = true;
+        private boolean fillBuffer() throws X_OUT {
+            try {
+                while (buffer.count() == 0) {
+                    if (bufferSink.cancellationRequested() || !pusher.getAsBoolean()) {
+                        if (finished)
+                            return false;
+                        else {
+                            bufferSink.end(); // might trigger more elements
+                            finished = true;
+                        }
                     }
                 }
+                return true;
+            } catch (RuntimeException ex) {
+                throw CheckedExceptions.<X_OUT>unwrap(ex);
             }
-            return true;
         }
 
         @Override
@@ -264,24 +268,24 @@ class StreamSpliterators {
         }
     }
 
-    static final class WrappingSpliterator<P_IN, P_OUT>
-            extends AbstractWrappingSpliterator<P_IN, P_OUT, SpinedBuffer<P_OUT>> {
+    static final class WrappingSpliterator<P_IN, P_OUT, X_OUT extends Exception, X extends X_OUT>
+            extends AbstractWrappingSpliterator<P_IN, P_OUT, X_OUT, X, SpinedBuffer<P_OUT>> {
 
-        WrappingSpliterator(PipelineHelper<P_OUT> ph,
-                            Supplier<Spliterator<P_IN>> supplier,
+        WrappingSpliterator(PipelineHelper<P_OUT, ? extends X_OUT, ? extends X> ph,
+                            Supplier<? extends Spliterator<P_IN, ? extends X_OUT>> supplier,
                             boolean parallel) {
             super(ph, supplier, parallel);
         }
 
-        WrappingSpliterator(PipelineHelper<P_OUT> ph,
-                            Spliterator<P_IN> spliterator,
+        WrappingSpliterator(PipelineHelper<P_OUT, ? extends X_OUT, ? extends X> ph,
+                            Spliterator<P_IN, ? extends X_OUT> spliterator,
                             boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        WrappingSpliterator<P_IN, P_OUT> wrap(Spliterator<P_IN> s) {
-            return new WrappingSpliterator<>(ph, s, isParallel);
+        WrappingSpliterator<P_IN, P_OUT, X_OUT, X> wrap(Spliterator<P_IN, ? extends X_OUT> s) {
+            return new WrappingSpliterator<P_IN, P_OUT, X_OUT, X>(ph, s, isParallel);
         }
 
         @Override
@@ -289,11 +293,15 @@ class StreamSpliterators {
             SpinedBuffer<P_OUT> b = new SpinedBuffer<>();
             buffer = b;
             bufferSink = ph.wrapSink(b::accept);
-            pusher = () -> spliterator.tryAdvance(bufferSink);
+            pusher = () -> {
+                try {
+                    return spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+                } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
+            };
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super P_OUT> consumer) {
+        public boolean tryAdvance(Consumer<? super P_OUT> consumer) throws X_OUT {
             Objects.requireNonNull(consumer);
             boolean hasNext = doAdvance();
             if (hasNext)
@@ -302,7 +310,7 @@ class StreamSpliterators {
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super P_OUT> consumer) {
+        public void forEachRemaining(Consumer<? super P_OUT> consumer) throws X_OUT {
             if (buffer == null && !finished) {
                 Objects.requireNonNull(consumer);
                 init();
@@ -317,23 +325,23 @@ class StreamSpliterators {
     }
 
     static final class IntWrappingSpliterator<P_IN>
-            extends AbstractWrappingSpliterator<P_IN, Integer, SpinedBuffer.OfInt>
+            extends AbstractWrappingSpliterator<P_IN, Integer, RuntimeException, RuntimeException, SpinedBuffer.OfInt>
             implements Spliterator.OfInt {
 
         IntWrappingSpliterator(PipelineHelper<Integer> ph,
-                               Supplier<Spliterator<P_IN>> supplier,
+                               Supplier<? extends Spliterator<P_IN, ? extends RuntimeException>> supplier,
                                boolean parallel) {
             super(ph, supplier, parallel);
         }
 
         IntWrappingSpliterator(PipelineHelper<Integer> ph,
-                               Spliterator<P_IN> spliterator,
+                               Spliterator<P_IN, ? extends RuntimeException> spliterator,
                                boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        AbstractWrappingSpliterator<P_IN, Integer, ?> wrap(Spliterator<P_IN> s) {
+        AbstractWrappingSpliterator<P_IN, Integer, RuntimeException, ?, ?> wrap(Spliterator<P_IN, ? extends RuntimeException> s) {
             return new IntWrappingSpliterator<>(ph, s, isParallel);
         }
 
@@ -341,8 +349,8 @@ class StreamSpliterators {
         void initPartialTraversalState() {
             SpinedBuffer.OfInt b = new SpinedBuffer.OfInt();
             buffer = b;
-            bufferSink = ph.wrapSink((Sink.OfInt) b::accept);
-            pusher = () -> spliterator.tryAdvance(bufferSink);
+            bufferSink = ph.wrapSink((Sink.OfInt<RuntimeException>) b::accept);
+            pusher = () -> spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
         }
 
         @Override
@@ -365,7 +373,7 @@ class StreamSpliterators {
                 Objects.requireNonNull(consumer);
                 init();
 
-                ph.wrapAndCopyInto((Sink.OfInt) consumer::accept, spliterator);
+                ph.wrapAndCopyInto((Sink.OfInt<RuntimeException>) consumer::accept, spliterator);
                 finished = true;
             }
             else {
@@ -375,23 +383,23 @@ class StreamSpliterators {
     }
 
     static final class LongWrappingSpliterator<P_IN>
-            extends AbstractWrappingSpliterator<P_IN, Long, SpinedBuffer.OfLong>
+            extends AbstractWrappingSpliterator<P_IN, Long, RuntimeException, RuntimeException, SpinedBuffer.OfLong>
             implements Spliterator.OfLong {
 
         LongWrappingSpliterator(PipelineHelper<Long> ph,
-                                Supplier<Spliterator<P_IN>> supplier,
+                                Supplier<? extends Spliterator<P_IN, ? extends RuntimeException>> supplier,
                                 boolean parallel) {
             super(ph, supplier, parallel);
         }
 
         LongWrappingSpliterator(PipelineHelper<Long> ph,
-                                Spliterator<P_IN> spliterator,
+                                Spliterator<P_IN, ? extends RuntimeException> spliterator,
                                 boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        AbstractWrappingSpliterator<P_IN, Long, ?> wrap(Spliterator<P_IN> s) {
+        AbstractWrappingSpliterator<P_IN, Long, RuntimeException, ?, ?> wrap(Spliterator<P_IN, ? extends RuntimeException> s) {
             return new LongWrappingSpliterator<>(ph, s, isParallel);
         }
 
@@ -399,8 +407,8 @@ class StreamSpliterators {
         void initPartialTraversalState() {
             SpinedBuffer.OfLong b = new SpinedBuffer.OfLong();
             buffer = b;
-            bufferSink = ph.wrapSink((Sink.OfLong) b::accept);
-            pusher = () -> spliterator.tryAdvance(bufferSink);
+            bufferSink = ph.wrapSink((Sink.OfLong<RuntimeException>) b::accept);
+            pusher = () -> spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
         }
 
         @Override
@@ -423,7 +431,7 @@ class StreamSpliterators {
                 Objects.requireNonNull(consumer);
                 init();
 
-                ph.wrapAndCopyInto((Sink.OfLong) consumer::accept, spliterator);
+                ph.wrapAndCopyInto((Sink.OfLong<RuntimeException>) consumer::accept, spliterator);
                 finished = true;
             }
             else {
@@ -433,23 +441,23 @@ class StreamSpliterators {
     }
 
     static final class DoubleWrappingSpliterator<P_IN>
-            extends AbstractWrappingSpliterator<P_IN, Double, SpinedBuffer.OfDouble>
+            extends AbstractWrappingSpliterator<P_IN, Double, RuntimeException, RuntimeException, SpinedBuffer.OfDouble>
             implements Spliterator.OfDouble {
 
         DoubleWrappingSpliterator(PipelineHelper<Double> ph,
-                                  Supplier<Spliterator<P_IN>> supplier,
+                                  Supplier<? extends Spliterator<P_IN, ? extends RuntimeException>> supplier,
                                   boolean parallel) {
             super(ph, supplier, parallel);
         }
 
         DoubleWrappingSpliterator(PipelineHelper<Double> ph,
-                                  Spliterator<P_IN> spliterator,
+                                  Spliterator<P_IN, ? extends RuntimeException> spliterator,
                                   boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        AbstractWrappingSpliterator<P_IN, Double, ?> wrap(Spliterator<P_IN> s) {
+        AbstractWrappingSpliterator<P_IN, Double, RuntimeException, ?, ?> wrap(Spliterator<P_IN, ? extends RuntimeException> s) {
             return new DoubleWrappingSpliterator<>(ph, s, isParallel);
         }
 
@@ -457,8 +465,8 @@ class StreamSpliterators {
         void initPartialTraversalState() {
             SpinedBuffer.OfDouble b = new SpinedBuffer.OfDouble();
             buffer = b;
-            bufferSink = ph.wrapSink((Sink.OfDouble) b::accept);
-            pusher = () -> spliterator.tryAdvance(bufferSink);
+            bufferSink = ph.wrapSink((Sink.OfDouble<RuntimeException>) b::accept);
+            pusher = () -> spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
         }
 
         @Override
@@ -481,7 +489,7 @@ class StreamSpliterators {
                 Objects.requireNonNull(consumer);
                 init();
 
-                ph.wrapAndCopyInto((Sink.OfDouble) consumer::accept, spliterator);
+                ph.wrapAndCopyInto((Sink.OfDouble<RuntimeException>) consumer::accept, spliterator);
                 finished = true;
             }
             else {
@@ -496,8 +504,8 @@ class StreamSpliterators {
      * first call to any spliterator method.
      * @param <T>
      */
-    static class DelegatingSpliterator<T, T_SPLITR extends Spliterator<T>>
-            implements Spliterator<T> {
+    static class DelegatingSpliterator<T, X extends Exception, T_SPLITR extends Spliterator<T, ? extends X>>
+            implements Spliterator<T, X> {
         private final Supplier<? extends T_SPLITR> supplier;
 
         private T_SPLITR s;
@@ -520,12 +528,12 @@ class StreamSpliterators {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> consumer) {
+        public boolean tryAdvance(Consumer<? super T> consumer) throws X {
             return get().tryAdvance(consumer);
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super T> consumer) {
+        public void forEachRemaining(Consumer<? super T> consumer) throws X {
             get().forEachRemaining(consumer);
         }
 
@@ -555,7 +563,7 @@ class StreamSpliterators {
         }
 
         static class OfPrimitive<T, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>>
-            extends DelegatingSpliterator<T, T_SPLITR>
+            extends DelegatingSpliterator<T, RuntimeException, T_SPLITR>
             implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR> {
             OfPrimitive(Supplier<? extends T_SPLITR> supplier) {
                 super(supplier);
@@ -608,7 +616,7 @@ class StreamSpliterators {
      * {@code SUBSIZED}.
      *
      */
-    abstract static class SliceSpliterator<T, T_SPLITR extends Spliterator<T>> {
+    abstract static class SliceSpliterator<T, X extends Exception, T_SPLITR extends Spliterator<T, X>> {
         // The start index of the slice
         final long sliceOrigin;
         // One past the last index of the slice
@@ -687,28 +695,28 @@ class StreamSpliterators {
             return s.characteristics();
         }
 
-        static final class OfRef<T>
-                extends SliceSpliterator<T, Spliterator<T>>
-                implements Spliterator<T> {
+        static final class OfRef<T, X extends Exception>
+                extends SliceSpliterator<T, X, Spliterator<T, X>>
+                implements Spliterator<T, X> {
 
-            OfRef(Spliterator<T> s, long sliceOrigin, long sliceFence) {
+            OfRef(Spliterator<T, X> s, long sliceOrigin, long sliceFence) {
                 this(s, sliceOrigin, sliceFence, 0, Math.min(s.estimateSize(), sliceFence));
             }
 
-            private OfRef(Spliterator<T> s,
+            private OfRef(Spliterator<T, X> s,
                           long sliceOrigin, long sliceFence, long origin, long fence) {
                 super(s, sliceOrigin, sliceFence, origin, fence);
             }
 
             @Override
-            protected Spliterator<T> makeSpliterator(Spliterator<T> s,
+            protected Spliterator<T, X> makeSpliterator(Spliterator<T, X> s,
                                                      long sliceOrigin, long sliceFence,
                                                      long origin, long fence) {
                 return new OfRef<>(s, sliceOrigin, sliceFence, origin, fence);
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> action) {
+            public boolean tryAdvance(Consumer<? super T> action) throws X {
                 Objects.requireNonNull(action);
 
                 if (sliceOrigin >= fence)
@@ -727,7 +735,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super T> action) {
+            public void forEachRemaining(Consumer<? super T> action) throws X {
                 Objects.requireNonNull(action);
 
                 if (sliceOrigin >= fence)
@@ -757,7 +765,7 @@ class StreamSpliterators {
         abstract static class OfPrimitive<T,
                 T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>,
                 T_CONS>
-                extends SliceSpliterator<T, T_SPLITR>
+                extends SliceSpliterator<T, RuntimeException, T_SPLITR>
                 implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR> {
 
             OfPrimitive(T_SPLITR s, long sliceOrigin, long sliceFence) {
@@ -903,7 +911,7 @@ class StreamSpliterators {
      * collected to a {@code Node}. It is the order of the pipeline stage
      * that governs whether this slice spliterator is to be used or not.
      */
-    abstract static class UnorderedSliceSpliterator<T, T_SPLITR extends Spliterator<T>> {
+    abstract static class UnorderedSliceSpliterator<T, X extends Exception, T_SPLITR extends Spliterator<T, X>> {
         static final int CHUNK_SIZE = 1 << 7;
 
         // The spliterator to slice
@@ -923,7 +931,7 @@ class StreamSpliterators {
         }
 
         UnorderedSliceSpliterator(T_SPLITR s,
-                                  UnorderedSliceSpliterator<T, T_SPLITR> parent) {
+                                  UnorderedSliceSpliterator<T, X, T_SPLITR> parent) {
             this.s = s;
             this.unlimited = parent.unlimited;
             this.permits = parent.permits;
@@ -996,15 +1004,15 @@ class StreamSpliterators {
                    ~(Spliterator.SIZED | Spliterator.SUBSIZED | Spliterator.ORDERED);
         }
 
-        static final class OfRef<T> extends UnorderedSliceSpliterator<T, Spliterator<T>>
-                implements Spliterator<T>, Consumer<T> {
+        static final class OfRef<T, X extends Exception> extends UnorderedSliceSpliterator<T, X, Spliterator<T, X>>
+                implements Spliterator<T, X>, Consumer<T> {
             T tmpSlot;
 
-            OfRef(Spliterator<T> s, long skip, long limit) {
+            OfRef(Spliterator<T, X> s, long skip, long limit) {
                 super(s, skip, limit);
             }
 
-            OfRef(Spliterator<T> s, OfRef<T> parent) {
+            OfRef(Spliterator<T, X> s, OfRef<T, X> parent) {
                 super(s, parent);
             }
 
@@ -1014,7 +1022,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> action) {
+            public boolean tryAdvance(Consumer<? super T> action) throws X {
                 Objects.requireNonNull(action);
 
                 while (permitStatus() != PermitStatus.NO_MORE) {
@@ -1030,7 +1038,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super T> action) {
+            public void forEachRemaining(Consumer<? super T> action) throws X {
                 Objects.requireNonNull(action);
 
                 ArrayBuffer.OfRef<T> sb = null;
@@ -1057,7 +1065,7 @@ class StreamSpliterators {
             }
 
             @Override
-            protected Spliterator<T> makeSpliterator(Spliterator<T> s) {
+            protected Spliterator<T, X> makeSpliterator(Spliterator<T, X> s) {
                 return new UnorderedSliceSpliterator.OfRef<>(s, this);
             }
         }
@@ -1073,7 +1081,7 @@ class StreamSpliterators {
                 T_CONS,
                 T_BUFF extends ArrayBuffer.OfPrimitive<T_CONS>,
                 T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>>
-                extends UnorderedSliceSpliterator<T, T_SPLITR>
+                extends UnorderedSliceSpliterator<T, RuntimeException, T_SPLITR>
                 implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR> {
             OfPrimitive(T_SPLITR s, long skip, long limit) {
                 super(s, skip, limit);
@@ -1247,13 +1255,13 @@ class StreamSpliterators {
      * A wrapping spliterator that only reports distinct elements of the
      * underlying spliterator. Does not preserve size and encounter order.
      */
-    static final class DistinctSpliterator<T> implements Spliterator<T>, Consumer<T> {
+    static final class DistinctSpliterator<T, X extends Exception> implements Spliterator<T, X>, Consumer<T> {
 
         // The value to represent null in the ConcurrentHashMap
         private static final Object NULL_VALUE = new Object();
 
         // The underlying spliterator
-        private final Spliterator<T> s;
+        private final Spliterator<T, X> s;
 
         // ConcurrentHashMap holding distinct elements as keys
         private final ConcurrentHashMap<T, Boolean> seen;
@@ -1261,11 +1269,11 @@ class StreamSpliterators {
         // Temporary element, only used with tryAdvance
         private T tmpSlot;
 
-        DistinctSpliterator(Spliterator<T> s) {
+        DistinctSpliterator(Spliterator<T, X> s) {
             this(s, new ConcurrentHashMap<>());
         }
 
-        private DistinctSpliterator(Spliterator<T> s, ConcurrentHashMap<T, Boolean> seen) {
+        private DistinctSpliterator(Spliterator<T, X> s, ConcurrentHashMap<T, Boolean> seen) {
             this.s = s;
             this.seen = seen;
         }
@@ -1281,7 +1289,7 @@ class StreamSpliterators {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> action) {
+        public boolean tryAdvance(Consumer<? super T> action) throws X {
             while (s.tryAdvance(this)) {
                 if (seen.putIfAbsent(mapNull(tmpSlot), Boolean.TRUE) == null) {
                     action.accept(tmpSlot);
@@ -1293,7 +1301,7 @@ class StreamSpliterators {
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super T> action) {
+        public void forEachRemaining(Consumer<? super T> action) throws X {
             s.forEachRemaining(t -> {
                 if (seen.putIfAbsent(mapNull(t), Boolean.TRUE) == null) {
                     action.accept(t);
@@ -1302,8 +1310,8 @@ class StreamSpliterators {
         }
 
         @Override
-        public Spliterator<T> trySplit() {
-            Spliterator<T> split = s.trySplit();
+        public Spliterator<T, ? extends X> trySplit() {
+            Spliterator<T, ? extends X> split = s.trySplit();
             return (split != null) ? new DistinctSpliterator<>(split, seen) : null;
         }
 

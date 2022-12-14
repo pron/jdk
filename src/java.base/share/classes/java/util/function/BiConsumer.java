@@ -37,12 +37,13 @@ import java.util.Objects;
  *
  * @param <T> the type of the first argument to the operation
  * @param <U> the type of the second argument to the operation
+ * @param <X> throws
  *
  * @see Consumer
  * @since 1.8
  */
 @FunctionalInterface
-public interface BiConsumer<T, U> {
+public interface BiConsumer<T, U, X extends Exception> {
 
     /**
      * Performs this operation on the given arguments.
@@ -63,8 +64,10 @@ public interface BiConsumer<T, U> {
      * @return a composed {@code BiConsumer} that performs in sequence this
      * operation followed by the {@code after} operation
      * @throws NullPointerException if {@code after} is null
+     * @param <X1> throws
      */
-    default BiConsumer<T, U> andThen(BiConsumer<? super T, ? super U> after) {
+    default <X1 extends Exception>
+    BiConsumer<T, U, ? extends X|X1> andThen(BiConsumer<? super T, ? super U, ? extends X1> after) {
         Objects.requireNonNull(after);
 
         return (l, r) -> {

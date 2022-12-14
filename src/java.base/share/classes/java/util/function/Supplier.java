@@ -34,16 +34,17 @@ package java.util.function;
  * whose functional method is {@link #get()}.
  *
  * @param <T> the type of results supplied by this supplier
+ * @param <X> the type of the exception that can be thrown
  *
  * @since 1.8
  */
 @FunctionalInterface
-public interface Supplier<T> {
-
+ public interface Supplier<T, X extends Exception> {
     /**
      * Gets a result.
      *
      * @return a result
+     * @throws X throws
      */
-    T get();
+    T get() throws X;
 }

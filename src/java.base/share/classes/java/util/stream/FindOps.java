@@ -145,15 +145,15 @@ final class FindOps {
         }
 
         @Override
-        public <S> O evaluateSequential(PipelineHelper<T> helper,
-                                        Spliterator<S> spliterator) {
+        public <S, X_IN extends Exception, X extends Exception> O evaluateSequential(PipelineHelper<T, X_IN, X> helper,
+                                                                Spliterator<S, ? extends X_IN> spliterator) throws X_IN, X {
             O result = helper.wrapAndCopyInto(sinkSupplier.get(), spliterator).get();
             return result != null ? result : emptyValue;
         }
 
         @Override
-        public <P_IN> O evaluateParallel(PipelineHelper<T> helper,
-                                         Spliterator<P_IN> spliterator) {
+        public <P_IN, X_IN extends Exception, X extends Exception> O evaluateParallel(PipelineHelper<T, X_IN, X> helper,
+                                                                 Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
             // This takes into account the upstream ops flags and the terminal
             // op flags and therefore takes into account findFirst or findAny
             boolean mustFindFirst = StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags());
@@ -168,7 +168,7 @@ final class FindOps {
      * @param <T> The type of input element
      * @param <O> The result type, typically an optional type
      */
-    private abstract static class FindSink<T, O> implements TerminalSink<T, O> {
+    private abstract static class FindSink<T, O, X extends Exception> implements TerminalSink<T, O, X> {
         boolean hasValue;
         T value;
 
@@ -205,7 +205,7 @@ final class FindOps {
 
         /** Specialization of {@code FindSink} for int streams */
         static final class OfInt extends FindSink<Integer, OptionalInt>
-                implements Sink.OfInt {
+                implements Sink.OfInt<RuntimeException> {
             @Override
             public void accept(int value) {
                 // Boxing is OK here, since few values will actually flow into the sink
@@ -227,7 +227,7 @@ final class FindOps {
 
         /** Specialization of {@code FindSink} for long streams */
         static final class OfLong extends FindSink<Long, OptionalLong>
-                implements Sink.OfLong {
+                implements Sink.OfLong<RuntimeException> {
             @Override
             public void accept(long value) {
                 // Boxing is OK here, since few values will actually flow into the sink
@@ -249,7 +249,7 @@ final class FindOps {
 
         /** Specialization of {@code FindSink} for double streams */
         static final class OfDouble extends FindSink<Double, OptionalDouble>
-                implements Sink.OfDouble {
+                implements Sink.OfDouble<RuntimeException> {
             @Override
             public void accept(double value) {
                 // Boxing is OK here, since few values will actually flow into the sink
@@ -284,21 +284,21 @@ final class FindOps {
 
         FindTask(FindOp<P_OUT, O> op,
                  boolean mustFindFirst,
-                 PipelineHelper<P_OUT> helper,
-                 Spliterator<P_IN> spliterator) {
+                 PipelineHelper<P_OUT, ?, ?> helper,
+                 Spliterator<P_IN, ?> spliterator) {
             super(helper, spliterator);
             this.mustFindFirst = mustFindFirst;
             this.op = op;
         }
 
-        FindTask(FindTask<P_IN, P_OUT, O> parent, Spliterator<P_IN> spliterator) {
+        FindTask(FindTask<P_IN, P_OUT, O> parent, Spliterator<P_IN, ?> spliterator) {
             super(parent, spliterator);
             this.mustFindFirst = parent.mustFindFirst;
             this.op = parent.op;
         }
 
         @Override
-        protected FindTask<P_IN, P_OUT, O> makeChild(Spliterator<P_IN> spliterator) {
+        protected FindTask<P_IN, P_OUT, O> makeChild(Spliterator<P_IN, ?> spliterator) {
             return new FindTask<>(this, spliterator);
         }
 
@@ -315,7 +315,7 @@ final class FindOps {
         }
 
         @Override
-        protected O doLeaf() {
+        protected O doLeaf() throws Exception {
             O result = helper.wrapAndCopyInto(op.sinkSupplier.get(), spliterator).get();
             if (!mustFindFirst) {
                 if (result != null)

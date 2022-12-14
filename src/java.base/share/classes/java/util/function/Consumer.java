@@ -35,18 +35,20 @@ import java.util.Objects;
  * whose functional method is {@link #accept(Object)}.
  *
  * @param <T> the type of the input to the operation
+ * @param <X> the type of the exception that can be thrown
  *
  * @since 1.8
  */
 @FunctionalInterface
-public interface Consumer<T> {
+public interface Consumer<T, X extends Exception> {
 
     /**
      * Performs this operation on the given argument.
      *
      * @param t the input argument
+     * @throws X throws
      */
-    void accept(T t);
+    void accept(T t) throws X;
 
     /**
      * Returns a composed {@code Consumer} that performs, in sequence, this
@@ -59,8 +61,10 @@ public interface Consumer<T> {
      * @return a composed {@code Consumer} that performs in sequence this
      * operation followed by the {@code after} operation
      * @throws NullPointerException if {@code after} is null
+     *
+     * @param <X1> throws
      */
-    default Consumer<T> andThen(Consumer<? super T> after) {
+    default <X1 extends Exception> Consumer<T, ? extends X|X1> andThen(Consumer<? super T, X1> after) {
         Objects.requireNonNull(after);
         return (T t) -> { accept(t); after.accept(t); };
     }

@@ -663,7 +663,7 @@ public final class Spliterators {
      * @return An iterator
      * @throws NullPointerException if the given spliterator is {@code null}
      */
-    public static<T> Iterator<T> iterator(Spliterator<? extends T> spliterator) {
+    public static<T> Iterator<T> iterator(Spliterator<? extends T, ?> spliterator) {
         Objects.requireNonNull(spliterator);
         class Adapter implements Iterator<T>, Consumer<T> {
             boolean valueReady = false;
@@ -677,8 +677,11 @@ public final class Spliterators {
 
             @Override
             public boolean hasNext() {
-                if (!valueReady)
-                    spliterator.tryAdvance(this);
+                if (!valueReady) {
+                    try {
+                        spliterator.tryAdvance(this);
+                    } catch (Exception ex) { throw new RuntimeException("wrapped", ex); } // TODO
+                }
                 return valueReady;
             }
 
@@ -703,7 +706,9 @@ public final class Spliterators {
                     nextElement = null;
                     action.accept(t);
                 }
-                spliterator.forEachRemaining(action);
+                try {
+                    spliterator.forEachRemaining(action);
+                } catch (Exception ex) { throw new RuntimeException("wrapped", ex); } // TODO
             }
         }
 

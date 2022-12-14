@@ -92,13 +92,13 @@ abstract class AbstractTask<P_IN, P_OUT, R,
     private static final int LEAF_TARGET = ForkJoinPool.getCommonPoolParallelism() << 2;
 
     /** The pipeline helper, common to all tasks in a computation */
-    protected final PipelineHelper<P_OUT> helper;
+    protected final PipelineHelper<P_OUT, ?, ?> helper;
 
     /**
      * The spliterator for the portion of the input associated with the subtree
      * rooted at this task
      */
-    protected Spliterator<P_IN> spliterator;
+    protected Spliterator<P_IN, ?> spliterator;
 
     /** Target leaf size, common to all tasks in a computation */
     protected long targetSize; // may be lazily initialized
@@ -128,8 +128,8 @@ abstract class AbstractTask<P_IN, P_OUT, R,
      * @param spliterator The {@code Spliterator} describing the source for this
      *                    pipeline
      */
-    protected AbstractTask(PipelineHelper<P_OUT> helper,
-                           Spliterator<P_IN> spliterator) {
+    protected AbstractTask(PipelineHelper<P_OUT, ?, ?> helper,
+                           Spliterator<P_IN, ?> spliterator) {
         super(null);
         this.helper = helper;
         this.spliterator = spliterator;
@@ -144,7 +144,7 @@ abstract class AbstractTask<P_IN, P_OUT, R,
      *        this node, obtained by splitting the parent {@code Spliterator}
      */
     protected AbstractTask(K parent,
-                           Spliterator<P_IN> spliterator) {
+                           Spliterator<P_IN, ?> spliterator) {
         super(parent);
         this.spliterator = spliterator;
         this.helper = parent.helper;
@@ -176,7 +176,7 @@ abstract class AbstractTask<P_IN, P_OUT, R,
      *        this node, obtained by splitting the parent {@code Spliterator}
      * @return newly constructed child node
      */
-    protected abstract K makeChild(Spliterator<P_IN> spliterator);
+    protected abstract K makeChild(Spliterator<P_IN, ?> spliterator);
 
     /**
      * Computes the result associated with a leaf node.  Will be called by
@@ -184,7 +184,7 @@ abstract class AbstractTask<P_IN, P_OUT, R,
      *
      * @return the computed result of a leaf node
      */
-    protected abstract R doLeaf();
+    protected abstract R doLeaf() throws Exception;
 
     /**
      * Returns a suggested target leaf size based on the initial size estimate.
@@ -300,7 +300,7 @@ abstract class AbstractTask<P_IN, P_OUT, R,
      */
     @Override
     public void compute() {
-        Spliterator<P_IN> rs = spliterator, ls; // right, left spliterators
+        Spliterator<P_IN, ?> rs = spliterator, ls; // right, left spliterators
         long sizeEstimate = rs.estimateSize();
         long sizeThreshold = getTargetSize(sizeEstimate);
         boolean forkRight = false;
@@ -324,8 +324,12 @@ abstract class AbstractTask<P_IN, P_OUT, R,
             taskToFork.fork();
             sizeEstimate = rs.estimateSize();
         }
-        task.setLocalResult(task.doLeaf());
-        task.tryComplete();
+        try {
+            task.setLocalResult(task.doLeaf());
+            task.tryComplete(); // TODO: move to finally?
+        } catch (Exception ex) {
+            throw CheckedExceptions.wrap(ex);
+        }
     }
 
     /**

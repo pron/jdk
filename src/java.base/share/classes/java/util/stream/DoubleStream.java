@@ -69,7 +69,7 @@ import java.util.function.Supplier;
  * @see Stream
  * @see <a href="package-summary.html">java.util.stream</a>
  */
-public interface DoubleStream extends BaseStream<Double, DoubleStream> {
+public interface DoubleStream extends BaseStream<Double, RuntimeException, DoubleStream> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match

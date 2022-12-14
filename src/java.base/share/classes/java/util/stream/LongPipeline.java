@@ -52,7 +52,7 @@ import java.util.function.Supplier;
  * @since 1.8
  */
 abstract class LongPipeline<E_IN>
-        extends AbstractPipeline<E_IN, Long, LongStream>
+        extends AbstractPipeline<E_IN, RuntimeException, Long, RuntimeException, RuntimeException, LongStream>
         implements LongStream {
 
     /**
@@ -87,7 +87,7 @@ abstract class LongPipeline<E_IN>
      * @param upstream the upstream element source.
      * @param opFlags the operation flags
      */
-    LongPipeline(AbstractPipeline<?, E_IN, ?> upstream, int opFlags) {
+    LongPipeline(AbstractPipeline<?, ?, E_IN, RuntimeException, ?, ?> upstream, int opFlags) {
         super(upstream, opFlags);
     }
 
@@ -133,16 +133,18 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    final <P_IN> Node<Long> evaluateToNode(PipelineHelper<Long> helper,
-                                           Spliterator<P_IN> spliterator,
+    @SuppressWarnings("unchecked")
+    final <P_IN, XIN extends RuntimeException> Node<Long> evaluateToNode(PipelineHelper<Long> helper,
+                                           Spliterator<P_IN, XIN> spliterator,
                                            boolean flattenTree,
                                            IntFunction<Long[]> generator) {
-        return Nodes.collectLong(helper, spliterator, flattenTree);
+        return Nodes.collectLong(helper, (Spliterator<P_IN>)spliterator, flattenTree);
     }
 
     @Override
-    final <P_IN> Spliterator<Long> wrap(PipelineHelper<Long> ph,
-                                        Supplier<Spliterator<P_IN>> supplier,
+    @SuppressWarnings("unchecked")
+    final <P_IN, XIN extends RuntimeException> Spliterator<Long> wrap(PipelineHelper<Long> ph,
+                                        Supplier<Spliterator<P_IN, XIN>> supplier,
                                         boolean isParallel) {
         return new StreamSpliterators.LongWrappingSpliterator<>(ph, supplier, isParallel);
     }
@@ -168,13 +170,18 @@ abstract class LongPipeline<E_IN>
     }
 
     private <U> Stream<U> mapToObj(LongFunction<? extends U> mapper, int opFlags) {
-        return new ReferencePipeline.StatelessOp<>(this, StreamShape.LONG_VALUE, opFlags) {
+        return new ReferencePipeline.StatelessOp<Long, RuntimeException, U, RuntimeException>(this, StreamShape.LONG_VALUE, opFlags) {
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<U> sink) {
-                return new Sink.ChainedLong<>(sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<U, X3> sink) {
+                return new Sink.ChainedLong<U, X3>(sink) {
                     @Override
                     public void accept(long t) {
-                        downstream.accept(mapper.apply(t));
+                        try {
+                            downstream.accept(mapper.apply(t));
+                        } catch (Exception ex) {
+                            throw CheckedExceptions.wrap(ex);
+                        }
                     }
                 };
             }
@@ -199,8 +206,9 @@ abstract class LongPipeline<E_IN>
     public final DoubleStream asDoubleStream() {
         return new DoublePipeline.StatelessOp<>(this, StreamShape.LONG_VALUE, StreamOpFlag.NOT_DISTINCT) {
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<Double> sink) {
-                return new Sink.ChainedLong<>(sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+                return new Sink.ChainedLong<Double, X3>(sink) {
                     @Override
                     public void accept(long t) {
                         downstream.accept((double) t);
@@ -221,8 +229,9 @@ abstract class LongPipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
-                return new Sink.ChainedLong<>(sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+                return new Sink.ChainedLong<Long, X3>(sink) {
                     @Override
                     public void accept(long t) {
                         downstream.accept(mapper.applyAsLong(t));
@@ -244,8 +253,9 @@ abstract class LongPipeline<E_IN>
         return new IntPipeline.StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<Integer> sink) {
-                return new Sink.ChainedLong<>(sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Integer, X3> sink) {
+                return new Sink.ChainedLong<Integer, X3>(sink) {
                     @Override
                     public void accept(long t) {
                         downstream.accept(mapper.applyAsInt(t));
@@ -261,7 +271,8 @@ abstract class LongPipeline<E_IN>
         return new DoublePipeline.StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<Double> sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
                 return new Sink.ChainedLong<>(sink) {
                     @Override
                     public void accept(long t) {
@@ -278,7 +289,8 @@ abstract class LongPipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
                 return new Sink.ChainedLong<>(sink) {
                     // true if cancellationRequested() has been called
                     boolean cancellationRequestedCalled;
@@ -326,7 +338,8 @@ abstract class LongPipeline<E_IN>
         return new LongPipeline.StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
                 return new Sink.ChainedLong<>(sink) {
 
                     @Override
@@ -350,7 +363,8 @@ abstract class LongPipeline<E_IN>
             return this;
         return new StatelessOp<>(this, StreamShape.LONG_VALUE, StreamOpFlag.NOT_ORDERED) {
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
                 return sink;
             }
         };
@@ -362,7 +376,8 @@ abstract class LongPipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SIZED) {
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
                 return new Sink.ChainedLong<>(sink) {
                     @Override
                     public void begin(long size) {
@@ -385,7 +400,8 @@ abstract class LongPipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 0) {
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
                 return new Sink.ChainedLong<>(sink) {
                     @Override
                     public void accept(long t) {
@@ -589,7 +605,8 @@ abstract class LongPipeline<E_IN>
         }
 
         @Override
-        final Sink<E_IN> opWrapSink(int flags, Sink<Long> sink) {
+        final <X3 extends Exception>
+        Sink<E_IN, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
             throw new UnsupportedOperationException();
         }
 
@@ -627,7 +644,7 @@ abstract class LongPipeline<E_IN>
          * @param inputShape The stream shape for the upstream pipeline stage
          * @param opFlags Operation flags for the new stage
          */
-        StatelessOp(AbstractPipeline<?, E_IN, ?> upstream,
+        StatelessOp(AbstractPipeline<?, ?, E_IN, RuntimeException, ?, ?> upstream,
                     StreamShape inputShape,
                     int opFlags) {
             super(upstream, opFlags);
@@ -654,7 +671,7 @@ abstract class LongPipeline<E_IN>
          * @param inputShape The stream shape for the upstream pipeline stage
          * @param opFlags Operation flags for the new stage
          */
-        StatefulOp(AbstractPipeline<?, E_IN, ?> upstream,
+        StatefulOp(AbstractPipeline<?, ?, E_IN, RuntimeException, ?, ?> upstream,
                    StreamShape inputShape,
                    int opFlags) {
             super(upstream, opFlags);
@@ -667,8 +684,8 @@ abstract class LongPipeline<E_IN>
         }
 
         @Override
-        abstract <P_IN> Node<Long> opEvaluateParallel(PipelineHelper<Long> helper,
-                                                      Spliterator<P_IN> spliterator,
+        abstract <P_IN, XX extends RuntimeException> Node<Long> opEvaluateParallel(PipelineHelper<Long, XX> helper,
+                                                      Spliterator<P_IN, ? extends XX> spliterator,
                                                       IntFunction<Long[]> generator);
     }
 }

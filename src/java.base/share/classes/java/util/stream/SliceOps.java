@@ -72,13 +72,13 @@ final class SliceOps {
      * spliterator type.  Requires that the underlying Spliterator
      * be SUBSIZED.
      */
-    private static <P_IN> Spliterator<P_IN> sliceSpliterator(StreamShape shape,
-                                                             Spliterator<P_IN> s,
+    private static <P_IN, X_IN extends Exception> Spliterator<P_IN, X_IN> sliceSpliterator(StreamShape shape,
+                                                             Spliterator<P_IN, X_IN> s,
                                                              long skip, long limit) {
         assert s.hasCharacteristics(Spliterator.SUBSIZED);
         long sliceFence = calcSliceFence(skip, limit);
         @SuppressWarnings("unchecked")
-        Spliterator<P_IN> sliceSpliterator = (Spliterator<P_IN>) switch (shape) {
+        Spliterator<P_IN, X_IN> sliceSpliterator = (Spliterator<P_IN, X_IN>) switch (shape) {
             case REFERENCE
                 -> new StreamSpliterators.SliceSpliterator.OfRef<>(s, skip, sliceFence);
             case INT_VALUE
@@ -101,20 +101,20 @@ final class SliceOps {
      * @param limit the maximum size of the resulting stream, or -1 if no limit
      *        is to be imposed
      */
-    public static <T> Stream<T> makeRef(AbstractPipeline<?, T, ?> upstream,
-                                        long skip, long limit) {
+    public static <T, X extends Exception> Stream<T, X> makeRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream,
+                                                                long skip, long limit) {
         if (skip < 0)
             throw new IllegalArgumentException("Skip must be non-negative: " + skip);
         long normalizedLimit = limit >= 0 ? limit : Long.MAX_VALUE;
 
-        return new ReferencePipeline.StatefulOp<T, T>(upstream, StreamShape.REFERENCE,
+        return new ReferencePipeline.StatefulOp<T, X, T, X>(upstream, StreamShape.REFERENCE,
                                                       flags(limit)) {
             @Override
             long exactOutputSize(long previousSize) {
                 return calcSize(previousSize, skip, normalizedLimit);
             }
 
-            Spliterator<T> unorderedSkipLimitSpliterator(Spliterator<T> s,
+            Spliterator<T, ? extends X> unorderedSkipLimitSpliterator(Spliterator<T, ? extends X> s,
                                                          long skip, long limit, long sizeIfKnown) {
                 if (skip <= sizeIfKnown) {
                     // Use just the limit if the number of elements
@@ -126,7 +126,7 @@ final class SliceOps {
             }
 
             @Override
-            <P_IN> Spliterator<T> opEvaluateParallelLazy(PipelineHelper<T> helper, Spliterator<P_IN> spliterator) {
+            <P_IN, X_IN extends X> Spliterator<T, ? extends X> opEvaluateParallelLazy(PipelineHelper<T, X_IN> helper, Spliterator<P_IN, ? extends X_IN> spliterator) throws X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size > 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
                     return new StreamSpliterators.SliceSpliterator.OfRef<>(
@@ -153,8 +153,8 @@ final class SliceOps {
             }
 
             @Override
-            <P_IN> Node<T> opEvaluateParallel(PipelineHelper<T> helper,
-                                              Spliterator<P_IN> spliterator,
+            <P_IN, X_IN extends X> Node<T> opEvaluateParallel(PipelineHelper<T, X_IN> helper,
+                                              Spliterator<P_IN, ? extends X_IN> spliterator,
                                               IntFunction<T[]> generator) {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size > 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
@@ -163,10 +163,10 @@ final class SliceOps {
                     // to shape of the source, and is potentially more efficient
                     // than creating the slice spliterator from the pipeline
                     // wrapping spliterator
-                    Spliterator<P_IN> s = sliceSpliterator(helper.getSourceShape(), spliterator, skip, limit);
+                    var s = sliceSpliterator(helper.getSourceShape(), spliterator, skip, limit);
                     return Nodes.collect(helper, s, true, generator);
                 } else if (!StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
-                    Spliterator<T> s =  unorderedSkipLimitSpliterator(
+                    var s =  unorderedSkipLimitSpliterator(
                             helper.wrapSpliterator(spliterator),
                             skip, limit, size);
                     // Collect using this pipeline, which is empty and therefore
@@ -182,8 +182,9 @@ final class SliceOps {
             }
 
             @Override
-            Sink<T> opWrapSink(int flags, Sink<T> sink) {
-                return new Sink.ChainedReference<>(sink) {
+            <X3 extends Exception>
+            Sink<T, ? extends X3> opWrapSink(int flags, Sink<T, X3> sink) {
+                return new Sink.ChainedReference<T, X3, T, X3>(sink) {
                     long n = skip;
                     long m = normalizedLimit;
 
@@ -193,7 +194,7 @@ final class SliceOps {
                     }
 
                     @Override
-                    public void accept(T t) {
+                    public void accept(T t) throws X3 {
                         if (n == 0) {
                             if (m > 0) {
                                 m--;
@@ -223,7 +224,7 @@ final class SliceOps {
      * @param limit The maximum size of the resulting stream, or -1 if no limit
      *        is to be imposed
      */
-    public static IntStream makeInt(AbstractPipeline<?, Integer, ?> upstream,
+    public static IntStream makeInt(AbstractPipeline<?, ?, Integer, RuntimeException, ?, ?> upstream,
                                     long skip, long limit) {
         if (skip < 0)
             throw new IllegalArgumentException("Skip must be non-negative: " + skip);
@@ -248,8 +249,8 @@ final class SliceOps {
             }
 
             @Override
-            <P_IN> Spliterator<Integer> opEvaluateParallelLazy(PipelineHelper<Integer> helper,
-                                                               Spliterator<P_IN> spliterator) {
+            <P_IN, X_IN extends RuntimeException> Spliterator<Integer> opEvaluateParallelLazy(PipelineHelper<Integer, X_IN> helper,
+                                                               Spliterator<P_IN, ? extends X_IN> spliterator) {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size > 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
                     return new StreamSpliterators.SliceSpliterator.OfInt(
@@ -268,8 +269,8 @@ final class SliceOps {
             }
 
             @Override
-            <P_IN> Node<Integer> opEvaluateParallel(PipelineHelper<Integer> helper,
-                                                    Spliterator<P_IN> spliterator,
+            <P_IN, X_IN extends RuntimeException> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
+                                                    Spliterator<P_IN, ? extends X_IN> spliterator,
                                                     IntFunction<Integer[]> generator) {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size > 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
@@ -278,7 +279,7 @@ final class SliceOps {
                     // to shape of the source, and is potentially more efficient
                     // than creating the slice spliterator from the pipeline
                     // wrapping spliterator
-                    Spliterator<P_IN> s = sliceSpliterator(helper.getSourceShape(), spliterator, skip, limit);
+                    var s = sliceSpliterator(helper.getSourceShape(), spliterator, skip, limit);
                     return Nodes.collectInt(helper, s, true);
                 } else if (!StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     Spliterator.OfInt s =  unorderedSkipLimitSpliterator(
@@ -297,7 +298,8 @@ final class SliceOps {
             }
 
             @Override
-            Sink<Integer> opWrapSink(int flags, Sink<Integer> sink) {
+            <X3 extends Exception>
+            Sink<Integer, ? extends X3> opWrapSink(int flags, Sink<Integer, X3> sink) {
                 return new Sink.ChainedInt<>(sink) {
                     long n = skip;
                     long m = normalizedLimit;
@@ -338,7 +340,7 @@ final class SliceOps {
      * @param limit The maximum size of the resulting stream, or -1 if no limit
      *        is to be imposed
      */
-    public static LongStream makeLong(AbstractPipeline<?, Long, ?> upstream,
+    public static LongStream makeLong(AbstractPipeline<?, ?, Long, RuntimeException, ?, ?> upstream,
                                       long skip, long limit) {
         if (skip < 0)
             throw new IllegalArgumentException("Skip must be non-negative: " + skip);
@@ -363,8 +365,8 @@ final class SliceOps {
             }
 
             @Override
-            <P_IN> Spliterator<Long> opEvaluateParallelLazy(PipelineHelper<Long> helper,
-                                                            Spliterator<P_IN> spliterator) {
+            <P_IN, X_IN extends RuntimeException> Spliterator<Long> opEvaluateParallelLazy(PipelineHelper<Long, X_IN> helper,
+                                                            Spliterator<P_IN, ? extends X_IN> spliterator) {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size > 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
                     return new StreamSpliterators.SliceSpliterator.OfLong(
@@ -383,8 +385,8 @@ final class SliceOps {
             }
 
             @Override
-            <P_IN> Node<Long> opEvaluateParallel(PipelineHelper<Long> helper,
-                                                 Spliterator<P_IN> spliterator,
+            <P_IN, X_IN extends RuntimeException> Node<Long> opEvaluateParallel(PipelineHelper<Long, X_IN> helper,
+                                                 Spliterator<P_IN, ? extends X_IN> spliterator,
                                                  IntFunction<Long[]> generator) {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size > 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
@@ -393,7 +395,7 @@ final class SliceOps {
                     // to shape of the source, and is potentially more efficient
                     // than creating the slice spliterator from the pipeline
                     // wrapping spliterator
-                    Spliterator<P_IN> s = sliceSpliterator(helper.getSourceShape(), spliterator, skip, limit);
+                    var s = sliceSpliterator(helper.getSourceShape(), spliterator, skip, limit);
                     return Nodes.collectLong(helper, s, true);
                 } else if (!StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     Spliterator.OfLong s =  unorderedSkipLimitSpliterator(
@@ -412,7 +414,8 @@ final class SliceOps {
             }
 
             @Override
-            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
+            <X3 extends Exception>
+            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
                 return new Sink.ChainedLong<>(sink) {
                     long n = skip;
                     long m = normalizedLimit;
@@ -453,7 +456,7 @@ final class SliceOps {
      * @param limit The maximum size of the resulting stream, or -1 if no limit
      *        is to be imposed
      */
-    public static DoubleStream makeDouble(AbstractPipeline<?, Double, ?> upstream,
+    public static DoubleStream makeDouble(AbstractPipeline<?, ?, Double, RuntimeException, ?, ?> upstream,
                                           long skip, long limit) {
         if (skip < 0)
             throw new IllegalArgumentException("Skip must be non-negative: " + skip);
@@ -478,8 +481,8 @@ final class SliceOps {
             }
 
             @Override
-            <P_IN> Spliterator<Double> opEvaluateParallelLazy(PipelineHelper<Double> helper,
-                                                              Spliterator<P_IN> spliterator) {
+            <P_IN, X_IN extends RuntimeException> Spliterator<Double> opEvaluateParallelLazy(PipelineHelper<Double, X_IN> helper,
+                                                              Spliterator<P_IN, ? extends X_IN> spliterator) {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size > 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
                     return new StreamSpliterators.SliceSpliterator.OfDouble(
@@ -498,8 +501,8 @@ final class SliceOps {
             }
 
             @Override
-            <P_IN> Node<Double> opEvaluateParallel(PipelineHelper<Double> helper,
-                                                   Spliterator<P_IN> spliterator,
+            <P_IN, X_IN extends RuntimeException> Node<Double> opEvaluateParallel(PipelineHelper<Double, X_IN> helper,
+                                                   Spliterator<P_IN, ? extends X_IN> spliterator,
                                                    IntFunction<Double[]> generator) {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size > 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
@@ -508,7 +511,7 @@ final class SliceOps {
                     // to shape of the source, and is potentially more efficient
                     // than creating the slice spliterator from the pipeline
                     // wrapping spliterator
-                    Spliterator<P_IN> s = sliceSpliterator(helper.getSourceShape(), spliterator, skip, limit);
+                    var s = sliceSpliterator(helper.getSourceShape(), spliterator, skip, limit);
                     return Nodes.collectDouble(helper, s, true);
                 } else if (!StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     Spliterator.OfDouble s =  unorderedSkipLimitSpliterator(
@@ -527,7 +530,8 @@ final class SliceOps {
             }
 
             @Override
-            Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
+            <X3 extends Exception>
+            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
                 return new Sink.ChainedDouble<>(sink) {
                     long n = skip;
                     long m = normalizedLimit;
@@ -572,16 +576,16 @@ final class SliceOps {
     @SuppressWarnings("serial")
     private static final class SliceTask<P_IN, P_OUT>
             extends AbstractShortCircuitTask<P_IN, P_OUT, Node<P_OUT>, SliceTask<P_IN, P_OUT>> {
-        private final AbstractPipeline<P_OUT, P_OUT, ?> op;
+        private final AbstractPipeline<P_OUT, ?, P_OUT, ?, ?, ?> op;
         private final IntFunction<P_OUT[]> generator;
         private final long targetOffset, targetSize;
         private long thisNodeSize;
 
         private volatile boolean completed;
 
-        SliceTask(AbstractPipeline<P_OUT, P_OUT, ?> op,
-                  PipelineHelper<P_OUT> helper,
-                  Spliterator<P_IN> spliterator,
+        SliceTask(AbstractPipeline<P_OUT, ?, P_OUT, ?, ?, ?> op,
+                  PipelineHelper<P_OUT, ?> helper,
+                  Spliterator<P_IN, ?> spliterator,
                   IntFunction<P_OUT[]> generator,
                   long offset, long size) {
             super(helper, spliterator);
@@ -591,7 +595,7 @@ final class SliceOps {
             this.targetSize = size;
         }
 
-        SliceTask(SliceTask<P_IN, P_OUT> parent, Spliterator<P_IN> spliterator) {
+        SliceTask(SliceTask<P_IN, P_OUT> parent, Spliterator<P_IN, ?> spliterator) {
             super(parent, spliterator);
             this.op = parent.op;
             this.generator = parent.generator;
@@ -600,7 +604,7 @@ final class SliceOps {
         }
 
         @Override
-        protected SliceTask<P_IN, P_OUT> makeChild(Spliterator<P_IN> spliterator) {
+        protected SliceTask<P_IN, P_OUT> makeChild(Spliterator<P_IN, ?> spliterator) {
             return new SliceTask<>(this, spliterator);
         }
 
@@ -610,13 +614,13 @@ final class SliceOps {
         }
 
         @Override
-        protected final Node<P_OUT> doLeaf() {
+        protected final Node<P_OUT> doLeaf() throws Exception {
             if (isRoot()) {
                 long sizeIfKnown = StreamOpFlag.SIZED.isPreserved(op.sourceOrOpFlags)
                                    ? op.exactOutputSizeIfKnown(spliterator)
                                    : -1;
                 final Node.Builder<P_OUT> nb = op.makeNodeBuilder(sizeIfKnown, generator);
-                Sink<P_OUT> opSink = op.opWrapSink(helper.getStreamAndOpFlags(), nb);
+                Sink<P_OUT, ?> opSink = op.opWrapSink(helper.getStreamAndOpFlags(), nb);
                 helper.copyIntoWithCancel(helper.wrapSink(opSink), spliterator);
                 // There is no need to truncate since the op performs the
                 // skipping and limiting of elements
@@ -625,7 +629,7 @@ final class SliceOps {
             else {
                 final Node.Builder<P_OUT> nb = op.makeNodeBuilder(-1, generator);
                 if (targetOffset == 0) { // limit only
-                    Sink<P_OUT> opSink = op.opWrapSink(helper.getStreamAndOpFlags(), nb);
+                    Sink<P_OUT, ?> opSink = op.opWrapSink(helper.getStreamAndOpFlags(), nb);
                     helper.copyIntoWithCancel(helper.wrapSink(opSink), spliterator);
                 }
                 else {

@@ -250,8 +250,8 @@ final class ReduceOps {
             public CountingSink<T> makeSink() { return new CountingSink.OfRef<>(); }
 
             @Override
-            public <P_IN> Long evaluateSequential(PipelineHelper<T> helper,
-                                                  Spliterator<P_IN> spliterator) {
+            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateSequential(PipelineHelper<T, X_IN, X> helper,
+                                                  Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -259,8 +259,8 @@ final class ReduceOps {
             }
 
             @Override
-            public <P_IN> Long evaluateParallel(PipelineHelper<T> helper,
-                                                Spliterator<P_IN> spliterator) {
+            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateParallel(PipelineHelper<T, X_IN, X> helper,
+                                                Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -286,7 +286,7 @@ final class ReduceOps {
     makeInt(int identity, IntBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Integer, Integer, ReducingSink>, Sink.OfInt {
+                implements AccumulatingSink<Integer, Integer, ReducingSink>, Sink.OfInt<RuntimeException> {
             private int state;
 
             @Override
@@ -328,7 +328,7 @@ final class ReduceOps {
     makeInt(IntBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Integer, OptionalInt, ReducingSink>, Sink.OfInt {
+                implements AccumulatingSink<Integer, OptionalInt, ReducingSink>, Sink.OfInt<RuntimeException> {
             private boolean empty;
             private int state;
 
@@ -386,7 +386,7 @@ final class ReduceOps {
         Objects.requireNonNull(accumulator);
         Objects.requireNonNull(combiner);
         class ReducingSink extends Box<R>
-                implements AccumulatingSink<Integer, R, ReducingSink>, Sink.OfInt {
+                implements AccumulatingSink<Integer, R, ReducingSink>, Sink.OfInt<RuntimeException> {
             @Override
             public void begin(long size) {
                 state = supplier.get();
@@ -426,8 +426,8 @@ final class ReduceOps {
             public CountingSink<Integer> makeSink() { return new CountingSink.OfInt(); }
 
             @Override
-            public <P_IN> Long evaluateSequential(PipelineHelper<Integer> helper,
-                                                  Spliterator<P_IN> spliterator) {
+            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateSequential(PipelineHelper<Integer, X_IN, X> helper,
+                                                  Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -435,8 +435,8 @@ final class ReduceOps {
             }
 
             @Override
-            public <P_IN> Long evaluateParallel(PipelineHelper<Integer> helper,
-                                                Spliterator<P_IN> spliterator) {
+            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateParallel(PipelineHelper<Integer, X_IN, X> helper,
+                                                Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -462,7 +462,7 @@ final class ReduceOps {
     makeLong(long identity, LongBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Long, Long, ReducingSink>, Sink.OfLong {
+                implements AccumulatingSink<Long, Long, ReducingSink>, Sink.OfLong<RuntimeException> {
             private long state;
 
             @Override
@@ -504,7 +504,7 @@ final class ReduceOps {
     makeLong(LongBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Long, OptionalLong, ReducingSink>, Sink.OfLong {
+                implements AccumulatingSink<Long, OptionalLong, ReducingSink>, Sink.OfLong<RuntimeException> {
             private boolean empty;
             private long state;
 
@@ -562,7 +562,7 @@ final class ReduceOps {
         Objects.requireNonNull(accumulator);
         Objects.requireNonNull(combiner);
         class ReducingSink extends Box<R>
-                implements AccumulatingSink<Long, R, ReducingSink>, Sink.OfLong {
+                implements AccumulatingSink<Long, R, ReducingSink>, Sink.OfLong<RuntimeException> {
             @Override
             public void begin(long size) {
                 state = supplier.get();
@@ -602,8 +602,8 @@ final class ReduceOps {
             public CountingSink<Long> makeSink() { return new CountingSink.OfLong(); }
 
             @Override
-            public <P_IN> Long evaluateSequential(PipelineHelper<Long> helper,
-                                                  Spliterator<P_IN> spliterator) {
+            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateSequential(PipelineHelper<Long, X_IN, X> helper,
+                                                  Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -611,8 +611,8 @@ final class ReduceOps {
             }
 
             @Override
-            public <P_IN> Long evaluateParallel(PipelineHelper<Long> helper,
-                                                Spliterator<P_IN> spliterator) {
+            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateParallel(PipelineHelper<Long, X_IN, X> helper,
+                                                Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -638,7 +638,7 @@ final class ReduceOps {
     makeDouble(double identity, DoubleBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Double, Double, ReducingSink>, Sink.OfDouble {
+                implements AccumulatingSink<Double, Double, ReducingSink>, Sink.OfDouble<RuntimeException> {
             private double state;
 
             @Override
@@ -680,7 +680,7 @@ final class ReduceOps {
     makeDouble(DoubleBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Double, OptionalDouble, ReducingSink>, Sink.OfDouble {
+                implements AccumulatingSink<Double, OptionalDouble, ReducingSink>, Sink.OfDouble<RuntimeException> {
             private boolean empty;
             private double state;
 
@@ -738,7 +738,7 @@ final class ReduceOps {
         Objects.requireNonNull(accumulator);
         Objects.requireNonNull(combiner);
         class ReducingSink extends Box<R>
-                implements AccumulatingSink<Double, R, ReducingSink>, Sink.OfDouble {
+                implements AccumulatingSink<Double, R, ReducingSink>, Sink.OfDouble<RuntimeException> {
             @Override
             public void begin(long size) {
                 state = supplier.get();
@@ -778,8 +778,8 @@ final class ReduceOps {
             public CountingSink<Double> makeSink() { return new CountingSink.OfDouble(); }
 
             @Override
-            public <P_IN> Long evaluateSequential(PipelineHelper<Double> helper,
-                                                  Spliterator<P_IN> spliterator) {
+            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateSequential(PipelineHelper<Double, X_IN, X> helper,
+                                                  Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -787,8 +787,8 @@ final class ReduceOps {
             }
 
             @Override
-            public <P_IN> Long evaluateParallel(PipelineHelper<Double> helper,
-                                                Spliterator<P_IN> spliterator) {
+            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateParallel(PipelineHelper<Double, X_IN, X> helper,
+                                                Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -832,21 +832,21 @@ final class ReduceOps {
             }
         }
 
-        static final class OfInt extends CountingSink<Integer> implements Sink.OfInt {
+        static final class OfInt extends CountingSink<Integer> implements Sink.OfInt<RuntimeException> {
             @Override
             public void accept(int t) {
                 count++;
             }
         }
 
-        static final class OfLong extends CountingSink<Long> implements Sink.OfLong {
+        static final class OfLong extends CountingSink<Long> implements Sink.OfLong<RuntimeException> {
             @Override
             public void accept(long t) {
                 count++;
             }
         }
 
-        static final class OfDouble extends CountingSink<Double> implements Sink.OfDouble {
+        static final class OfDouble extends CountingSink<Double> implements Sink.OfDouble<RuntimeException> {
             @Override
             public void accept(double t) {
                 count++;
@@ -916,14 +916,14 @@ final class ReduceOps {
         }
 
         @Override
-        public <P_IN> R evaluateSequential(PipelineHelper<T> helper,
-                                           Spliterator<P_IN> spliterator) {
+        public <P_IN, X_IN extends Exception, X extends Exception> R evaluateSequential(PipelineHelper<T, X_IN, X> helper,
+                                           Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
             return helper.wrapAndCopyInto(makeSink(), spliterator).get();
         }
 
         @Override
-        public <P_IN> R evaluateParallel(PipelineHelper<T> helper,
-                                         Spliterator<P_IN> spliterator) {
+        public <P_IN, X_IN extends Exception, X extends Exception> R evaluateParallel(PipelineHelper<T, X_IN, X> helper,
+                                         Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
             return new ReduceTask<>(this, helper, spliterator).invoke().get();
         }
     }
@@ -938,25 +938,25 @@ final class ReduceOps {
         private final ReduceOp<P_OUT, R, S> op;
 
         ReduceTask(ReduceOp<P_OUT, R, S> op,
-                   PipelineHelper<P_OUT> helper,
-                   Spliterator<P_IN> spliterator) {
+                   PipelineHelper<P_OUT, ?, ?> helper,
+                   Spliterator<P_IN, ?> spliterator) {
             super(helper, spliterator);
             this.op = op;
         }
 
         ReduceTask(ReduceTask<P_IN, P_OUT, R, S> parent,
-                   Spliterator<P_IN> spliterator) {
+                   Spliterator<P_IN, ?> spliterator) {
             super(parent, spliterator);
             this.op = parent.op;
         }
 
         @Override
-        protected ReduceTask<P_IN, P_OUT, R, S> makeChild(Spliterator<P_IN> spliterator) {
+        protected ReduceTask<P_IN, P_OUT, R, S> makeChild(Spliterator<P_IN, ?> spliterator) {
             return new ReduceTask<>(this, spliterator);
         }
 
         @Override
-        protected S doLeaf() {
+        protected S doLeaf() throws Exception {
             return helper.wrapAndCopyInto(op.makeSink(), spliterator);
         }
 
