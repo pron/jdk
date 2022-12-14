@@ -921,7 +921,7 @@ public class Check {
             }
             @Override
             public Boolean visitClassType(ClassType t, Void s) {
-                if (t.isUnion() || t.isIntersection()) {
+                if (!(t instanceof ThrowableUnionClassType) && (t.isUnion() || t.isIntersection())) {
                     return false;
                 }
                 for (Type targ : t.allparams()) {
@@ -1498,6 +1498,10 @@ public class Check {
         public void visitWildcard(JCWildcard tree) {
             if (tree.inner != null)
                 validateTree(tree.inner, true, isOuter);
+            if (tree.bounds != null) {
+                for (JCExpression b : tree.bounds)
+                    validateTree(b, true, isOuter);
+            }
         }
 
         @Override
@@ -1595,6 +1599,10 @@ public class Check {
     /** Is given type a subtype of some of the types in given list?
      */
     boolean subset(Type t, List<Type> ts) {
+        if (types.isSubtype(t, syms.throwableType) && ts.length() > 1
+                && ts.filter(t1 -> !types.isSubtype(t1, syms.throwableType)).isEmpty()) {
+            return types.isSubtype(t, types.makeThrowableUnionType(ts));
+        }
         for (List<Type> l = ts; l.nonEmpty(); l = l.tail)
             if (types.isSubtype(t, l.head)) return true;
         return false;

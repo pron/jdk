@@ -52,6 +52,7 @@ import com.sun.tools.javac.tree.JCTree.JCDoWhileLoop;
 import com.sun.tools.javac.tree.JCTree.JCEnhancedForLoop;
 import com.sun.tools.javac.tree.JCTree.JCErroneous;
 import com.sun.tools.javac.tree.JCTree.JCExports;
+import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.JCTree.JCExpressionStatement;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCForLoop;
@@ -679,6 +680,17 @@ public class TreeDiffer extends TreeScanner {
     @Override
     public void visitWildcard(JCWildcard tree) {
         JCWildcard that = (JCWildcard) parameter;
-        result = scan(tree.kind, that.kind) && scan(tree.inner, that.inner);
+        result = scan(tree.kind, that.kind);
+        if (tree.inner != null)
+            result &= scan(tree.inner, that.inner);
+        result &= (tree.union == that.union);
+        if (tree.bounds != null) {
+            if (tree.bounds.length() == that.bounds.length()) {
+                for (int i=0; i<tree.bounds.length(); i++) {
+                    result &= scan(tree.bounds.get(i), that.bounds.get(i));
+                }
+            } else
+                result = false;
+        }
     }
 }

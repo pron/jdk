@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.ClassType;
+import com.sun.tools.javac.code.Type.ThrowableUnionClassType;
 import com.sun.tools.javac.code.Type.TypeVar;
 import com.sun.tools.javac.code.Type.UndetVar;
 import com.sun.tools.javac.code.Type.UndetVar.InferenceBound;
@@ -456,6 +457,10 @@ public class InferenceContext {
             visit(t.getEnclosingType());
             for (Type targ : t.getTypeArguments()) {
                 visit(targ);
+            }
+            if (t instanceof ThrowableUnionClassType tu) {
+                for (Type t1 : tu.alternatives())
+                    visit(t1);
             }
             return null;
         }

@@ -299,7 +299,7 @@ public class Infer {
                 saved_undet = inferenceContext.save();
                 boolean unchecked = warn.hasNonSilentLint(Lint.LintCategory.UNCHECKED);
                 if (!unchecked) {
-                    boolean shouldPropagate = shouldPropagate(getReturnType(), resultInfo, inferenceContext);
+                    boolean shouldPropagate = shouldPropagate(getReturnType(), resultInfo, inferenceContext); // <---------
 
                     InferenceContext minContext = shouldPropagate ?
                             inferenceContext.min(roots(asMethodType(), null), false, warn) :
@@ -1484,7 +1484,15 @@ public class Infer {
                 Infer infer = inferenceContext.infer;
                 List<Type> lobounds = filterBounds(uv, inferenceContext);
                 //note: lobounds should have at least one element
-                Type owntype = lobounds.tail.tail == null  ? lobounds.head : infer.types.lub(lobounds);
+                // XXXXX here we compute the LUB for exception types
+                Type owntype;
+                if (lobounds.tail.tail == null) {
+                    owntype = lobounds.head;
+                } else if (infer.types.isThrowableUnionParam((TypeVar)uv.qtype)) {
+                    owntype = infer.types.makeThrowableUnionType(lobounds);
+                } else {
+                    owntype = infer.types.lub(lobounds);
+                }
                 if (owntype.isPrimitive() || owntype.hasTag(ERROR)) {
                     throw infer.error(infer.diags.fragment(Fragments.NoUniqueMinimalInstanceExists(uv.qtype, lobounds)));
                 } else {

@@ -730,6 +730,7 @@ public class Log extends AbstractLog {
             if (diagnostic.isFlagSet(JCDiagnostic.DiagnosticFlag.COMPRESSED)) {
                 compressedOutput = true;
             }
+            // new Throwable("STACK").printStackTrace(getWriterForDiagnosticType(diagnostic.getType()));
         }
     }
 

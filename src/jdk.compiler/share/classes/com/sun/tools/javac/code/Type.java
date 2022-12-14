@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.lang.model.type.*;
 
@@ -1182,7 +1183,10 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
                 || (isParameterized()
                     && (getEnclosingType().contains(elem) || contains(getTypeArguments(), elem)))
                 || (isCompound()
-                    && (supertype_field.contains(elem) || contains(interfaces_field, elem)));
+                    && (supertype_field.contains(elem)
+                        || (this instanceof ThrowableUnionClassType tu
+                                ? contains(tu.alternatives(), elem)
+                                : contains(interfaces_field, elem))));
         }
 
         public void complete() {
@@ -1214,6 +1218,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
     }
 
     // a clone of a ClassType that knows about the alternatives of a union type.
+    // XXX
     public static class UnionClassType extends ClassType implements UnionType {
         final List<? extends Type> alternatives_field;
 
@@ -1228,6 +1233,31 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             alternatives_field = alternatives;
         }
 
+        protected UnionClassType(ClassType ct, List<? extends Type> bounds, ClassSymbol csym) {
+            // Presently no way to refer to this type directly, so we
+            // cannot put annotations directly on it.
+            super(Type.noType, List.nil(), csym);
+            Assert.check((csym.flags() & COMPOUND) != 0);
+            alternatives_field = bounds;
+            if (ct != null)
+                setBound(ct);
+        }
+
+        public void setBound(ClassType ct) {
+            supertype_field = ct;
+
+            allparams_field = ct.allparams_field;
+            interfaces_field = ct.interfaces_field;
+            all_interfaces_field = ct.interfaces_field;
+
+            Assert.check(!supertype_field.tsym.isCompleted() ||
+                    !supertype_field.isInterface(), supertype_field);
+        }
+
+        public void recomputeBound(Types types) {
+            setBound((ClassType)types.lub(alternatives()));
+        }
+
         public Type getLub() {
             return tsym.type;
         }
@@ -1235,6 +1265,11 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
         @DefinedBy(Api.LANGUAGE_MODEL)
         public java.util.List<? extends TypeMirror> getAlternatives() {
             return Collections.unmodifiableList(alternatives_field);
+        }
+
+        @SuppressWarnings("unchecked")
+        public List<Type> alternatives() {
+            return (List<Type>)alternatives_field;
         }
 
         @Override
@@ -1312,6 +1347,34 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
         @Override @DefinedBy(Api.LANGUAGE_MODEL)
         public <R, P> R accept(TypeVisitor<R, P> v, P p) {
             return v.visitIntersection(this, p);
+        }
+    }
+
+    public static class ThrowableUnionClassType extends UnionClassType implements UnionType {
+        public ThrowableUnionClassType(ClassType ct, List<? extends Type> alternatives) {
+            super(ct, alternatives);
+            supertype_field = ct; // lub
+        }
+
+        public ThrowableUnionClassType(ClassType ct, List<? extends Type> bounds, ClassSymbol csym) {
+            super(ct, bounds, csym);
+            supertype_field = ct; // lub?
+        }
+
+        @Override
+        public String toString() {
+            return alternatives_field.stream().map(Type::toString).collect(Collectors.joining("|"));
+        }
+
+        @Override
+        public boolean isCompound() {
+            return true;
+        }
+
+
+        @Override @DefinedBy(Api.LANGUAGE_MODEL)
+        public <R, P> R accept(TypeVisitor<R, P> v, P p) {
+            return v.visitUnion(this, p);
         }
     }
 
@@ -1666,6 +1729,13 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             Assert.checkNonNull(lower);
             this.setUpperBound(bound);
             this.lower = lower;
+        }
+
+        static boolean calledBy(String x) {
+            for (var f : new Throwable().getStackTrace())
+                if (f.getMethodName().contains(x))
+                    return true;
+            return false;
         }
 
         @Override

@@ -799,16 +799,28 @@ public class Attr extends JCTree.Visitor {
             a.tsym.flags_field |= UNATTRIBUTED;
             a.setUpperBound(Type.noType);
             if (!tvar.bounds.isEmpty()) {
-                List<Type> bounds = List.of(attribType(tvar.bounds.head, env));
-                for (JCExpression bound : tvar.bounds.tail)
-                    bounds = bounds.prepend(attribType(bound, env));
-                types.setBounds(a, bounds.reverse());
+                boolean oldIsTypeVar = env.info.isTypeVar;
+                env.info.isTypeVar = true;
+                try {
+                    List<Type> bounds = List.of(attribType(tvar.bounds.head, env));
+                    for (JCExpression bound : tvar.bounds.tail)
+                        bounds = bounds.prepend(attribType(bound, env));
+                    types.setBounds(a, bounds.reverse(), tvar.union);
+                } finally {
+                    env.info.isTypeVar = oldIsTypeVar;
+                }
             } else {
                 // if no bounds are given, assume a single bound of
                 // java.lang.Object.
-                types.setBounds(a, List.of(syms.objectType));
+                types.setBounds(a, List.of(syms.objectType), false);
             }
             a.tsym.flags_field &= ~UNATTRIBUTED;
+        }
+        // recompute union type bounds in case they reference other vars in this list
+        for (JCTypeParameter tvar : typarams) { // probably needs to be recursive or something
+            if (tvar.type.getUpperBound() instanceof ThrowableUnionClassType tu && tu.supertype_field == null) {
+                tu.recomputeBound(types);
+            }
         }
         if (checkCyclic) {
             for (JCTypeParameter tvar : typarams) {
@@ -873,9 +885,19 @@ public class Attr extends JCTree.Visitor {
                     boolean classExpected,
                     boolean interfaceExpected,
                     boolean checkExtensible) {
-        Type t = tree.type != null ?
-            tree.type :
-            attribType(tree, env);
+        boolean oldIsArgument = env.info.isArgument;
+        env.info.isArgument = false;
+        boolean oldIsTypeVar = env.info.isTypeVar;
+        env.info.isTypeVar = false;
+        Type t;
+        try {
+            t = tree.type != null ?
+                    tree.type :
+                    attribType(tree, env);
+        } finally {
+            env.info.isArgument = oldIsArgument;
+            env.info.isTypeVar = oldIsTypeVar;
+        }
         try {
             return checkBase(t, tree, env, classExpected, interfaceExpected, checkExtensible);
         } catch (CompletionFailure ex) {
@@ -2751,6 +2773,7 @@ public class Attr extends JCTree.Visitor {
         }
 
         clazztype = chk.checkDiamond(tree, clazztype);
+        types.completeDefaultThrowable(clazztype);
         chk.validate(clazz, localEnv);
         if (tree.encl != null) {
             // We have to work in this case to store
@@ -3881,11 +3904,17 @@ public class Attr extends JCTree.Visitor {
          *  throws clause, then the constraints include, for all j (1 <= j <= n), <Xi <: Ej>
          */
         List<Type> nonProperAsUndet = inferenceContext.asUndetVars(nonProperList);
+        // XXXX here we add the thrown exception type bounds to the undet var
         uncaughtByProperTypes.forEach(checkedEx -> {
             nonProperAsUndet.forEach(nonProper -> {
                 types.isSubtype(checkedEx, nonProper);
             });
         });
+        if (uncaughtByProperTypes.isEmpty()) {
+            nonProperAsUndet.forEach(nonProper -> {
+                types.isSubtype(syms.runtimeExceptionType, nonProper);
+            });
+        }
 
         /** In addition, for all j (1 <= j <= n), the constraint reduces to the bound throws Ej
          */
@@ -4929,7 +4958,7 @@ public class Attr extends JCTree.Visitor {
                     //erasure is carried out in PartiallyInferredMethodType.check().
                     owntype = new MethodType(owntype.getParameterTypes(),
                             types.erasure(owntype.getReturnType()),
-                            types.erasure(owntype.getThrownTypes()),
+                            types.eraseThrown(owntype.getThrownTypes()),
                             syms.methodClass);
                 }
             }
@@ -5023,12 +5052,22 @@ public class Attr extends JCTree.Visitor {
         Type clazztype = chk.checkClassType(tree.clazz.pos(), attribType(tree.clazz, env));
 
         // Attribute type parameters
-        List<Type> actuals = attribTypes(tree.arguments, env);
+        List<Type> actuals;
+        boolean oldIsArgument = env.info.isArgument;
+        env.info.isArgument = true;
+        try {
+            actuals = attribTypes(tree.arguments, env);
+        } finally {
+            env.info.isArgument = oldIsArgument;
+        }
 
         if (clazztype.hasTag(CLASS)) {
             List<Type> formals = clazztype.tsym.type.getTypeArguments();
             if (actuals.isEmpty()) //diamond
                 actuals = formals;
+
+            boolean wildcard = env.info.isArgument || env.info.isTypeVar || (!env.baseClause && !env.info.isNewClass);
+            actuals = types.defaultThrowable(formals, actuals, wildcard);
 
             if (actuals.length() == formals.length()) {
                 List<Type> a = actuals;
@@ -5117,7 +5156,7 @@ public class Attr extends JCTree.Visitor {
 
     public void visitTypeIntersection(JCTypeIntersection tree) {
         attribTypes(tree.bounds, env);
-        tree.type = result = checkIntersection(tree, tree.bounds);
+        tree.type = result = checkIntersection(tree, false, tree.bounds);
     }
 
     public void visitTypeParameter(JCTypeParameter tree) {
@@ -5129,11 +5168,12 @@ public class Attr extends JCTree.Visitor {
 
         if (!typeVar.getUpperBound().isErroneous()) {
             //fixup type-parameter bound computed in 'attribTypeVariables'
-            typeVar.setUpperBound(checkIntersection(tree, tree.bounds));
+            typeVar.setUpperBound(checkIntersection(tree, tree.union, tree.bounds));
         }
     }
 
-    Type checkIntersection(JCTree tree, List<JCExpression> bounds) {
+    Type checkIntersection(JCTree tree, final boolean union, List<JCExpression> bounds) {
+        // XXXXX
         Set<Symbol> boundSet = new HashSet<>();
         if (bounds.nonEmpty()) {
             // accept class or interface or typevar as first bound.
@@ -5142,23 +5182,37 @@ public class Attr extends JCTree.Visitor {
             if (bounds.head.type.isErroneous()) {
                 return bounds.head.type;
             }
-            else if (bounds.head.type.hasTag(TYPEVAR)) {
-                // if first bound was a typevar, do not accept further bounds.
-                if (bounds.tail.nonEmpty()) {
-                    log.error(bounds.tail.head.pos(),
-                              Errors.TypeVarMayNotBeFollowedByOtherBounds);
-                    return bounds.head.type;
-                }
-            } else {
-                // if first bound was a class or interface, accept only interfaces
-                // as further bounds.
+            if (union) { // ThrowableUnion
                 for (JCExpression bound : bounds.tail) {
-                    bound.type = checkBase(bound.type, bound, env, false, true, false);
+                    bound.type = checkBase(bound.type, bound, env, false, false, false);
                     if (bound.type.isErroneous()) {
                         bounds = List.of(bound);
-                    }
-                    else if (bound.type.hasTag(CLASS)) {
+                    } else if (bound.type.hasTag(CLASS)) {
                         chk.checkNotRepeated(bound.pos(), types.erasure(bound.type), boundSet);
+                        if (!types.isSubtype(bound.type, syms.throwableType)) {
+                            log.error(bound.pos(), Errors.TypeVarUnionNotThrowable);
+                            return bound.type;
+                        }
+                    }
+                }
+            } else {
+                if (bounds.head.type.hasTag(TYPEVAR)) {
+                    // if first bound was a typevar, do not accept further bounds.
+                    if (bounds.tail.nonEmpty()) {
+                        log.error(bounds.tail.head.pos(),
+                                Errors.TypeVarMayNotBeFollowedByOtherBounds);
+                        return bounds.head.type;
+                    }
+                } else {
+                    // if first bound was a class or interface, accept only interfaces
+                    // as further bounds.
+                    for (JCExpression bound : bounds.tail) {
+                        bound.type = checkBase(bound.type, bound, env, false, true, false);
+                        if (bound.type.isErroneous()) {
+                            bounds = List.of(bound);
+                        } else if (bound.type.hasTag(CLASS)) {
+                            chk.checkNotRepeated(bound.pos(), types.erasure(bound.type), boundSet);
+                        }
                     }
                 }
             }
@@ -5169,7 +5223,11 @@ public class Attr extends JCTree.Visitor {
         } else if (bounds.length() == 1) {
             return bounds.head.type;
         } else {
-            Type owntype = types.makeIntersectionType(TreeInfo.types(bounds));
+            Type owntype = union
+                    ? types.makeThrowableUnionType(TreeInfo.types(bounds))
+                    : types.makeIntersectionType(TreeInfo.types(bounds));
+            if (owntype.hasTag(TYPEVAR)) // X|Runtime = X
+                return owntype;
             // ... the variable's bound is a class type flagged COMPOUND
             // (see comment for TypeVar.bound).
             // In this case, generate a class tree that represents the
@@ -5204,9 +5262,17 @@ public class Attr extends JCTree.Visitor {
 
     public void visitWildcard(JCWildcard tree) {
         //- System.err.println("visitWildcard("+tree+");");//DEBUG
-        Type type = (tree.kind.kind == BoundKind.UNBOUND)
-            ? syms.objectType
-            : attribType(tree.inner, env);
+        Type type = null;
+        if (tree.kind.kind == BoundKind.UNBOUND)
+            type = syms.objectType;
+        else if (tree.bounds == null)
+            type = attribType(tree.inner, env);
+        else {
+            List<Type> bounds = List.of(attribType(tree.bounds.head, env));
+            for (JCExpression bound : tree.bounds.tail)
+                bounds = bounds.prepend(attribType(bound, env));
+            type = types.makeThrowableUnionType(bounds.reverse());
+        }
         result = check(tree, new WildcardType(chk.checkRefType(tree.pos(), type),
                                               tree.kind.kind,
                                               syms.boundClass),
@@ -5853,7 +5919,12 @@ public class Attr extends JCTree.Visitor {
                     JCWildcard wc = (JCWildcard) enclTr;
                     if (wc.getKind() == JCTree.Kind.EXTENDS_WILDCARD ||
                             wc.getKind() == JCTree.Kind.SUPER_WILDCARD) {
-                        validateAnnotatedType(wc.getBound(), wc.getBound().type);
+                        if (wc.getBound() != null)
+                            validateAnnotatedType(wc.getBound(), wc.getBound().type);
+                        if (wc.getBounds() != null) {
+                            for (var b : wc.getBounds())
+                                validateAnnotatedType(b, b.type);
+                        }
                     } else {
                         // Nothing to do for UNBOUND
                     }

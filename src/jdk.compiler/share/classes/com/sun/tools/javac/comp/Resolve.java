@@ -386,7 +386,7 @@ public class Resolve {
             return isAccessible(env, types.cvarUpperBound(types.elemtype(t)));
         } else if (t.isUnion()) {
             return StreamSupport.stream(((UnionClassType) t).getAlternativeTypes().spliterator(), false)
-                    .allMatch(alternative -> isAccessible(env, alternative.tsym, checkInner));
+                    .allMatch(alternative -> alternative.hasTag(TYPEVAR) || isAccessible(env, alternative.tsym, checkInner));
         } else {
             return isAccessible(env, t.tsym, checkInner);
         }
@@ -581,6 +581,7 @@ public class Resolve {
             // which is fine, see JLS 15.12.2.1
         } else if (mt.hasTag(FORALL) && typeargtypes.nonEmpty()) {
             ForAll pmt = (ForAll) mt;
+            typeargtypes = types.defaultThrowable(pmt.tvars, typeargtypes, false);
             if (typeargtypes.length() != pmt.tvars.length())
                  // not enough args
                 throw new InapplicableMethodException(diags.fragment(Fragments.WrongNumberTypeArgs(Integer.toString(pmt.tvars.length()))));
@@ -2072,6 +2073,10 @@ public class Resolve {
     Symbol loadClass(Env<AttrContext> env, Name name, RecoveryLoadClass recoveryLoadClass) {
         try {
             ClassSymbol c = finder.loadClass(env.toplevel.modle, name);
+            for (Symbol member : c.members_field.getSymbols()) {
+                member.type = types.completeUnion(member.type);
+            }
+
             return isAccessible(env, c) ? c : new AccessError(env, null, c);
         } catch (ClassFinder.BadClassFile err) {
             return new BadClassFileError(err);

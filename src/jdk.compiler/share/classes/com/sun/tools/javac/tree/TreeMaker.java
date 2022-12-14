@@ -590,18 +590,24 @@ public class TreeMaker implements JCTree.Factory {
         return tree;
     }
 
-    public JCTypeParameter TypeParameter(Name name, List<JCExpression> bounds) {
-        return TypeParameter(name, bounds, List.nil());
+    public JCTypeParameter TypeParameter(Name name, boolean union, List<JCExpression> bounds) {
+        return TypeParameter(name, union, bounds, List.nil());
     }
 
-    public JCTypeParameter TypeParameter(Name name, List<JCExpression> bounds, List<JCAnnotation> annos) {
-        JCTypeParameter tree = new JCTypeParameter(name, bounds, annos);
+    public JCTypeParameter TypeParameter(Name name, boolean union, List<JCExpression> bounds, List<JCAnnotation> annos) {
+        JCTypeParameter tree = new JCTypeParameter(name, union, bounds, annos);
         tree.pos = pos;
         return tree;
     }
 
     public JCWildcard Wildcard(TypeBoundKind kind, JCTree type) {
         JCWildcard tree = new JCWildcard(kind, type);
+        tree.pos = pos;
+        return tree;
+    }
+
+    public JCWildcard Wildcard(TypeBoundKind kind, boolean union, List<JCExpression> bounds) {
+        JCWildcard tree = new JCWildcard(kind, union, bounds);
         tree.pos = pos;
         return tree;
     }
@@ -1057,7 +1063,7 @@ public class TreeMaker implements JCTree.Factory {
      */
     public JCTypeParameter TypeParam(Name name, TypeVar tvar) {
         return (JCTypeParameter)
-            TypeParameter(name, Types(types.getBounds(tvar))).setPos(pos).setType(tvar);
+            TypeParameter(name, tvar.isUnion(), Types(types.getBounds(tvar))).setPos(pos).setType(tvar);
     }
 
     /** Create a list of type parameter trees from a list of type variables.

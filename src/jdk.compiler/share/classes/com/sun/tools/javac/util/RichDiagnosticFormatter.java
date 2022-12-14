@@ -261,7 +261,9 @@ public class RichDiagnosticFormatter extends
         /** where clause regarding a captured type */
         CAPTURED("where.description.captured"),
         /** where clause regarding an intersection type */
-        INTERSECTION("where.description.intersection");
+        INTERSECTION("where.description.intersection"),
+        /** where clause regarding an intersection type */
+        UNION("where.description.union");
 
         /** resource key for this where clause kind */
         private final String key;
@@ -376,7 +378,9 @@ public class RichDiagnosticFormatter extends
                     getConfiguration().isEnabled(RichFormatterFeature.WHERE_CLAUSES)) {
                 return localize(locale,
                         "compiler.misc.intersection.type",
-                        indexOf(t, WhereClauseKind.INTERSECTION));
+                        indexOf(t, t instanceof ThrowableUnionClassType
+                                ? WhereClauseKind.UNION
+                                : WhereClauseKind.INTERSECTION));
             }
             else
                 return super.visitClassType(t, locale);
@@ -386,7 +390,8 @@ public class RichDiagnosticFormatter extends
         protected String className(ClassType t, boolean longform, Locale locale) {
             Symbol sym = t.tsym;
             if (sym.name.length() == 0 ||
-                    !getConfiguration().isEnabled(RichFormatterFeature.SIMPLE_NAMES)) {
+                    !getConfiguration().isEnabled(RichFormatterFeature.SIMPLE_NAMES)
+                    || t instanceof ThrowableUnionClassType) {
                 return super.className(t, longform, locale);
             }
             else if (longform)
@@ -518,7 +523,17 @@ public class RichDiagnosticFormatter extends
 
         @Override
         public Void visitClassType(ClassType t, Void ignored) {
-            if (t.isCompound()) {
+            if (t instanceof ThrowableUnionClassType tu) {
+                if (indexOf(t, WhereClauseKind.UNION) == -1) {
+                    Type supertype = types.supertype(t);
+                    @SuppressWarnings("unchecked")
+                    List<Type> alternatives = List.from((Iterable<Type>)(Object)tu.getAlternativeTypes());
+                    JCDiagnostic d = diags.fragment(Fragments.WhereUnion(t, String.join("|", alternatives.stream().map(Object::toString).toList())));
+                    whereClauses.get(WhereClauseKind.UNION).put(t, d);
+                    // visit(supertype);
+                    visit(alternatives);
+                }
+            } else if (t.isCompound()) {
                 if (indexOf(t, WhereClauseKind.INTERSECTION) == -1) {
                     Type supertype = types.supertype(t);
                     List<Type> interfaces = types.interfaces(t);

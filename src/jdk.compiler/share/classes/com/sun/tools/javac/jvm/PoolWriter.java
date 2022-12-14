@@ -33,6 +33,7 @@ import com.sun.tools.javac.code.Symbol.MethodHandleSymbol;
 import com.sun.tools.javac.code.Symbol.ModuleSymbol;
 import com.sun.tools.javac.code.Symbol.PackageSymbol;
 import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.code.Type.ThrowableUnionClassType;
 import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.jvm.ClassWriter.PoolOverflow;
 import com.sun.tools.javac.jvm.ClassWriter.StringOverflow;
@@ -223,7 +224,8 @@ public class PoolWriter {
      */
     void enterInner(ClassSymbol c) {
         if (c.type.isCompound()) {
-            throw new AssertionError("Unexpected intersection type: " + c.type);
+            if (!(c.type instanceof ThrowableUnionClassType))
+                throw new AssertionError("Unexpected intersection type: " + c.type);
         }
         c.complete();
         if (c.owner.enclClass() != null && !innerClasses.contains(c)) {

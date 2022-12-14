@@ -970,13 +970,22 @@ public class JavacParser implements Parser {
     protected JCExpression parseIntersectionType(int pos, JCExpression firstType) {
         JCExpression t = firstType;
         int pos1 = pos;
-        List<JCExpression> targets = List.of(t);
-        while (token.kind == AMP) {
-            accept(AMP);
-            targets = targets.prepend(parseType());
+        boolean union = false;
+        if (token.kind == AMP) {
+            while (token.kind == AMP) {
+                accept(AMP);
+                targets = targets.prepend(parseType());
+            }
+        } else {
+            while (token.kind == BAR) {
+                accept(BAR);
+                union = true;
+                targets = targets.prepend(parseType());
+            }
         }
         if (targets.length() > 1) {
-            t = toP(F.at(pos1).TypeIntersection(targets.reverse()));
+            t = union ? toP(F.at(pos1).TypeUnion(targets.reverse()))
+                      : toP(F.at(pos1).TypeIntersection(targets.reverse()));
         }
         return t;
     }
@@ -1891,7 +1900,7 @@ public class JavacParser implements Parser {
             switch (tk) {
                 case COMMA:
                     type = true;
-                case EXTENDS: case SUPER: case DOT: case AMP:
+                case EXTENDS: case SUPER: case DOT: case AMP: case BAR:
                     //skip
                     break;
                 case QUES:
@@ -2345,7 +2354,19 @@ public class JavacParser implements Parser {
             TypeBoundKind t = to(F.at(pos).TypeBoundKind(BoundKind.EXTENDS));
             nextToken();
             JCExpression bound = parseType();
-            result = F.at(pos).Wildcard(t, bound);
+            if (token.kind == BAR) {
+                ListBuffer<JCExpression> bounds = new ListBuffer<>();
+                bounds.append(bound);
+                while (token.kind == BAR) {
+                    nextToken();
+                    bounds.append(parseType());
+                }
+                result = F.at(pos).Wildcard(t, true, bounds.toList());
+            } else {
+                result = F.at(pos).Wildcard(t, bound);
+            }
+
+
         } else if (token.kind == SUPER) {
             TypeBoundKind t = to(F.at(pos).TypeBoundKind(BoundKind.SUPER));
             nextToken();
@@ -5010,15 +5031,24 @@ public class JavacParser implements Parser {
         List<JCAnnotation> annos = typeAnnotationsOpt();
         Name name = typeName();
         ListBuffer<JCExpression> bounds = new ListBuffer<>();
+        boolean union = false;
         if (token.kind == EXTENDS) {
             nextToken();
             bounds.append(parseType());
-            while (token.kind == AMP) {
-                nextToken();
-                bounds.append(parseType());
+            if (token.kind == AMP) {
+                while (token.kind == AMP) {
+                    nextToken();
+                    bounds.append(parseType());
+                }
+            } else if (token.kind == BAR) {
+                union = true;
+                while (token.kind == BAR) {
+                    nextToken();
+                    bounds.append(parseType());
+                }
             }
         }
-        return toP(F.at(pos).TypeParameter(name, bounds.toList(), annos));
+        return toP(F.at(pos).TypeParameter(name, union, bounds.toList(), annos));
     }
 
     /** FormalParameters = "(" [ FormalParameterList ] ")"

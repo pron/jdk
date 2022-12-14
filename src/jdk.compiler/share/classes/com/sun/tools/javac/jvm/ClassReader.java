@@ -455,6 +455,7 @@ public class ClassReader {
         signature = sig;
         sigp = offset;
         siglimit = offset + len;
+//        System.err.println(">>> sig: " + new String(sig, offset, len, StandardCharsets.UTF_8));
         return sigToType();
     }
 
@@ -483,6 +484,15 @@ public class ClassReader {
             sigp++;
             Type t = sigToType();
             return new WildcardType(t, BoundKind.SUPER, syms.boundClass);
+        }
+        case '|': {
+            List<Type> bounds = List.nil();
+            while (signature[sigp] == '|') {
+                sigp++;
+                Type t = sigToType();
+                bounds = bounds.prepend(t);
+            }
+            return types.makeThrowableUnionType(bounds.reverse(), syms.throwableType);
         }
         case 'B':
             sigp++;
@@ -737,16 +747,23 @@ public class ClassReader {
         }
         List<Type> bounds = List.nil();
         boolean allInterfaces = false;
+        boolean union = false;
         if (signature[sigp] == ':' && signature[sigp+1] == ':') {
             sigp++;
             allInterfaces = true;
+        } else if (signature[sigp] == ':' && signature[sigp+1] == '|') {
+            sigp++;
+            union = true;
         }
-        while (signature[sigp] == ':') {
+        while (signature[sigp] == ':' || signature[sigp] == '|') {
             sigp++;
             bounds = bounds.prepend(sigToType());
         }
         if (!sigEnterPhase) {
-            types.setBounds(tvar, bounds.reverse(), allInterfaces);
+            if (union)
+                tvar.setUpperBound(types.makeThrowableUnionType(bounds.reverse(), syms.throwableType));
+            else
+                types.setBounds(tvar, bounds.reverse(), allInterfaces, false);
         }
         return tvar;
     }

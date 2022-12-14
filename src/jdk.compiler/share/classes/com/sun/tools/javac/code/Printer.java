@@ -298,7 +298,14 @@ public abstract class Printer implements Type.Visitor<String, Locale>, Symbol.Vi
      */
     protected String className(ClassType t, boolean longform, Locale locale) {
         Symbol sym = t.tsym;
-        if (sym.name.length() == 0 && (sym.flags() & COMPOUND) != 0) {
+        if (t instanceof ThrowableUnionClassType tu) {
+            StringBuilder s = new StringBuilder();
+            for (List<? extends Type> is = tu.alternatives_field; is.nonEmpty(); is = is.tail) {
+                s.append('|');
+                s.append(visit(is.head, locale));
+            }
+            return s.substring(1).toString();
+        } else if (sym.name.length() == 0 && (sym.flags() & COMPOUND) != 0) {
             StringBuilder s = new StringBuilder(visit(t.supertype_field, locale));
             for (List<Type> is = t.interfaces_field; is.nonEmpty(); is = is.tail) {
                 s.append('&');

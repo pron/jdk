@@ -33,7 +33,9 @@ import java.util.Iterator;
 import java.util.AbstractCollection;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collector;
 
 /** A class for generic linked lists. Links are supposed to be
@@ -430,6 +432,52 @@ public class List<A> extends AbstractCollection<A> implements java.util.List<A> 
             changed |= (z != a);
         }
         return changed ? buf.toList() : (List<Z>)this;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <Z, Y> List<Z> mapTwo(List<Y> second, BiFunction<A, Y, Z> mapper) {
+        boolean changed = false;
+        ListBuffer<Z> buf = new ListBuffer<>();
+        for (A a : this) {
+            Z z = mapper.apply(a, second.head);
+            buf.append(z);
+            changed |= (z != a);
+            second = second.tail;
+        }
+        return changed ? buf.toList() : (List<Z>)this;
+    }
+
+    public List<? extends A> filter(Predicate<A> p) {
+        boolean changed = false;
+        ListBuffer<A> buf = new ListBuffer<>();
+        for (A a : this) {
+            if (p.test(a))
+                buf.append(a);
+            else
+                changed = true;
+        }
+        return changed ? buf.toList() : this;
+    }
+
+    public boolean any(Predicate<A> p) {
+        for (A a : this) if (p.test(a)) return true;
+        return false;
+    }
+
+    public boolean every(Predicate<A> p) {
+        for (A a : this) if (!p.test(a)) return false;
+        return true;
+    }
+
+    public List<A> prefix(int count) {
+        ListBuffer<A> buf = new ListBuffer<>();
+        for (A a : this) {
+            if (count == 0)
+                break;
+            buf.append(a);
+            count--;
+        }
+        return buf.toList();
     }
 
     @SuppressWarnings("unchecked")

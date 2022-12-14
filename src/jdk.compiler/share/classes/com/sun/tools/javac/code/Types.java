@@ -38,6 +38,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 
+import javax.lang.model.type.NoType;
+import javax.lang.model.type.NullType;
 import javax.tools.JavaFileObject;
 
 import com.sun.tools.javac.code.Attribute.RetentionPolicy;
@@ -1083,11 +1085,59 @@ public class Types {
             return isSuperType(s, t);
 
         if (s.isCompound()) {
-            for (Type s2 : interfaces(s).prepend(supertype(s))) {
-                if (!isSubtype(t, s2, capture))
-                    return false;
+            if (s instanceof ThrowableUnionClassType su) {
+                if (!t.hasTag(UNDETVAR)) {
+                    if (su.alternatives().every(a -> a instanceof WildcardType wa && wa.kind == BoundKind.UNBOUND)) {
+                        s = su.supertype_field;
+                        if (s == null || s instanceof NoType)
+                            s = syms.throwableType;
+                        return isSubtype(t, s, capture);
+                    }
+                    if (t instanceof ThrowableUnionClassType tu) {
+                        for (Type t2 : tu.alternatives()) {
+                            if (!su.alternatives().any(s2 ->
+                                    t2 == s2
+                                            || (!s2.isPartial() && !t2.isPartial() && isSubtype(t2, s2, capture)))
+                                && !(t2.hasTag(TYPEVAR) && isSubtype(t2, s, capture)))
+                                return false;
+                        }
+                        return true;
+                    }
+                    for (Type s2 : su.alternatives()) {
+                        if (s2.isPartial()) continue;
+                        if (isSubtype(t, s2, capture))
+                            return true;
+                    }
+                    for (Type s2 : su.alternatives()) {
+                        if (!s2.isPartial()) continue;
+                        if (isSubtype(t, s2, capture))
+                            return true;
+                    }
+                    return t.getUpperBound() != null && isSubtype(t.getUpperBound(), s);
+                }
+                return true;
+            } else {
+                for (Type s2 : interfaces(s).prepend(supertype(s))) {
+                    if (!isSubtype(t, s2, capture))
+                        return false;
+                }
+                return true;
             }
-            return true;
+        }
+
+        if (!s.hasTag(UNDETVAR) && s instanceof TypeVar tv) {
+            if (tv.getUpperBound() instanceof ThrowableUnionClassType tu) {
+                for (Type s2 : tu.alternatives_field) {
+                    if (isSubtype(t, s2, capture))
+                        return true;
+                }
+                // return false; -- t might be a type var bound by s
+            } else if (isSameType(topBound(tv), syms.exceptionType) || isSameType(topBound(tv), syms.throwableType)) {
+                // Have `extends X` behave like `extends X|RuntimeException`).
+                if (!t.hasTag(UNDETVAR) && !(t instanceof TypeVar tv1 && tv1.getUpperBound().hasTag(UNDETVAR))
+                        && (isSubtype(t, syms.runtimeExceptionType, capture) || isSubtype(t, syms.errorType, capture)))
+                    return true;
+            }
         }
 
         // Generally, if 's' is a lower-bounded type variable, recur on lower bound; but
@@ -1183,10 +1233,19 @@ public class Types {
 
             @Override
             public Boolean visitClassType(ClassType t, Type s) {
+                if (t instanceof ThrowableUnionClassType tu
+                        && (tu.supertype_field != null && !isSubtype(tu.supertype_field, s))) { // some of the alternatives might be undetermined
+                    for (Type t1 : tu.alternatives()) { //  return tu.alternatives().every(t1 -> isSubtype(t1, s));
+                        if (!isSubtype(t1, s))
+                            return false;
+                    }
+                    return true;
+                }
                 Type sup = asSuper(t, s.tsym);
                 if (sup == null) return false;
                 // If t is an intersection, sup might not be a class type
-                if (!sup.hasTag(CLASS)) return isSubtypeNoCapture(sup, s);
+                if (!sup.hasTag(CLASS))
+                    return isSubtypeNoCapture(sup, s);
                 return sup.tsym == s.tsym
                      // Check type variable containment
                     && (!s.isParameterized() || containsTypeRecursive(s, sup))
@@ -1403,21 +1462,44 @@ public class Types {
                     return visit(t, wildUpperBound(s)) && visit(t, wildLowerBound(s));
 
                 if (t.isCompound() && s.isCompound()) {
+
                     if (!visit(supertype(t), supertype(s)))
                         return false;
 
-                    Map<Symbol,Type> tMap = new HashMap<>();
-                    for (Type ti : interfaces(t)) {
-                        tMap.put(ti.tsym, ti);
+                    if (t instanceof ThrowableUnionClassType tu) { // union
+                        if (s instanceof ThrowableUnionClassType su) {
+                            for (Type a : tu.alternatives()) {
+                                if (a.isPartial())
+                                    return su.alternatives().any(b -> a == b);
+                                if (!isSameType(a, syms.runtimeExceptionType)
+                                        && !isSubtype(a, syms.runtimeExceptionType)
+                                        && !su.alternatives().any(b -> !b.isPartial() && isSameType(a, b)))
+                                    return false;
+                            }
+                            for (Type a : su.alternatives()) {
+                                if (a.isPartial())
+                                    return su.alternatives().any(b -> a == b);
+                                if (!isSameType(a, syms.runtimeExceptionType)
+                                        && !isSubtype(a, syms.runtimeExceptionType)
+                                        && !su.alternatives().any(b -> !b.isPartial() && isSameType(a, b)))
+                                    return false;
+                            }
+                            return true;
+                        } else return false;
+                    } else { // intersection
+                        Map<Symbol,Type> tMap = new HashMap<>();
+                        for (Type ti : interfaces(t)) {
+                            tMap.put(ti.tsym, ti);
+                        }
+                        for (Type si : interfaces(s)) {
+                            if (!tMap.containsKey(si.tsym))
+                                return false;
+                            Type ti = tMap.remove(si.tsym);
+                            if (!visit(ti, si))
+                                return false;
+                        }
+                        return tMap.isEmpty();
                     }
-                    for (Type si : interfaces(s)) {
-                        if (!tMap.containsKey(si.tsym))
-                            return false;
-                        Type ti = tMap.remove(si.tsym);
-                        if (!visit(ti, si))
-                            return false;
-                    }
-                    return tMap.isEmpty();
                 }
                 return t.tsym == s.tsym
                     && visit(t.getEnclosingType(), s.getEnclosingType())
@@ -1562,7 +1644,20 @@ public class Types {
                     return isSameType(t, s);
             }
 
-//            void debugContainsType(WildcardType t, Type s) {
+        @Override
+        public Boolean visitTypeVar(TypeVar t, Type s) {
+            if (super.visitTypeVar(t, s))
+                return true;
+            if (t.getUpperBound() instanceof ThrowableUnionClassType tu) {
+                for (Type s2 : tu.alternatives_field) {
+                    if (isSubtype(s, s2, false))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        //            void debugContainsType(WildcardType t, Type s) {
 //                System.err.println();
 //                System.err.format(" does %s contain %s?%n", t, s);
 //                System.err.format(" %s U(%s) <: U(%s) %s = %s%n",
@@ -2321,7 +2416,10 @@ public class Types {
                         if (ownerParams.nonEmpty()) {
                             if (baseParams.isEmpty()) {
                                 // then base is a raw type
-                                return erasure(sym.type);
+                                Type res = erasure(sym.type);
+                                if (res.getTag() == METHOD) //  sym.getKind() == ElementKind.METHOD
+                                    res = mapErasedDefaultThrowable(res.asMethodType(), sym.type.asMethodType(), ownerParams);
+                                return res;
                             } else {
                                 return subst(sym.type, ownerParams, baseParams);
                             }
@@ -2465,6 +2563,34 @@ public class Types {
                 Type erased = erasure(t.getUpperBound(), recurse);
                 return combineMetadata(erased, t);
             }
+
+//            @Override
+//            public Type visitMethodType(MethodType t, Boolean recurse) {
+//                List<Type> argtypes = t.argtypes;
+//                Type restype = t.restype;
+//                List<Type> thrown = t.thrown;
+//                List<Type> argtypes1 = visit(argtypes, recurse);
+//                Type restype1 = visit(restype, recurse);
+//                List<Type> thrown1 = thrown.map(th ->
+//                    th.hasTag(TYPEVAR) && isThrowableUnionParam((TypeVar)th)
+//                        ? syms.runtimeExceptionType
+//                        : visit(th, recurse));
+//
+//                if (argtypes1 == argtypes &&
+//                        restype1 == restype &&
+//                        thrown1 == thrown) return t;
+//                else return new MethodType(argtypes1, restype1, thrown1, t.tsym) {
+//                    @Override
+//                    protected boolean needsStripping() {
+//                        return true;
+//                    }
+//                };
+//            }
+
+//            @Override
+//            public Type visitForAll(ForAll t, Boolean recurse) {
+//                return visit(t.qtype, recurse);
+//            }
         };
 
     public List<Type> erasure(List<Type> ts) {
@@ -2522,6 +2648,115 @@ public class Types {
         bc.members_field = WriteableScope.create(bc);
         return intersectionType;
     }
+
+    public Type makeThrowableUnionType(List<Type> bounds) {
+        return makeThrowableUnionType(bounds, null);
+    }
+
+    public Type makeThrowableUnionType(List<Type> bounds, Type sup) {
+        Assert.check(bounds.nonEmpty());
+
+        List<? extends Type> bs = unionTypeUnion(bounds);
+        if (sup != null) { // hack; this is true during initialization of classes
+            bs = bs.filter(t -> t.hasTag(UNDETVAR) || !isSameType(t, syms.runtimeExceptionType) && !isSameType(t, syms.errorType));
+        } else {
+            if (bs.any(t -> !t.hasTag(UNDETVAR) && !(t.hasTag(TYPEVAR) && t.getUpperBound() == null) && !isSubtype(t, syms.runtimeExceptionType)))
+                bs = bs.filter(t -> t.hasTag(UNDETVAR) || (t.hasTag(TYPEVAR) && t.getUpperBound() == null) || !isSubtype(t, syms.runtimeExceptionType));
+            if (bs.any(t -> !t.hasTag(UNDETVAR) && !(t.hasTag(TYPEVAR) && t.getUpperBound() == null) && !isSubtype(t, syms.errorType)))
+                bs = bs.filter(t -> t.hasTag(UNDETVAR) || (t.hasTag(TYPEVAR) && t.getUpperBound() == null) || !isSubtype(t, syms.errorType));
+        }
+
+        if (bs.length() == 1)
+            return bs.head;
+        if (bs.length() == 0)
+            return syms.runtimeExceptionType;
+
+        ClassSymbol bc =
+                new ClassSymbol(ABSTRACT|PUBLIC|SYNTHETIC|COMPOUND|ACYCLIC,
+                        Type.moreInfo
+                                ? names.fromString(bs.toString())
+                                : names.empty,
+                        null,
+                        syms.noSymbol);
+
+        if (sup == null) {
+            if (bs.every(t1 -> topBound(t1) != null))
+                sup = lub(bs.map(Types::topBound));
+        }
+        while (sup != null && sup.hasTag(TYPEVAR))
+            sup = sup.getUpperBound();
+        if (sup instanceof NullType)
+            sup = null;
+
+        Assert.check(sup == null || sup instanceof ClassType, sup);
+        var unionType = new ThrowableUnionClassType((ClassType)sup, bs, bc);
+        bc.type = unionType;
+        bc.erasure_field = sup;
+        bc.members_field = WriteableScope.create(bc);
+        return unionType;
+    }
+
+    public Type completeUnion(Type t) {
+        return t.map(new CompleteUnion());
+    }
+
+    private class CompleteUnion extends StructuralTypeMapping<Void> {
+        @Override
+        public Type visitClassType(ClassType t, Void ignored) {
+            Type t1 = super.visitClassType(t, null);
+            if (t1 instanceof ThrowableUnionClassType tu) {
+                if (tu.supertype_field == null || tu.supertype_field == syms.throwableType) {
+                    tu.supertype_field = Types.this.lub(tu.alternatives());
+                }
+            }
+            return t1;
+        }
+
+        @Override
+        public Type visitTypeVar(TypeVar t, Void ignored) {
+            if (t.getUpperBound() instanceof ThrowableUnionClassType)
+                visit(t.getUpperBound());
+            return super.visitTypeVar(t, ignored);
+        }
+
+        @Override
+        public Type visitForAll(ForAll t, Void ignored) {
+            List<Type> tvars1 = visit(t.tvars, ignored);
+            Type qtype1 = visit(t.qtype);
+            if (tvars1 == t.tvars && qtype1 == t.qtype)
+                return t;
+            return new ForAll(tvars1, qtype1);
+        }
+    }
+
+    List<? extends Type> unionTypeUnion(List<Type> ts) {
+        List<? extends Type> u = ts.filter(t -> !(t instanceof ThrowableUnionClassType));
+        @SuppressWarnings("unchecked")
+        List<ThrowableUnionClassType> us =
+                (List<ThrowableUnionClassType>)ts.filter(t -> t instanceof ThrowableUnionClassType);
+        for (ThrowableUnionClassType u0 : us) {
+            u = unionTypeUnion(u, u0.alternatives_field);
+        }
+        return u;
+    }
+
+    @SuppressWarnings("unchecked")
+    List<Type> unionTypeUnion(List<? extends Type> as, List<? extends Type> bs) {
+        List<Type> u = (List<Type>)bs.filter(b -> !isIncludedIn(b, as));
+        return u.prependList((List<Type>)as.filter(a -> !isIncludedIn(a, u)));
+    }
+
+    List<? extends Type> unionTypeSubtract(List<? extends Type> as, List<? extends Type> bs) {
+        return as.filter(a -> !isIncludedIn(a, bs));
+    }
+
+    private boolean isIncludedIn(Type x, List<? extends Type> ts) {
+        for (Type t : ts) {
+            if (isSameType(x, t) || isSubtype(x, t))
+                return true;
+        }
+        return false;
+    }
     // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="supertype">
@@ -2541,6 +2776,10 @@ public class Types {
             public Type visitClassType(ClassType t, Void ignored) {
                 if (t.supertype_field == null) {
                     Type supertype = ((ClassSymbol)t.tsym).getSuperclass();
+                    if (t instanceof ThrowableUnionClassType tu) {
+                        if (tu.alternatives().every(t1 -> topBound(t1) != null))
+                            supertype = lub(tu.alternatives().map(Types::topBound));
+                    }
                     // An interface has no superclass; its supertype is Object.
                     if (t.isInterface())
                         supertype = ((ClassType)t.tsym.type).supertype_field;
@@ -2717,9 +2956,10 @@ public class Types {
      *
      * @param t         a type variable
      * @param bounds    the bounds, must be nonempty
+     * @param union         is this a union?
      */
-    public void setBounds(TypeVar t, List<Type> bounds) {
-        setBounds(t, bounds, bounds.head.tsym.isInterface());
+    public void setBounds(TypeVar t, List<Type> bounds, boolean union) {
+        setBounds(t, bounds, bounds.head.tsym.isInterface(), union);
     }
 
     /**
@@ -2730,11 +2970,13 @@ public class Types {
      * @param t             a type variable
      * @param bounds        the bounds, must be nonempty
      * @param allInterfaces are all bounds interface types?
+     * @param union         is this a union?
      */
-    public void setBounds(TypeVar t, List<Type> bounds, boolean allInterfaces) {
+    public void setBounds(TypeVar t, List<Type> bounds, boolean allInterfaces, boolean union) {
         t.setUpperBound( bounds.tail.isEmpty() ?
                 bounds.head :
-                makeIntersectionType(bounds, allInterfaces) );
+                (union ? makeThrowableUnionType(bounds)
+                       : makeIntersectionType(bounds, allInterfaces)));
         t.rank_field = -1;
     }
     // </editor-fold>
@@ -2747,6 +2989,8 @@ public class Types {
         if (t.getUpperBound().hasTag(NONE))
             return List.nil();
         else if (t.getUpperBound().isErroneous() || !t.getUpperBound().isCompound())
+            return List.of(t.getUpperBound());
+        else if (t.getUpperBound() instanceof ThrowableUnionClassType tu)
             return List.of(t.getUpperBound());
         else if ((erasure(t).tsym.flags() & INTERFACE) == 0)
             return interfaces(t).prepend(supertype(t));
@@ -3101,7 +3345,7 @@ public class Types {
 
     public CompoundScope membersClosure(Type site, boolean skipInterface) {
         CompoundScope cs = membersCache.visit(site, null);
-        Assert.checkNonNull(cs, () -> "type " + site);
+        // Assert.checkNonNull(cs, () -> "type " + site);
         return skipInterface ? membersCache.new MembersScope(cs) : cs;
     }
     // </editor-fold>
@@ -3251,6 +3495,96 @@ public class Types {
             }
     // </editor-fold>
 
+    public boolean isLastParamThrowable(List<Type> formals) {
+        if (formals.isEmpty()) return false;
+        Type last = topBound(formals.last());
+        if (last == null) return false;
+        return isSameType(last, syms.throwableType) || isSameType(last, syms.exceptionType);
+    }
+
+    public boolean isThrowableUnionParam(TypeVar tvar) {
+        Type ubound = topBound(tvar); // tvar.getUpperBound();
+        return  ubound instanceof ThrowableUnionClassType
+                    || isSameType(ubound, syms.throwableType)
+                    || isSameType(ubound, syms.exceptionType);
+    }
+
+    private static Type topBound(Type t) {
+        Type b = t;
+        if (t instanceof TypeVar tv)
+            b = topBound(tv.getUpperBound());
+        else if (t instanceof UndetVar uv)
+            b = uv.getUpperBound();
+        else if (t instanceof ClassType ct && t.isCompound())
+            b = ct.supertype_field;
+        return b;
+    }
+
+    public List<Type> suffixThrowables(List<Type> ts) {
+        if (!isLastParamThrowable(ts)) return List.nil();
+        ts = ts.reverse();
+        List<Type> res = List.nil();
+        while (!ts.isEmpty()) {
+            Type ubound = topBound(ts.head);
+            if (!(isSameType(ubound, syms.throwableType) || isSameType(ubound, syms.exceptionType)))
+                break;
+            res = res.append(ts.head);
+            ts = ts.tail;
+        }
+        return res.reverse();
+    }
+
+    public List<Type> defaultThrowable(List<Type> formals, List<Type> actuals, boolean wildcard) {
+        int delta = formals.length() - actuals.length();
+        if (delta > 0 && suffixThrowables(formals).length() >= delta) {
+            for (int i = 0; i < delta; i++) {
+                Type defaultType = syms.runtimeExceptionType;
+                if (wildcard)
+                    defaultType = new WildcardType(defaultType, BoundKind.EXTENDS, syms.boundClass);
+                actuals = actuals.append(defaultType);
+            }
+        }
+        return actuals;
+    }
+
+    public void completeDefaultThrowable(Type clazztype) {
+        List<Type> formals = clazztype.tsym.type.getTypeArguments();
+        List<Type> actuals = clazztype.getTypeArguments();
+        if (formals.length() == 1
+                && isLastParamThrowable(formals)
+                && actuals.isEmpty()) {
+            ((ClassType)clazztype).typarams_field = actuals.append(syms.runtimeExceptionType);
+            ((ClassType)clazztype).allparams_field = null; // reset
+        }
+    }
+
+    private List<Type> eraseDefaultThrowable(List<Type> ts) {
+        var suffix = suffixThrowables(ts);
+        var newSuffix = suffix.map(t -> suffix.any(s -> s.equalsIgnoreMetadata(t)) ? syms.runtimeExceptionType : t);
+        return ts.prefix(ts.length() - suffix.length()).appendList(newSuffix);
+    }
+
+    public List<Type> eraseThrown(List<Type> ts) {
+        return ts.map(t ->
+                t.hasTag(TYPEVAR) && isThrowableUnionParam((TypeVar)t)
+                        ? syms.runtimeExceptionType
+                        : erasure(t));
+    }
+
+    MethodType mapErasedDefaultThrowable(MethodType erased, MethodType orig, List<Type> ownerParams) {
+        // var suffix = suffixThrowables(ownerParams);
+        erased.thrown = erased.thrown.mapTwo(orig.getThrownTypes(),
+                (ersd, org) ->
+                        org.hasTag(TYPEVAR) && isThrowableUnionParam((TypeVar)org) // suffix.any(s -> s.equalsIgnoreMetadata(org))
+                                ? syms.runtimeExceptionType
+                                : ersd);
+
+//        @SuppressWarnings("unchecked")
+//        var x = (List<Type>)erased.thrown.filter(t -> t == syms.runtimeExceptionType);
+//        erased.thrown = x;
+        return erased;
+    }
+
     /**
      * Does t have the same arguments as s?  It is assumed that both
      * types are (possibly polymorphic) method types.  Monomorphic
@@ -3356,6 +3690,9 @@ public class Types {
                     return to.head.withTypeVar(t);
                 }
             }
+//            if (t.getUpperBound() instanceof ThrowableUnionClassType tu) {
+//                return Types.this.substBound(t, from, to);
+//            }
             return t;
         }
 
@@ -3363,6 +3700,11 @@ public class Types {
         public Type visitClassType(ClassType t, Void ignored) {
             if (!t.isCompound()) {
                 return super.visitClassType(t, ignored);
+            } else if (t instanceof ThrowableUnionClassType tu) {
+                if (from.isEmpty())
+                    return t;
+                List<Type> alternatives = visit(tu.alternatives(), ignored);
+                return makeThrowableUnionType(alternatives);
             } else {
                 Type st = visit(supertype(t));
                 List<Type> is = visit(interfaces(t), ignored);
@@ -3451,7 +3793,13 @@ public class Types {
             tv.setUpperBound( newBounds.head );
             newBounds = newBounds.tail;
         }
-        return newTvars.toList();
+        List<Type> newTvars1 = newTvars.toList();
+        for (Type tv : newTvars1) {
+            if (tv.getUpperBound() instanceof ThrowableUnionClassType tu) {
+                tu.supertype_field = lub(tu.alternatives());
+            }
+        }
+        return newTvars1;
     }
 
     public TypeVar substBound(TypeVar t, List<Type> from, List<Type> to) {
@@ -3477,6 +3825,9 @@ public class Types {
     public boolean hasSameBounds(ForAll t, ForAll s) {
         List<Type> l1 = t.tvars;
         List<Type> l2 = s.tvars;
+        // Allow adding new prefix type params in the subtype
+        while (l1.nonEmpty() && l1.length() > l2.length())
+            l1 = l1.tail;
         while (l1.nonEmpty() && l2.nonEmpty() &&
                isSameType(l1.head.getUpperBound(),
                           subst(l2.head.getUpperBound(),
@@ -3957,7 +4308,7 @@ public class Types {
      * Return the least upper bound of list of types.  if the lub does
      * not exist return null.
      */
-    public Type lub(List<Type> ts) {
+    public Type lub(List<? extends Type> ts) {
         return lub(ts.toArray(new Type[ts.length()]));
     }
 
@@ -3985,6 +4336,7 @@ public class Types {
             case  TYPEVAR:
                 do {
                     t = t.getUpperBound();
+                    if (t == null) return null;
                 } while (t.hasTag(TYPEVAR));
                 if (t.hasTag(ARRAY)) {
                     boundkind |= kinds[i] = ARRAY_BOUND;
@@ -5121,11 +5473,20 @@ public class Types {
                     break;
                 case CLASS:
                     if (type.isCompound()) {
-                        reportIllegalSignature(type);
+                        if (type instanceof ThrowableUnionClassType tu) {
+                            Assert.check(tu.alternatives().nonEmpty());
+                            for (List<Type> l = tu.alternatives(); l.nonEmpty(); l = l.tail) {
+                                append('|');
+                                assembleSig(l.head);
+                            }
+                        } else {
+                            reportIllegalSignature(type);
+                        }
+                    } else {
+                        append('L');
+                        assembleClassSig(type);
+                        append(';');
                     }
-                    append('L');
-                    assembleClassSig(type);
-                    append(';');
                     break;
                 case ARRAY:
                     ArrayType at = (ArrayType) type;
@@ -5225,12 +5586,20 @@ public class Types {
                 Type.TypeVar tvar = (Type.TypeVar) ts.head;
                 append(tvar.tsym.name);
                 List<Type> bounds = types.getBounds(tvar);
-                if ((bounds.head.tsym.flags() & INTERFACE) != 0) {
+                if (bounds.length() == 1 && bounds.head instanceof ThrowableUnionClassType tu) {
                     append(':');
-                }
-                for (List<Type> l = bounds; l.nonEmpty(); l = l.tail) {
-                    append(':');
-                    assembleSig(l.head);
+                    for (List<Type> l = tu.alternatives(); l.nonEmpty(); l = l.tail) {
+                        append('|');
+                        assembleSig(l.head);
+                    }
+                } else {
+                    if ((bounds.head.tsym.flags() & INTERFACE) != 0) {
+                        append(':');
+                    }
+                    for (List<Type> l = bounds; l.nonEmpty(); l = l.tail) {
+                        append(':');
+                        assembleSig(l.head);
+                    }
                 }
             }
             append('>');

@@ -2933,10 +2933,12 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public Name name;
         /** bounds */
         public List<JCExpression> bounds;
+        public final boolean union; // intersection if false
         /** type annotations on type parameter */
         public List<JCAnnotation> annotations;
-        protected JCTypeParameter(Name name, List<JCExpression> bounds, List<JCAnnotation> annotations) {
+        protected JCTypeParameter(Name name, boolean union, List<JCExpression> bounds, List<JCAnnotation> annotations) {
             this.name = name;
+            this.union = union;
             this.bounds = bounds;
             this.annotations = annotations;
         }
@@ -2968,10 +2970,22 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
     public static class JCWildcard extends JCExpression implements WildcardTree {
         public TypeBoundKind kind;
         public JCTree inner;
+        public boolean union;
+        public List<JCExpression> bounds;
+
         protected JCWildcard(TypeBoundKind kind, JCTree inner) {
             this.kind = Assert.checkNonNull(kind);
             this.inner = inner;
+            this.bounds = null;
         }
+
+        protected JCWildcard(TypeBoundKind kind, boolean union, List<JCExpression> bounds) {
+            this.kind = Assert.checkNonNull(kind);
+            this.union = union;
+            this.bounds = bounds;
+            this.inner = null;
+        }
+
         @Override
         public void accept(Visitor v) { v.visitWildcard(this); }
 
@@ -2990,6 +3004,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         }
         @DefinedBy(Api.COMPILER_TREE)
         public JCTree getBound() { return inner; }
+        public List<JCExpression> getBounds() { return bounds; }
         @Override @DefinedBy(Api.COMPILER_TREE)
         public <R,D> R accept(TreeVisitor<R,D> v, D d) {
             return v.visitWildcard(this, d);
@@ -3519,7 +3534,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         JCPrimitiveTypeTree TypeIdent(TypeTag typetag);
         JCArrayTypeTree TypeArray(JCExpression elemtype);
         JCTypeApply TypeApply(JCExpression clazz, List<JCExpression> arguments);
-        JCTypeParameter TypeParameter(Name name, List<JCExpression> bounds);
+        JCTypeParameter TypeParameter(Name name, boolean union, List<JCExpression> bounds);
         JCWildcard Wildcard(TypeBoundKind kind, JCTree type);
         TypeBoundKind TypeBoundKind(BoundKind kind);
         JCAnnotation Annotation(JCTree annotationType, List<JCExpression> args);

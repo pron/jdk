@@ -38,6 +38,7 @@ import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.LambdaExpressionTree.BodyKind;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Scope.WriteableScope;
+import com.sun.tools.javac.code.Type.ThrowableUnionClassType;
 import com.sun.tools.javac.resources.CompilerProperties.Errors;
 import com.sun.tools.javac.resources.CompilerProperties.Warnings;
 import com.sun.tools.javac.tree.*;
@@ -1353,8 +1354,12 @@ public class Flow {
         /** Record that exception is potentially thrown and check that it
          *  is caught.
          */
+        @SuppressWarnings("unchecked")
         void markThrown(JCTree tree, Type exc) {
-            if (!chk.isUnchecked(tree.pos(), exc)) {
+            if (exc instanceof ThrowableUnionClassType tu) {
+                for (var ext : tu.alternatives())
+                    markThrown(tree, ext);
+            } else if (!chk.isUnchecked(tree.pos(), exc)) {
                 if (!chk.isHandled(exc, caught)) {
                     pendingExits.append(new ThrownPendingExit(tree, exc));
                 }
@@ -1694,7 +1699,8 @@ public class Flow {
                 // thrown set includes { RuntimeException, Error }; if 'exc' was a checked
                 // exception, that would have been covered in the branch above
                 if (chk.diff(catchableThrownTypes, caughtInTry).isEmpty() &&
-                        !isExceptionOrThrowable(exc)) {
+                        !isExceptionOrThrowable(exc) &&
+                        !chk.isUnchecked(exc)) {
                     Warning key = catchableThrownTypes.length() == 1 ?
                             Warnings.UnreachableCatch(catchableThrownTypes) :
                             Warnings.UnreachableCatch1(catchableThrownTypes);

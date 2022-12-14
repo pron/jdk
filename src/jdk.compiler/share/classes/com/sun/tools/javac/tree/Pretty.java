@@ -1601,7 +1601,7 @@ public class Pretty extends JCTree.Visitor {
             print(tree.name);
             if (tree.bounds.nonEmpty()) {
                 print(" extends ");
-                printExprs(tree.bounds, " & ");
+                printExprs(tree.bounds, tree.union ? " | " : " & ");
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

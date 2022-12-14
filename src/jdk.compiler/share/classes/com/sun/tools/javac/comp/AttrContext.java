@@ -126,6 +126,9 @@ public class AttrContext {
      */
     JCTree preferredTreeForDiagnostics;
 
+    boolean isArgument = false;
+    boolean isTypeVar = false;
+
     /** Duplicate this context, replacing scope field and copying all others.
      */
     AttrContext dup(WriteableScope scope) {
@@ -149,6 +152,8 @@ public class AttrContext {
         info.preferredTreeForDiagnostics = preferredTreeForDiagnostics;
         info.visitingServiceImplementation = visitingServiceImplementation;
         info.allowProtectedAccess = allowProtectedAccess;
+        info.isArgument = isArgument;
+        info.isTypeVar = isTypeVar;
         return info;
     }
 

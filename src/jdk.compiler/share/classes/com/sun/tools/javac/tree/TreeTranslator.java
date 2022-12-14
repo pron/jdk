@@ -450,7 +450,10 @@ public class TreeTranslator extends JCTree.Visitor {
     @Override
     public void visitWildcard(JCWildcard tree) {
         tree.kind = translate(tree.kind);
-        tree.inner = translate(tree.inner);
+        if (tree.inner != null)
+            tree.inner = translate(tree.inner);
+        if (tree.bounds != null)
+            tree.bounds = translate(tree.bounds);
         result = tree;
     }
 
