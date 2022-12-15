@@ -182,6 +182,7 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
 
         return new StatelessOp<>(this, StreamShape.REFERENCE,
                                      StreamOpFlag.NOT_SIZED) {
+            // X4 is an added parameter that doesn't exist in the overloaded method; temporary until we support A|B outside bounds
             // If we're not adding X4, we infer a result of Sink<P_OUT, ? extends X3> rather than Sink<P_OUT, ? extends X1|X3>
             // because inference works on the constructor, and chooses the lower result (it probably solves ChainedReference's
             // X to its lower bound of X_OUT, given that ChainedReference<T, X extends Exception, E_OUT, X_OUT extends X>

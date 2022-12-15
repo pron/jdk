@@ -2563,34 +2563,6 @@ public class Types {
                 Type erased = erasure(t.getUpperBound(), recurse);
                 return combineMetadata(erased, t);
             }
-
-//            @Override
-//            public Type visitMethodType(MethodType t, Boolean recurse) {
-//                List<Type> argtypes = t.argtypes;
-//                Type restype = t.restype;
-//                List<Type> thrown = t.thrown;
-//                List<Type> argtypes1 = visit(argtypes, recurse);
-//                Type restype1 = visit(restype, recurse);
-//                List<Type> thrown1 = thrown.map(th ->
-//                    th.hasTag(TYPEVAR) && isThrowableUnionParam((TypeVar)th)
-//                        ? syms.runtimeExceptionType
-//                        : visit(th, recurse));
-//
-//                if (argtypes1 == argtypes &&
-//                        restype1 == restype &&
-//                        thrown1 == thrown) return t;
-//                else return new MethodType(argtypes1, restype1, thrown1, t.tsym) {
-//                    @Override
-//                    protected boolean needsStripping() {
-//                        return true;
-//                    }
-//                };
-//            }
-
-//            @Override
-//            public Type visitForAll(ForAll t, Boolean recurse) {
-//                return visit(t.qtype, recurse);
-//            }
         };
 
     public List<Type> erasure(List<Type> ts) {
@@ -3826,6 +3798,8 @@ public class Types {
         List<Type> l1 = t.tvars;
         List<Type> l2 = s.tvars;
         // Allow adding new prefix type params in the subtype
+        // A temporary hack until we allow explicit A|B in non-bounds
+        // See uses of a typevar named X4 in ReferencePipeline:: filter, map, and flatMap
         while (l1.nonEmpty() && l1.length() > l2.length())
             l1 = l1.tail;
         while (l1.nonEmpty() && l2.nonEmpty() &&

@@ -1218,7 +1218,6 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
     }
 
     // a clone of a ClassType that knows about the alternatives of a union type.
-    // XXX
     public static class UnionClassType extends ClassType implements UnionType {
         final List<? extends Type> alternatives_field;
 

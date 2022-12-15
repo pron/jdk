@@ -299,7 +299,7 @@ public class Infer {
                 saved_undet = inferenceContext.save();
                 boolean unchecked = warn.hasNonSilentLint(Lint.LintCategory.UNCHECKED);
                 if (!unchecked) {
-                    boolean shouldPropagate = shouldPropagate(getReturnType(), resultInfo, inferenceContext); // <---------
+                    boolean shouldPropagate = shouldPropagate(getReturnType(), resultInfo, inferenceContext);
 
                     InferenceContext minContext = shouldPropagate ?
                             inferenceContext.min(roots(asMethodType(), null), false, warn) :
@@ -1484,7 +1484,6 @@ public class Infer {
                 Infer infer = inferenceContext.infer;
                 List<Type> lobounds = filterBounds(uv, inferenceContext);
                 //note: lobounds should have at least one element
-                // XXXXX here we compute the LUB for exception types
                 Type owntype;
                 if (lobounds.tail.tail == null) {
                     owntype = lobounds.head;
