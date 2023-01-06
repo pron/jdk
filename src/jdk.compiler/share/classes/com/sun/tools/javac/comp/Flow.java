@@ -38,6 +38,7 @@ import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.LambdaExpressionTree.BodyKind;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Scope.WriteableScope;
+import com.sun.tools.javac.code.Type.CapturedType;
 import com.sun.tools.javac.code.Type.ThrowableUnionClassType;
 import com.sun.tools.javac.resources.CompilerProperties.Errors;
 import com.sun.tools.javac.resources.CompilerProperties.Warnings;
@@ -1356,6 +1357,8 @@ public class Flow {
          */
         @SuppressWarnings("unchecked")
         void markThrown(JCTree tree, Type exc) {
+            if (exc instanceof CapturedType ct)
+                exc = ct.getUpperBound();
             if (exc instanceof ThrowableUnionClassType tu) {
                 for (var ext : tu.alternatives())
                     markThrown(tree, ext);

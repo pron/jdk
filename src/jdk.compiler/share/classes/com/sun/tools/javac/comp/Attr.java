@@ -5149,7 +5149,7 @@ public class Attr extends JCTree.Visitor {
         if (t.hasTag(CLASS)) {
             List<Type> alternatives =
                 ((all_multicatchTypes == null) ? multicatchTypes : all_multicatchTypes).toList();
-            t = new UnionClassType((ClassType) t, alternatives);
+            t = types.makeThrowableUnionType(alternatives, t);
         }
         tree.type = result = t;
     }

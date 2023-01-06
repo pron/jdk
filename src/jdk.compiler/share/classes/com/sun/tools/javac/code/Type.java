@@ -628,7 +628,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
     /**
      * A compound type is a special class type whose supertypes are used to store a list
      * of component types. There are two kinds of compound types: (i) intersection types
-     * {@link IntersectionClassType} and (ii) union types {@link UnionClassType}.
+     * {@link IntersectionClassType} and (ii) union types {@link ThrowableUnionClassType}.
      */
     public boolean isCompound() {
         return false;
@@ -1217,84 +1217,6 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
         }
     }
 
-    // a clone of a ClassType that knows about the alternatives of a union type.
-    public static class UnionClassType extends ClassType implements UnionType {
-        final List<? extends Type> alternatives_field;
-
-        public UnionClassType(ClassType ct, List<? extends Type> alternatives) {
-            // Presently no way to refer to this type directly, so we
-            // cannot put annotations directly on it.
-            super(ct.outer_field, ct.typarams_field, ct.tsym);
-            allparams_field = ct.allparams_field;
-            supertype_field = ct.supertype_field;
-            interfaces_field = ct.interfaces_field;
-            all_interfaces_field = ct.interfaces_field;
-            alternatives_field = alternatives;
-        }
-
-        protected UnionClassType(ClassType ct, List<? extends Type> bounds, ClassSymbol csym) {
-            // Presently no way to refer to this type directly, so we
-            // cannot put annotations directly on it.
-            super(Type.noType, List.nil(), csym);
-            Assert.check((csym.flags() & COMPOUND) != 0);
-            alternatives_field = bounds;
-            if (ct != null)
-                setBound(ct);
-        }
-
-        public void setBound(ClassType ct) {
-            supertype_field = ct;
-
-            allparams_field = ct.allparams_field;
-            interfaces_field = ct.interfaces_field;
-            all_interfaces_field = ct.interfaces_field;
-
-            Assert.check(!supertype_field.tsym.isCompleted() ||
-                    !supertype_field.isInterface(), supertype_field);
-        }
-
-        public void recomputeBound(Types types) {
-            setBound((ClassType)types.lub(alternatives()));
-        }
-
-        public Type getLub() {
-            return tsym.type;
-        }
-
-        @DefinedBy(Api.LANGUAGE_MODEL)
-        public java.util.List<? extends TypeMirror> getAlternatives() {
-            return Collections.unmodifiableList(alternatives_field);
-        }
-
-        @SuppressWarnings("unchecked")
-        public List<Type> alternatives() {
-            return (List<Type>)alternatives_field;
-        }
-
-        @Override
-        public boolean isUnion() {
-            return true;
-        }
-
-        @Override
-        public boolean isCompound() {
-            return getLub().isCompound();
-        }
-
-        @Override @DefinedBy(Api.LANGUAGE_MODEL)
-        public TypeKind getKind() {
-            return TypeKind.UNION;
-        }
-
-        @Override @DefinedBy(Api.LANGUAGE_MODEL)
-        public <R, P> R accept(TypeVisitor<R, P> v, P p) {
-            return v.visitUnion(this, p);
-        }
-
-        public Iterable<? extends Type> getAlternativeTypes() {
-            return alternatives_field;
-        }
-    }
 
     // a clone of a ClassType that knows about the bounds of an intersection type.
     public static class IntersectionClassType extends ClassType implements IntersectionType {
@@ -1349,20 +1271,73 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
         }
     }
 
-    public static class ThrowableUnionClassType extends UnionClassType implements UnionType {
+
+    // a clone of a ClassType that knows about the alternatives of a union type.
+    public static class ThrowableUnionClassType extends ClassType implements UnionType {
+        final List<? extends Type> alternatives_field;
+
         public ThrowableUnionClassType(ClassType ct, List<? extends Type> alternatives) {
-            super(ct, alternatives);
+            // Presently no way to refer to this type directly, so we
+            // cannot put annotations directly on it.
+            super(ct.outer_field, ct.typarams_field, ct.tsym);
+            allparams_field = ct.allparams_field;
+            // supertype_field = ct.supertype_field;
+            interfaces_field = ct.interfaces_field;
+            all_interfaces_field = ct.interfaces_field;
+            alternatives_field = alternatives;
+
             supertype_field = ct; // lub
         }
 
         public ThrowableUnionClassType(ClassType ct, List<? extends Type> bounds, ClassSymbol csym) {
-            super(ct, bounds, csym);
+            // Presently no way to refer to this type directly, so we
+            // cannot put annotations directly on it.
+            super(Type.noType, List.nil(), csym);
+            Assert.check((csym.flags() & COMPOUND) != 0);
+            alternatives_field = bounds;
+            if (ct != null)
+                setBound(ct);
+
             supertype_field = ct; // lub?
         }
 
+        public void setBound(ClassType ct) {
+            supertype_field = ct;
+
+            allparams_field = ct.allparams_field;
+            interfaces_field = ct.interfaces_field;
+            all_interfaces_field = ct.interfaces_field;
+
+            Assert.check(!supertype_field.tsym.isCompleted() ||
+                    !supertype_field.isInterface(), supertype_field);
+        }
+
+        public void recomputeBound(Types types) {
+            setBound((ClassType)types.lub(alternatives()));
+        }
+
         @Override
-        public String toString() {
-            return alternatives_field.stream().map(Type::toString).collect(Collectors.joining("|"));
+        public ThrowableUnionClassType cloneWithMetadata(TypeMetadata md) {
+            throw new AssertionError("Cannot add metadata to a union type");
+        }
+
+        public Type getLub() {
+            return tsym.type;
+        }
+
+        @DefinedBy(Api.LANGUAGE_MODEL)
+        public java.util.List<? extends TypeMirror> getAlternatives() {
+            return Collections.unmodifiableList(alternatives_field);
+        }
+
+        @SuppressWarnings("unchecked")
+        public List<Type> alternatives() {
+            return (List<Type>)alternatives_field;
+        }
+
+        @Override
+        public boolean isUnion() {
+            return true;
         }
 
         @Override
@@ -1370,10 +1345,25 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             return true;
         }
 
+        @Override @DefinedBy(Api.LANGUAGE_MODEL)
+        public TypeKind getKind() {
+            return TypeKind.UNION;
+        }
 
         @Override @DefinedBy(Api.LANGUAGE_MODEL)
         public <R, P> R accept(TypeVisitor<R, P> v, P p) {
             return v.visitUnion(this, p);
+        }
+
+        public Iterable<? extends Type> getAlternativeTypes() {
+            return alternatives_field;
+        }
+
+        @Override
+        public String toString() {
+            return alternatives_field.stream().map(Type::toString)
+                    .map(s -> s.contains(" ") ? "(" + s + ")" : s)
+                    .collect(Collectors.joining("|"));
         }
     }
 

@@ -458,7 +458,7 @@ public class TypeAnnotations {
                 Type res = typeWithAnnotations(fst, fst.type, annotations, onlyTypeAnnotations, pos);
                 fst.type = res;
                 // TODO: do we want to set res as first element in uct.alternatives?
-                // UnionClassType uct = (com.sun.tools.javac.code.Type.UnionClassType)type;
+                // ThrowableUnionClassType uct = (com.sun.tools.javac.code.Type.ThrowableUnionClassType)type;
                 // Return the un-annotated union-type.
                 return type;
             } else {

@@ -850,7 +850,7 @@ public class TreeMaker implements JCTree.Factory {
         case CLASS:
             switch (t.getKind()) {
             case UNION: {
-                UnionClassType tu = (UnionClassType)t;
+                ThrowableUnionClassType tu = (ThrowableUnionClassType)t;
                 ListBuffer<JCExpression> la = new ListBuffer<>();
                 for (Type ta : tu.getAlternativeTypes()) {
                     la.add(Type(ta));

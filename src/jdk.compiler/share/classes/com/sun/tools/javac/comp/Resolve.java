@@ -385,7 +385,7 @@ public class Resolve {
         if (t.hasTag(ARRAY)) {
             return isAccessible(env, types.cvarUpperBound(types.elemtype(t)));
         } else if (t.isUnion()) {
-            return StreamSupport.stream(((UnionClassType) t).getAlternativeTypes().spliterator(), false)
+            return StreamSupport.stream(((ThrowableUnionClassType) t).getAlternativeTypes().spliterator(), false)
                     .allMatch(alternative -> alternative.hasTag(TYPEVAR) || isAccessible(env, alternative.tsym, checkInner));
         } else {
             return isAccessible(env, t.tsym, checkInner);

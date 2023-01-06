@@ -86,7 +86,7 @@ import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.ClassType;
-import com.sun.tools.javac.code.Type.UnionClassType;
+import com.sun.tools.javac.code.Type.ThrowableUnionClassType;
 import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.AttrContext;
@@ -1219,7 +1219,7 @@ public class JavacTrees extends DocTrees {
         JCCatch ct = (JCCatch) tree;
         JCVariableDecl v = ct.param;
         if (v.type != null && v.type.getKind() == TypeKind.UNION) {
-            UnionClassType ut = (UnionClassType) v.type;
+            ThrowableUnionClassType ut = (ThrowableUnionClassType) v.type;
             return ut.getLub();
         } else {
             return v.type;

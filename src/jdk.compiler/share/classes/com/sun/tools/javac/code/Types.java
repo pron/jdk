@@ -1134,7 +1134,9 @@ public class Types {
                 // return false; -- t might be a type var bound by s
             } else if (isSameType(topBound(tv), syms.exceptionType) || isSameType(topBound(tv), syms.throwableType)) {
                 // Have `extends X` behave like `extends X|RuntimeException`).
-                if (!t.hasTag(UNDETVAR) && !(t instanceof TypeVar tv1 && tv1.getUpperBound().hasTag(UNDETVAR))
+                if (!t.hasTag(UNDETVAR)
+                        && !(t instanceof TypeVar && t.getUpperBound() == null)
+                        && !(t instanceof TypeVar && t.getUpperBound().hasTag(UNDETVAR))
                         && (isSubtype(t, syms.runtimeExceptionType, capture) || isSubtype(t, syms.errorType, capture)))
                     return true;
             }
@@ -2628,14 +2630,19 @@ public class Types {
     public Type makeThrowableUnionType(List<Type> bounds, Type sup) {
         Assert.check(bounds.nonEmpty());
 
-        List<? extends Type> bs = unionTypeUnion(bounds);
-        if (sup != null) { // hack; this is true during initialization of classes
-            bs = bs.filter(t -> t.hasTag(UNDETVAR) || !isSameType(t, syms.runtimeExceptionType) && !isSameType(t, syms.errorType));
-        } else {
-            if (bs.any(t -> !t.hasTag(UNDETVAR) && !(t.hasTag(TYPEVAR) && t.getUpperBound() == null) && !isSubtype(t, syms.runtimeExceptionType)))
-                bs = bs.filter(t -> t.hasTag(UNDETVAR) || (t.hasTag(TYPEVAR) && t.getUpperBound() == null) || !isSubtype(t, syms.runtimeExceptionType));
-            if (bs.any(t -> !t.hasTag(UNDETVAR) && !(t.hasTag(TYPEVAR) && t.getUpperBound() == null) && !isSubtype(t, syms.errorType)))
-                bs = bs.filter(t -> t.hasTag(UNDETVAR) || (t.hasTag(TYPEVAR) && t.getUpperBound() == null) || !isSubtype(t, syms.errorType));
+        List<? extends Type> bs = bounds;
+        if (sup == null)
+            bs = unionTypeUnion(bs);
+
+        if (false) { // remove RuntimeException and Error from union
+            if (sup != null) { // hack; this is true during initialization of classes
+                bs = bs.filter(t -> t.hasTag(UNDETVAR) || !isSameType(t, syms.runtimeExceptionType) && !isSameType(t, syms.errorType));
+            } else {
+                if (bs.any(t -> !t.hasTag(UNDETVAR) && !(t.hasTag(TYPEVAR) && t.getUpperBound() == null) && !isSubtype(t, syms.runtimeExceptionType)))
+                    bs = bs.filter(t -> t.hasTag(UNDETVAR) || (t.hasTag(TYPEVAR) && t.getUpperBound() == null) || !isSubtype(t, syms.runtimeExceptionType));
+                if (bs.any(t -> !t.hasTag(UNDETVAR) && !(t.hasTag(TYPEVAR) && t.getUpperBound() == null) && !isSubtype(t, syms.errorType)))
+                    bs = bs.filter(t -> t.hasTag(UNDETVAR) || (t.hasTag(TYPEVAR) && t.getUpperBound() == null) || !isSubtype(t, syms.errorType));
+            }
         }
 
         if (bs.length() == 1)
@@ -2701,13 +2708,20 @@ public class Types {
         }
     }
 
-    List<? extends Type> unionTypeUnion(List<Type> ts) {
-        List<? extends Type> u = ts.filter(t -> !(t instanceof ThrowableUnionClassType));
+    List<? extends Type> unionTypeUnion(List<? extends Type> ts) {
+        List<? extends Type> ts0 = ts.filter(t -> !(t instanceof ThrowableUnionClassType));
+        List<? extends Type> u = ts0;
+        if (!ts.any(t -> (t.hasTag(TYPEVAR) && !((TypeVar)t).isCaptured()) || t.hasTag(WILDCARD))) { // hack; things go wrong without this test; needs investigation
+            u = List.nil();
+            for (Type u0 : ts.filter(t -> !(t instanceof ThrowableUnionClassType))) {
+                u = unionTypeUnion(u, List.of(u0));
+            }
+        }
         @SuppressWarnings("unchecked")
         List<ThrowableUnionClassType> us =
                 (List<ThrowableUnionClassType>)ts.filter(t -> t instanceof ThrowableUnionClassType);
         for (ThrowableUnionClassType u0 : us) {
-            u = unionTypeUnion(u, u0.alternatives_field);
+            u = unionTypeUnion(u, u0.alternatives());
         }
         return u;
     }
@@ -2724,7 +2738,13 @@ public class Types {
 
     private boolean isIncludedIn(Type x, List<? extends Type> ts) {
         for (Type t : ts) {
-            if (isSameType(x, t) || isSubtype(x, t))
+            if (x.isPartial() || t.isPartial())
+                continue;
+            if (isSameType(x, t)
+                    || (!x.isPartial() && !t.isPartial()
+                        && (!x.hasTag(TYPEVAR) || x.getUpperBound() != null)
+                        && (!t.hasTag(TYPEVAR) || t.getUpperBound() != null)
+                        && isSubtype(x, t)))
                 return true;
         }
         return false;
