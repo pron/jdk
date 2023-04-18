@@ -1707,13 +1707,34 @@ public class Lower extends TreeTranslator {
 
         // Add resource declaration or expression to block statements
         ListBuffer<JCStatement> stats = new ListBuffer<>();
+        ListBuffer<JCStatement> innerStats = new ListBuffer<>(); // statements that go inside the try block
         JCTree resource = resources.head;
         JCExpression resourceUse;
         boolean resourceNonNull;
+
         if (resource instanceof JCVariableDecl variableDecl) {
-            resourceUse = make.Ident(variableDecl.sym).setType(resource.type);
-            resourceNonNull = variableDecl.init != null && TreeInfo.skipParens(variableDecl.init).hasTag(NEWCLASS);
-            stats.add(variableDecl);
+            if (!variableDecl.colonInit()) {
+                resourceUse = make.Ident(variableDecl.sym).setType(resource.type);
+                resourceNonNull = variableDecl.init != null && TreeInfo.skipParens(variableDecl.init).hasTag(NEWCLASS);
+                stats.add(variableDecl);
+            } else { // x : e
+                Type sessionType = variableDecl.init.type;
+                VarSymbol syntheticTwrVar =
+                        new VarSymbol(SYNTHETIC | FINAL,
+                                makeSyntheticName(names.fromString("twrVar" +
+                                        depth), twrVars),
+                                (sessionType.hasTag(BOT)) ?
+                                        syms.sessionType : sessionType,
+                                currentMethodSym);
+                twrVars.enter(syntheticTwrVar);
+                JCVariableDecl syntheticTwrVarDecl =
+                        make.VarDef(syntheticTwrVar, variableDecl.init);
+                resourceUse = make.Ident(syntheticTwrVar);
+                resourceNonNull = false;
+                stats.add(syntheticTwrVarDecl);
+                // Call open inside block
+                innerStats.add(makeResourceOpenInvocation(resource, resourceUse));
+            }
         } else {
             Assert.check(resource instanceof JCExpression);
             VarSymbol syntheticTwrVar =
@@ -1721,14 +1742,19 @@ public class Lower extends TreeTranslator {
                           makeSyntheticName(names.fromString("twrVar" +
                                            depth), twrVars),
                           (resource.type.hasTag(BOT)) ?
-                          syms.autoCloseableType : resource.type,
-                          currentMethodSym);
+                          syms.tryResourceType : resource.type,
+                            currentMethodSym);
             twrVars.enter(syntheticTwrVar);
             JCVariableDecl syntheticTwrVarDecl =
                 make.VarDef(syntheticTwrVar, (JCExpression)resource);
-            resourceUse = (JCExpression)make.Ident(syntheticTwrVar);
+            resourceUse = make.Ident(syntheticTwrVar);
             resourceNonNull = false;
             stats.add(syntheticTwrVarDecl);
+
+            if (types.isSubtype(syntheticTwrVar.type, syms.sessionType)) {
+                // Call open inside block
+                innerStats.add(makeResourceOpenInvocation(resource, resourceUse));
+            }
         }
 
         //create (semi-) finally block that will be copied into the main try body:
@@ -1771,7 +1797,7 @@ public class Lower extends TreeTranslator {
                                names.addSuppressed,
                                List.of(make.Ident(suppressedException))));
         JCBlock closeResourceTryBlock =
-            make.Block(0L, List.of(makeResourceCloseInvocation(resourceUse)));
+            make.Block(0L, List.of(makeResourceCloseWithExceptionInvocation(resourceUse, primaryException)));
         JCVariableDecl catchSuppressedDecl = make.VarDef(suppressedException, null);
         JCBlock catchSuppressedBlock = make.Block(0L, List.of(addSuppressedStatement));
         List<JCCatch> catchSuppressedClauses =
@@ -1792,8 +1818,13 @@ public class Lower extends TreeTranslator {
         JCBlock exceptionalCloseBlock = make.Block(0L, List.of(exceptionalCloseStatement, exceptionalRethrow));
         JCCatch exceptionalCatchClause = make.Catch(primaryExceptionDecl, exceptionalCloseBlock);
 
+        JCBlock body = makeTwrBlock(resources.tail, block, depth + 1);
+        if (!innerStats.isEmpty()) {
+            innerStats.add(body);
+            body = make.Block(0L, innerStats.toList());
+        }
         //create the main try statement with the close:
-        JCTry outerTry = make.Try(makeTwrBlock(resources.tail, block, depth + 1),
+        JCTry outerTry = make.Try(body,
                                   List.of(exceptionalCatchClause),
                                   finallyClause);
 
@@ -1806,8 +1837,8 @@ public class Lower extends TreeTranslator {
 
     private JCStatement makeResourceCloseInvocation(JCExpression resource) {
         // convert to AutoCloseable if needed
-        if (types.asSuper(resource.type, syms.autoCloseableType.tsym) == null) {
-            resource = convert(resource, syms.autoCloseableType);
+        if (types.asSuper(resource.type, syms.tryResourceType.tsym) == null) {
+            resource = convert(resource, syms.tryResourceType);
         }
 
         // create resource.close() method invocation
@@ -1815,6 +1846,34 @@ public class Lower extends TreeTranslator {
                                               names.close,
                                               List.nil());
         return make.Exec(resourceClose);
+    }
+
+    private JCStatement makeResourceCloseWithExceptionInvocation(JCExpression resource, VarSymbol primaryException) {
+        // convert to AutoCloseable if needed
+        if (types.asSuper(resource.type, syms.tryResourceType.tsym) == null) {
+            resource = convert(resource, syms.tryResourceType);
+        }
+
+        // create resource.close() method invocation
+        JCExpression resourceClose = makeCall(resource,
+                names.close,
+                List.of(make.Ident(primaryException)));
+        return make.Exec(resourceClose);
+    }
+
+    private JCStatement makeResourceOpenInvocation(JCTree resource, JCExpression resourceUse) {
+        // create resource.open() method invocation
+        JCExpression resourceOpen = makeCall(resourceUse,
+                names.open,
+                List.nil());
+        if (resource instanceof JCVariableDecl variableDecl) {
+            Assert.check(variableDecl.colonInit());
+            resource = convert(resourceOpen, variableDecl.type);
+            return make.VarDef(variableDecl.sym, resourceOpen);
+        } else {
+            Assert.check(resource instanceof JCExpression);
+            return make.Exec(resourceOpen);
+        }
     }
 
     private JCExpression makeNonNullCheck(JCExpression expression) {

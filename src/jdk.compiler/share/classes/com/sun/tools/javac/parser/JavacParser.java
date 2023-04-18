@@ -3588,7 +3588,7 @@ public class JavacParser implements Parser {
                                                                      T vdefs,
                                                                      boolean localDecl)
     {
-        JCVariableDecl head = variableDeclaratorRest(pos, mods, type, name, reqInit, dc, localDecl, false);
+        JCVariableDecl head = variableDeclaratorRest(pos, mods, type, name, reqInit, dc, localDecl, false, false);
         vdefs.append(head);
         while (token.kind == COMMA) {
             // All but last of multiple declarators subsume a comma
@@ -3603,7 +3603,7 @@ public class JavacParser implements Parser {
      *  ConstantDeclarator = Ident ConstantDeclaratorRest
      */
     JCVariableDecl variableDeclarator(JCModifiers mods, JCExpression type, boolean reqInit, Comment dc, boolean localDecl) {
-        return variableDeclaratorRest(token.pos, mods, type, ident(), reqInit, dc, localDecl, true);
+        return variableDeclaratorRest(token.pos, mods, type, ident(), reqInit, dc, localDecl, true, false);
     }
 
     /** VariableDeclaratorRest = BracketsOpt ["=" VariableInitializer]
@@ -3613,15 +3613,21 @@ public class JavacParser implements Parser {
      *  @param dc       The documentation comment for the variable declarations, or null.
      */
     JCVariableDecl variableDeclaratorRest(int pos, JCModifiers mods, JCExpression type, Name name,
-                                  boolean reqInit, Comment dc, boolean localDecl, boolean compound) {
+                                  boolean reqInit, Comment dc, boolean localDecl, boolean compound, boolean allowColon) {
         boolean declaredUsingVar = false;
         type = bracketsOpt(type);
         JCExpression init = null;
+        boolean colonInit = false;
         if (token.kind == EQ) {
             nextToken();
             init = variableInitializer();
         }
-        else if (reqInit) syntaxError(token.pos, Errors.Expected(EQ));
+        else if (allowColon && token.kind == COLON) {
+            colonInit = true;
+            nextToken();
+            init = variableInitializer();
+        }
+        else if (reqInit)  syntaxError(token.pos, allowColon ? Errors.Expected2(EQ, COLON) : Errors.Expected(EQ));
         JCTree elemType = TreeInfo.innermostType(type, true);
         int startPos = Position.NOPOS;
         if (elemType.hasTag(IDENT)) {
@@ -3646,7 +3652,7 @@ public class JavacParser implements Parser {
             }
         }
         JCVariableDecl result =
-            toP(F.at(pos).VarDef(mods, name, type, init, declaredUsingVar));
+            toP(F.at(pos).VarDef(mods, name, type, init, declaredUsingVar, colonInit));
         attach(result, dc);
         result.startPos = startPos;
         return result;
@@ -3764,7 +3770,7 @@ public class JavacParser implements Parser {
         type = bracketsOpt(type);
 
         return toP(F.at(pos).VarDef(mods, name, type, null,
-                type != null && type.hasTag(IDENT) && ((JCIdent)type).name == names.var));
+                type != null && type.hasTag(IDENT) && ((JCIdent)type).name == names.var, false));
     }
 
     /** Resources = Resource { ";" Resources }
@@ -3793,12 +3799,12 @@ public class JavacParser implements Parser {
         if (token.kind == FINAL || token.kind == MONKEYS_AT) {
             JCModifiers mods = optFinal(0);
             JCExpression t = parseType(true);
-            return variableDeclaratorRest(token.pos, mods, t, ident(), true, null, true, false);
+            return variableDeclaratorRest(token.pos, mods, t, ident(), true, null, true, false, true);
         }
         JCExpression t = term(EXPR | TYPE);
         if (wasTypeMode() && LAX_IDENTIFIER.test(token.kind)) {
             JCModifiers mods = F.Modifiers(0);
-            return variableDeclaratorRest(token.pos, mods, t, ident(), true, null, true, false);
+            return variableDeclaratorRest(token.pos, mods, t, ident(), true, null, true, false, true);
         } else {
             checkSourceLevel(Feature.EFFECTIVELY_FINAL_VARIABLES_IN_TRY_WITH_RESOURCES);
             if (!t.hasTag(IDENT) && !t.hasTag(SELECT)) {

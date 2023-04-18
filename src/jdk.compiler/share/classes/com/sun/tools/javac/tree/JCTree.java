@@ -970,6 +970,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public int startPos = Position.NOPOS;
         /** declared using `var` */
         private boolean declaredUsingVar;
+        private boolean colonInit;
 
         protected JCVariableDecl(JCModifiers mods,
                          Name name,
@@ -985,12 +986,23 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
                                  JCExpression init,
                                  VarSymbol sym,
                                  boolean declaredUsingVar) {
+            this(mods, name, vartype, init, sym, declaredUsingVar, false);
+        }
+
+        protected JCVariableDecl(JCModifiers mods,
+                                 Name name,
+                                 JCExpression vartype,
+                                 JCExpression init,
+                                 VarSymbol sym,
+                                 boolean declaredUsingVar,
+                                 boolean colonInit) {
             this.mods = mods;
             this.name = name;
             this.vartype = vartype;
             this.init = init;
             this.sym = sym;
             this.declaredUsingVar = declaredUsingVar;
+            this.colonInit = colonInit;
         }
 
         protected JCVariableDecl(JCModifiers mods,
@@ -1012,6 +1024,10 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
 
         public boolean declaredUsingVar() {
             return declaredUsingVar;
+        }
+
+        public boolean colonInit() {
+            return colonInit;
         }
 
         @Override

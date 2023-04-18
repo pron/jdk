@@ -485,7 +485,8 @@ public class TransTypes extends TreeTranslator {
 
     public void visitVarDef(JCVariableDecl tree) {
         tree.vartype = translate(tree.vartype, null);
-        tree.init = translate(tree.init, tree.sym.erasure(types));
+        if (!tree.colonInit())
+            tree.init = translate(tree.init, tree.sym.erasure(types));
         tree.type = erasure(tree.type);
         result = tree;
     }
@@ -605,7 +606,7 @@ public class TransTypes extends TreeTranslator {
     }
 
     public void visitTry(JCTry tree) {
-        tree.resources = translate(tree.resources, syms.autoCloseableType);
+        tree.resources = translate(tree.resources, syms.tryResourceType);
         tree.body = translate(tree.body);
         tree.catchers = translateCatchers(tree.catchers);
         tree.finalizer = translate(tree.finalizer);

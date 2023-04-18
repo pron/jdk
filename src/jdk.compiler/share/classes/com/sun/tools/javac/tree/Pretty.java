@@ -717,7 +717,7 @@ public class Pretty extends JCTree.Visitor {
                     print(tree.name);
                 }
                 if (tree.init != null) {
-                    print(" = ");
+                    print(tree.colonInit() ? " : " : " = ");
                     printExpr(tree.init);
                 }
                 if (prec == TreeInfo.notExpression) print(';');

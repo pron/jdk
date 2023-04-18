@@ -48,7 +48,7 @@ package java.lang;
  * @author Josh Bloch
  * @since 1.7
  */
-public interface AutoCloseable {
+public non-sealed interface AutoCloseable extends TryResource {
     /**
      * Closes this resource, relinquishing any underlying resources.
      * This method is invoked automatically on objects managed by the
@@ -95,5 +95,6 @@ public interface AutoCloseable {
      *
      * @throws Exception if this resource cannot be closed
      */
+    @Override
     void close() throws Exception;
 }

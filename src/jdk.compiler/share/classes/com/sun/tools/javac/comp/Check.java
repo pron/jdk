@@ -3816,6 +3816,26 @@ public class Check {
         }
     }
 
+    void checkSession(DiagnosticPosition pos, Symbol other, Symbol s) {
+        // Session.open/close can only be called by methods that implement Session.open/close
+        if (s.getKind() != ElementKind.METHOD)
+            return;
+        if (s.getSimpleName() != names.open && s.getSimpleName() != names.close)
+            return;
+        MethodSymbol callee = (MethodSymbol)s;
+        MethodSymbol caller = (MethodSymbol)other;
+        if (callee.overrides(syms.sessionOpen, syms.sessionType.tsym, types, false)
+                || callee.overrides(syms.sessionClose, syms.sessionType.tsym, types, false)
+                || callee.overrides(syms.sessionCloseWithError, syms.sessionType.tsym, types, false)) {
+            if ((caller.getSimpleName() != names.open && caller.getSimpleName() != names.close)
+                    || !(caller.overrides(syms.sessionOpen, syms.sessionType.tsym, types, false)
+                    || caller.overrides(syms.tryResourceClose, syms.tryResourceType.tsym, types, false)
+                    || caller.overrides(syms.tryResourceCloseWithError, syms.tryResourceType.tsym, types, false))) {
+                log.error(pos, Errors.IsSessionMethod(s));
+            }
+        }
+    }
+
 /* *************************************************************************
  * Check for recursive annotation elements.
  **************************************************************************/

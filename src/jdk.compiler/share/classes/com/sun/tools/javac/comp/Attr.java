@@ -1913,22 +1913,61 @@ public class Attr extends JCTree.Visitor {
                             chk.basicHandler.report(pos, diags.fragment(Fragments.TryNotApplicableToType(details)));
                         }
                     };
-                    ResultInfo twrResult =
-                        new ResultInfo(KindSelector.VAR,
-                                       syms.autoCloseableType,
-                                       twrContext);
                     if (resource.hasTag(VARDEF)) {
-                        attribStat(resource, tryEnv);
-                        twrResult.check(resource, resource.type);
+                        JCVariableDecl rdecl = (JCVariableDecl)resource;
+                        if (!rdecl.colonInit()) {
+                            ResultInfo twrResult =
+                                    new ResultInfo(KindSelector.VAR,
+                                            syms.autoCloseableType,
+                                            twrContext);
 
-                        //check that resource type cannot throw InterruptedException
-                        checkAutoCloseable(resource.pos(), localEnv, resource.type);
+                            attribStat(resource, tryEnv);
+                            twrResult.check(resource, resource.type);
 
-                        VarSymbol var = ((JCVariableDecl) resource).sym;
+                            //check that resource type cannot throw InterruptedException
+                            checkTryResource(resource.pos(), localEnv, resource.type);
 
-                        var.flags_field |= Flags.FINAL;
-                        var.setData(ElementKind.RESOURCE_VARIABLE);
+                            VarSymbol var = rdecl.sym;
+
+                            var.flags_field |= Flags.FINAL;
+                            var.setData(ElementKind.RESOURCE_VARIABLE);
+                        } else { // variable : session
+                            var initializer = rdecl.getInitializer();
+                            attribExpr(initializer, tryEnv);
+                            Type base = types.asSuper(initializer.type, syms.sessionType.tsym);
+                            if (base == null) {
+                                chk.checkType(initializer.pos(), initializer.type, syms.sessionType, twrContext); // error
+                            }
+                            Assert.check(base != null);
+
+                            //check that resource type cannot throw InterruptedException
+                            checkTryResource(initializer.pos(), localEnv, initializer.type);
+
+                            WriteableScope enclScope = enter.enterScope(tryEnv);
+                            Type varType = base.allparams().isEmpty()
+                                    ? syms.objectType
+                                    : types.wildUpperBound(base.allparams().head);
+                            VarSymbol v = new VarSymbol(0, rdecl.name, varType, enclScope.owner);
+                            v.flags_field = chk.checkFlags(tree.pos(), rdecl.mods.flags, v, tree);
+                            v.flags_field |= HASINIT;
+                            rdecl.sym = v;
+                            enclScope.enter(v);
+
+                            if (rdecl.isImplicitlyTyped()) {
+                                Type inferredType = chk.checkLocalVarType(rdecl, varType, rdecl.name);
+                                setSyntheticVariableType(rdecl, inferredType);
+                            }
+                            chk.checkType(rdecl.pos(), varType, rdecl.sym.type);
+                            rdecl.type = varType;
+
+                            v.setData(ElementKind.RESOURCE_VARIABLE);
+                        }
                     } else {
+                        ResultInfo twrResult =
+                                new ResultInfo(KindSelector.VAR,
+                                        syms.tryResourceType,
+                                        twrContext);
+
                         attribTree(resource, tryEnv, twrResult);
                     }
                 }
@@ -1971,10 +2010,12 @@ public class Attr extends JCTree.Visitor {
         }
     }
 
-    void checkAutoCloseable(DiagnosticPosition pos, Env<AttrContext> env, Type resource) {
+    void checkTryResource(DiagnosticPosition pos, Env<AttrContext> env, Type resource) {
         if (!resource.isErroneous() &&
-            types.asSuper(resource, syms.autoCloseableType.tsym) != null &&
-            !types.isSameType(resource, syms.autoCloseableType)) { // Don't emit warning for AutoCloseable itself
+            types.asSuper(resource, syms.tryResourceType.tsym) != null
+            && !types.isSameType(resource, syms.tryResourceType) // Don't emit warning for TryResource itself
+            && !types.isSameType(resource, syms.autoCloseableType) // Don't emit warning for AutoCloseable itself
+            && !types.isSameType(resource, syms.sessionType)) { // Don't emit warning for Session itself
             Symbol close = syms.noSymbol;
             Log.DiagnosticHandler discardHandler = new Log.DiscardDiagnosticHandler(log);
             try {
@@ -1989,7 +2030,7 @@ public class Attr extends JCTree.Visitor {
                 log.popDiagnosticHandler(discardHandler);
             }
             if (close.kind == MTH &&
-                    close.overrides(syms.autoCloseableClose, resource.tsym, types, true) &&
+                    close.overrides(syms.tryResourceClose, resource.tsym, types, true) &&
                     chk.isHandled(syms.interruptedExceptionType, types.memberType(resource, close).getThrownTypes()) &&
                     env.info.lint.isEnabled(LintCategory.TRY)) {
                 log.warning(LintCategory.TRY, pos, Warnings.TryResourceThrowsInterruptedExc(resource));
@@ -4423,7 +4464,7 @@ public class Attr extends JCTree.Visitor {
                 ((VarSymbol)sitesym).isResourceVariable() &&
                 sym.kind == MTH &&
                 sym.name.equals(names.close) &&
-                sym.overrides(syms.autoCloseableClose, sitesym.type.tsym, types, true) &&
+                sym.overrides(syms.tryResourceClose, sitesym.type.tsym, types, true) &&
                 env.info.lint.isEnabled(LintCategory.TRY)) {
             log.warning(LintCategory.TRY, tree, Warnings.TryExplicitCloseCall);
         }
@@ -4724,6 +4765,7 @@ public class Attr extends JCTree.Visitor {
                 chk.checkSunAPI(tree.pos(), sym);
                 chk.checkProfile(tree.pos(), sym);
                 chk.checkPreview(tree.pos(), env.info.scope.owner, sym);
+                chk.checkSession(tree.pos(), env.info.scope.owner, sym);
             }
 
             // If symbol is a variable, check that its type and
@@ -5585,8 +5627,8 @@ public class Attr extends JCTree.Visitor {
         // method conform to the method they implement.
         chk.checkImplementations(tree);
 
-        //check that a resource implementing AutoCloseable cannot throw InterruptedException
-        checkAutoCloseable(tree.pos(), env, c.type);
+        //check that a resource implementing TryResource cannot throw InterruptedException
+        checkTryResource(tree.pos(), env, c.type);
 
         for (List<JCTree> l = tree.defs; l.nonEmpty(); l = l.tail) {
             // Attribute declaration

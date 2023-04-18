@@ -1443,20 +1443,38 @@ public class Flow {
                     throw new AssertionError(tree);  // parser error
                 }
             }
-            for (JCTree resource : tree.resources) {
-                List<Type> closeableSupertypes = resource.type.isCompound() ?
-                    types.interfaces(resource.type).prepend(types.supertype(resource.type)) :
-                    List.of(resource.type);
+            for (JCTree resource0 : tree.resources) {
+                JCVariableDecl resource = (JCVariableDecl)resource0;
+                Type resourceType = (resource.getInitializer() == null || !resource.colonInit())
+                        ? resource.type
+                        : resource.getInitializer().type;
+                List<Type> closeableSupertypes = resourceType.isCompound() ?
+                    types.interfaces(resourceType).prepend(types.supertype(resourceType)) :
+                    List.of(resourceType);
                 for (Type sup : closeableSupertypes) {
-                    if (types.asSuper(sup, syms.autoCloseableType.tsym) != null) {
+                    if (types.asSuper(sup, syms.tryResourceType.tsym) != null) {
                         Symbol closeMethod = rs.resolveQualifiedMethod(tree,
                                 attrEnv,
                                 types.skipTypeVars(sup, false),
                                 names.close,
                                 List.nil(),
                                 List.nil());
-                        Type mt = types.memberType(resource.type, closeMethod);
+                        Type mt = types.memberType(resourceType, closeMethod);
                         if (closeMethod.kind == MTH) {
+                            for (Type t : mt.getThrownTypes()) {
+                                markThrown(resource, t);
+                            }
+                        }
+                    }
+                    if (types.asSuper(sup, syms.sessionType.tsym) != null) {
+                        Symbol openMethod = rs.resolveQualifiedMethod(tree,
+                                attrEnv,
+                                types.skipTypeVars(sup, false),
+                                names.open,
+                                List.nil(),
+                                List.nil());
+                        Type mt = types.memberType(resourceType, openMethod);
+                        if (openMethod.kind == MTH) {
                             for (Type t : mt.getThrownTypes()) {
                                 markThrown(resource, t);
                             }

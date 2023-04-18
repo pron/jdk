@@ -210,7 +210,9 @@ public class Symtab {
     public final Type profileType;
     public final Type proprietaryType;
     public final Type systemType;
+    public final Type tryResourceType;
     public final Type autoCloseableType;
+    public final Type sessionType;
     public final Type trustMeType;
     public final Type lambdaMetafactory;
     public final Type stringConcatFactory;
@@ -241,8 +243,20 @@ public class Symtab {
     /** The symbol representing the final finalize method on enums */
     public final MethodSymbol enumFinalFinalize;
 
-    /** The symbol representing the close method on TWR AutoCloseable type */
-    public final MethodSymbol autoCloseableClose;
+    /** The symbol representing the close method on TWR TryResource type */
+    public final MethodSymbol tryResourceClose;
+
+    /** The symbol representing the one-arg close method on TWR Session type */
+    public final MethodSymbol tryResourceCloseWithError;
+
+    /** The symbol representing the open method on TWR Session type */
+    public final MethodSymbol sessionOpen;
+
+    /** The symbol representing the zero-arg close method on TWR Session type */
+    public final MethodSymbol sessionClose;
+
+    /** The symbol representing the one-arg close method on TWR Session type */
+    public final MethodSymbol sessionCloseWithError;
 
     /** The predefined type that belongs to a tag.
      */
@@ -585,12 +599,34 @@ public class Symtab {
         documentedType = enterClass("java.lang.annotation.Documented");
         elementTypeType = enterClass("java.lang.annotation.ElementType");
         systemType = enterClass("java.lang.System");
+        tryResourceType = enterClass("java.lang.TryResource");
+        tryResourceClose = new MethodSymbol(PUBLIC,
+                names.close,
+                new MethodType(List.nil(), voidType,
+                        List.of(exceptionType), methodClass),
+                tryResourceType.tsym);
+        tryResourceCloseWithError = new MethodSymbol(PUBLIC,
+                names.close,
+                new MethodType(List.of(throwableType), voidType,
+                        List.of(exceptionType), methodClass),
+                tryResourceType.tsym);
         autoCloseableType = enterClass("java.lang.AutoCloseable");
-        autoCloseableClose = new MethodSymbol(PUBLIC,
-                             names.close,
-                             new MethodType(List.nil(), voidType,
-                                            List.of(exceptionType), methodClass),
-                             autoCloseableType.tsym);
+        sessionType = enterClass("java.lang.Session");
+        sessionOpen = new MethodSymbol(PUBLIC,
+                names.open,
+                new MethodType(List.nil(), objectType,
+                        List.nil(), methodClass),
+                sessionType.tsym);
+        sessionClose = new MethodSymbol(PUBLIC,
+                names.close,
+                new MethodType(List.nil(), voidType,
+                        List.of(exceptionType), methodClass),
+                sessionType.tsym);
+        sessionCloseWithError = new MethodSymbol(PUBLIC,
+                names.close,
+                new MethodType(List.of(throwableType), voidType,
+                        List.of(exceptionType), methodClass),
+                sessionType.tsym);
         trustMeType = enterClass("java.lang.SafeVarargs");
         nativeHeaderType = enterClass("java.lang.annotation.Native");
         lambdaMetafactory = enterClass("java.lang.invoke.LambdaMetafactory");
