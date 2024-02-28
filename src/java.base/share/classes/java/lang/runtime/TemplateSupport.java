@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,9 +25,13 @@
 
 package java.lang.runtime;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 import jdk.internal.access.JavaLangAccess;
 import jdk.internal.access.JavaTemplateAccess;
@@ -147,6 +151,52 @@ final class TemplateSupport implements JavaTemplateAccess {
             }
         }
         return StringTemplateImplFactory.newTrustedStringTemplate(combinedFragments, combinedValues);
+    }
+
+    @Override
+    public boolean isLiteral(StringTemplate st) {
+        Objects.requireNonNull(st, "st must not be null");
+        return st instanceof StringTemplateImpl;
+    }
+
+    @Override
+    public List<Class<?>> getTypes(StringTemplate st) {
+        Objects.requireNonNull(st, "st must not be null");
+        if (st instanceof StringTemplateImpl sti) {
+            return sti.sharedData.types();
+        } else {
+            throw new IllegalArgumentException("not a StringTemplate literal");
+        }
+    }
+
+    @Override
+    public <T> T getMetaData(StringTemplate st, Object owner, Supplier<T> supplier) {
+        Objects.requireNonNull(st, "st must not be null");
+        Objects.requireNonNull(st, "owner must not be null");
+        Objects.requireNonNull(st, "supplier must not be null");
+        if (st instanceof StringTemplateImpl sti) {
+            return sti.sharedData.getMetaData(owner, supplier);
+        } else {
+            throw new IllegalArgumentException("not a StringTemplate literal");
+        }
+    }
+
+    @Override
+    public MethodHandle bindTo(StringTemplate st, MethodHandle mh) {
+        if (st instanceof StringTemplateImpl sti) {
+            MethodHandle[] components = sti.sharedData.elements()
+                                                  .components()
+                                                  .toArray(new MethodHandle[0]);
+            int[] permute = new int[components.length];
+            mh = MethodHandles.filterArguments(mh, 0, components);
+            MethodType mt = MethodType.methodType(mh.type()
+                                                    .returnType(), Carriers.CarrierObject.class);
+            mh = MethodHandles.permuteArguments(mh, mt, permute);
+            mt = mt.changeParameterType(0, StringTemplate.class);
+            return mh.asType(mt);
+        } else {
+            throw new IllegalArgumentException("not a StringTemplate literal");
+        }
     }
 
 }
