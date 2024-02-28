@@ -201,7 +201,7 @@ public final class FormatProcessor implements Processor<String, RuntimeException
         Objects.requireNonNull(type);
         String format = stringTemplateFormat(fragments);
         Class<?>[] ptypes = type.dropParameterTypes(0, 1).parameterArray();
-        MethodHandle mh = new FormatterBuilder(format, locale, ptypes).build();
+        MethodHandle mh = FormatterBuilder.create(format, locale, ptypes);
         mh = MethodHandles.dropArguments(mh, 0, type.parameterType(0));
 
         return mh;

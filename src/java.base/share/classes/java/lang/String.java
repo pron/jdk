@@ -30,21 +30,14 @@ import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Native;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.constant.Constable;
 import java.lang.constant.ConstantDesc;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Formatter;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Spliterator;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -53,6 +46,9 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import jdk.internal.access.JavaTemplateAccess;
+import jdk.internal.access.SharedSecrets;
+import jdk.internal.javac.PreviewFeature;
 import jdk.internal.util.ArraysSupport;
 import jdk.internal.util.Preconditions;
 import jdk.internal.vm.annotation.ForceInline;
@@ -4474,6 +4470,90 @@ public final class String
     public static String format(Locale l, String format, Object... args) {
         return new Formatter(l).format(format, args).toString();
     }
+
+    /**
+     * Returns a formatted string using the specified format and
+     * value contained in the {@link StringTemplate}.
+     *
+     * <p> The locale always used is the one returned by {@link
+     * java.util.Locale#getDefault(java.util.Locale.Category)
+     * Locale.getDefault(Locale.Category)} with
+     * {@link java.util.Locale.Category#FORMAT FORMAT} category specified.
+     *
+     * @param  st {@link StringTemplate} containing values and
+     *         a <a href="../util/Formatter.html#syntax">format</a>
+     *
+     * @throws  java.util.IllegalFormatException
+     *          If a format string contains an illegal syntax, a format
+     *          specifier that is incompatible with the given arguments,
+     *          insufficient arguments given the format string, or other
+     *          illegal conditions.  For specification of all possible
+     *          formatting errors, see the <a
+     *          href="../util/Formatter.html#detail">Details</a> section of the
+     *          formatter class specification.
+     *
+     * @return  A formatted string
+     *
+     * @see  java.util.Formatter
+     * @since  23
+     */
+    @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
+    public static String format(StringTemplate st) {
+        return format(Locale.ROOT, st);
+    }
+
+    /**
+     * Returns a formatted string using the specified locale, format string,
+     * and arguments.
+     * Returns a formatted string using  the specified locale along with the specified
+     * format and values contained in the {@link StringTemplate}.
+     *
+     * @param  l
+     *         The {@linkplain java.util.Locale locale} to apply during
+     *         formatting.  If {@code l} is {@code null} then no localization
+     *         is applied.
+     *
+     * @param  st {@link StringTemplate} containing values and
+     *         a <a href="../util/Formatter.html#syntax">format</a>
+     *
+     * @throws  java.util.IllegalFormatException
+     *          If a format string contains an illegal syntax, a format
+     *          specifier that is incompatible with the given arguments,
+     *          insufficient arguments given the format string, or other
+     *          illegal conditions.  For specification of all possible
+     *          formatting errors, see the <a
+     *          href="../util/Formatter.html#detail">Details</a> section of the
+     *          formatter class specification
+     *
+     * @return  A formatted string
+     *
+     * @see  java.util.Formatter
+     * @since  23
+     */
+    @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
+    public static String format(Locale l, StringTemplate st) {
+        JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
+        if (JTA.isLiteral(st)) {
+            StringFormatMetaData metaData = JTA.getMetaData(st, STRING_FORMAT_OWNER, () -> {
+                MethodHandle mh = FormatterBuilder.create(st, l);
+                return new StringFormatMetaData(l, mh);
+            });
+
+            if (metaData.l == l) {
+                try {
+                    return (String)metaData.formatter().invokeExact(st);
+                } catch (Throwable ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }
+
+        return new Formatter(l).format(st).toString();
+    }
+
+    private record StringFormatMetaData(Locale l, MethodHandle formatter) {}
+
+    private static final Object STRING_FORMAT_OWNER = new Object();
 
     /**
      * Formats using this string as the format string, and the supplied

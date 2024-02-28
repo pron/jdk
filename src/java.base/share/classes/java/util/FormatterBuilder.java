@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,6 +35,9 @@ import java.text.spi.NumberFormatProvider;
 import java.util.FormatItem.*;
 import java.util.Formatter.*;
 
+import jdk.internal.access.JavaTemplateAccess;
+import jdk.internal.access.SharedSecrets;
+import jdk.internal.javac.PreviewFeature;
 import jdk.internal.util.FormatConcatItem;
 
 import sun.invoke.util.Wrapper;
@@ -47,15 +50,25 @@ import static java.lang.invoke.MethodHandles.*;
 import static java.lang.invoke.MethodType.*;
 
 /**
- * This package private class supports the construction of the {@link MethodHandle}
- * used by {@link FormatProcessor}.
+ * This  class supports the construction of the {@link MethodHandle}
+ * primarily used by {@link Formatter} and {@link String}. The class
+ * takes a format string, a local and an array of primitive types to
+ *  produce a {@link MethodHandle} that takes primitive types and
+ *  produces a string. For example:
+ * {@snippet lang=JAVA :
+ * String format = "%d + %d = %d";
+ * Class<?>[] types = new Class<?>[] { int.class, int.class, int.class };
+ * MethodHandle mh = FormatterBuilder.create(format, types);
+ * String result = (String)mh.invokeExact( 10, 20, 30 );
+ * }
  *
  * @since 21
  *
  * Warning: This class is part of PreviewFeature.Feature.STRING_TEMPLATES.
  *          Do not rely on its availability.
  */
-final class FormatterBuilder {
+@PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
+public final class FormatterBuilder {
     private static final Lookup LOOKUP = lookup();
 
     private final String format;
@@ -64,7 +77,80 @@ final class FormatterBuilder {
     private final DecimalFormatSymbols dfs;
     private final boolean isGenericDFS;
 
-    FormatterBuilder(String format, Locale locale, Class<?>[] ptypes) {
+    /**
+     * Create a specialized {@link MethodHandle} that will format a specific
+     * set of data types.
+     *
+     * @param format  format string <a href="Formatter#syntax">Format string syntax</a>
+     * @param locale  {@link Locale} to use
+     * @param ptypes  array of the argument types
+     *
+     * @return specialized {@link MethodHandle}
+     */
+    public static MethodHandle create(String format, Locale locale, Class<?>[] ptypes) {
+        Objects.requireNonNull(format, "format must not be null");
+        Objects.requireNonNull(locale, "locale must not be null");
+        Objects.requireNonNull(ptypes, "ptypes must not be null");
+        return new FormatterBuilder(format, locale, ptypes).build();
+    }
+
+    /**
+     * Create a specialized {@link MethodHandle} that will format a specific
+     * set of data types, using {@link Locale#ROOT}.
+     *
+     * @param format  format string <a href="Formatter#syntax">Format string syntax</a>
+     * @param ptypes  array of the argument types
+     *
+     * @return specialized {@link MethodHandle}
+     */
+    public static MethodHandle create(String format, Class<?>[] ptypes) {
+        Objects.requireNonNull(format, "format must not be null");
+        Objects.requireNonNull(ptypes, "ptypes must not be null");
+        return new FormatterBuilder(format, Locale.ROOT, ptypes).build();
+    }
+
+    private final static JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
+
+    /**
+     * Create a specialized {@link MethodHandle} that will format a specific
+     * set of data types, based on a {@link StringTemplate} and locale.
+     *
+     * @param st      a {@link StringTemplate}
+     * @param locale  {@link Locale} to use
+     *
+     * @return specialized {@link MethodHandle}
+     * @throws IllegalArgumentException if the {@link StringTemplate} was not derived from a literal
+     */
+    public static MethodHandle create(StringTemplate st, Locale locale) {
+        Objects.requireNonNull(st, "st must not be null");
+        Objects.requireNonNull(locale, "locale must not be null");
+        if (JTA.isLiteral(st)) {
+            Objects.requireNonNull(st, "st must not be null");
+            Objects.requireNonNull(locale, "locale must not be null");
+            String format = Formatter.stringTemplateFormat(st.fragments());
+            Class<?>[] ptypes = JTA.getTypes(st).toArray(new Class<?>[0]);
+            MethodHandle mh = FormatterBuilder.create(format, locale, ptypes);
+            return JTA.bindTo(st, mh);
+        } else {
+            throw new IllegalArgumentException("StringTemplate is not a literal");
+        }
+    }
+
+    /**
+     * Create a specialized {@link MethodHandle} that will format a specific
+     * set of data types, based on a {@link StringTemplate} and link Locale#ROOT}.
+     *
+     * @param st  a {@link StringTemplate}
+     *
+     * @return specialized {@link MethodHandle}
+     * @throws IllegalArgumentException if the {@link StringTemplate} was not derived from a literal
+     */
+    public static MethodHandle create(StringTemplate st) {
+        Objects.requireNonNull(st, "st must not be null");
+        return create(st, Locale.ROOT);
+    }
+
+    private FormatterBuilder(String format, Locale locale, Class<?>[] ptypes) {
         this.format = format;
         this.locale = locale;
         this.ptypes = ptypes;
@@ -465,7 +551,7 @@ final class FormatterBuilder {
      *
      * @return new {@link MethodHandle} to format arguments
      */
-    MethodHandle build() {
+    private MethodHandle build() {
         List<String> segments = new ArrayList<>();
         MethodHandle[] filters = new MethodHandle[ptypes.length];
         buildFilters(Formatter.parse(format), segments, filters);
