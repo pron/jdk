@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,11 +25,7 @@
 
 package java.lang.runtime;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.lang.invoke.StringConcatException;
-import java.lang.invoke.StringConcatFactory;
+import java.lang.invoke.*;
 import java.util.Arrays;
 import java.util.List;
 
@@ -75,8 +71,7 @@ final class StringTemplateImplFactory {
         try {
             MethodHandles.Lookup lookup = MethodHandles.lookup();
 
-            MethodType mt = MethodType.methodType(void.class, int.class, int.class, List.class,
-                    MethodHandle.class, MethodHandle.class);
+            MethodType mt = MethodType.methodType(void.class, int.class, int.class, StringTemplateSharedData.class);
             CONSTRUCTOR = lookup.findConstructor(StringTemplateImpl.class, mt)
                     .asType(mt.changeReturnType(Carriers.CarrierObject.class));
 
@@ -125,9 +120,11 @@ final class StringTemplateImplFactory {
         valuesMH = MethodHandles.filterArguments(valuesMH, 0, components);
         valuesMH = MethodHandles.permuteArguments(valuesMH, MT_LIST_STIMPL, permute);
 
+        StringTemplateSharedData sharedData = new StringTemplateSharedData(
+                fragments, elements, type.parameterList(), valuesMH, interpolateMH);
+
         MethodHandle constructor = MethodHandles.insertArguments(CONSTRUCTOR, 0,
-                elements.primitiveCount(), elements.objectCount(),
-                fragments, valuesMH, interpolateMH);
+                elements.primitiveCount(), elements.objectCount(), sharedData);
         constructor = MethodHandles.foldArguments(elements.initializer(), 0, constructor);
 
         mt = MethodType.methodType(StringTemplate.class, ptypes);

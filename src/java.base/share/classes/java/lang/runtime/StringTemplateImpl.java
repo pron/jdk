@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,13 +37,9 @@ import java.util.Objects;
  * Values are stored by subclassing {@link Carriers.CarrierObject}. This allows specializations
  * and sharing of value shapes without creating a new class for each shape.
  * <p>
- * {@link StringTemplate} fragments are shared via binding to the
- * {@link java.lang.invoke.CallSite CallSite's} {@link MethodHandle}.
- * <p>
- * The {@link StringTemplateImpl} instance also carries
- * specialized {@link MethodHandle MethodHandles} for producing the values list and interpolation.
- * These {@link MethodHandle MethodHandles} are  also shared by binding to the
- * {@link java.lang.invoke.CallSite CallSite}.
+ * {@link StringTemplate} fragments {@link MethodHandle MethodHandles} and are shared via the
+ * sharedData instance bound by the {@link java.lang.invoke.CallSite CallSite}.
+ *
  *
  * @since 21
  *
@@ -52,51 +48,31 @@ import java.util.Objects;
  */
 final class StringTemplateImpl extends Carriers.CarrierObject implements StringTemplate {
     /**
-     * List of string fragments for the string template. This value of this list is shared by
-     * all instances created at the {@link java.lang.invoke.CallSite CallSite}.
+     * StringTemplate shared data.
      */
-    private final List<String> fragments;
-
-    /**
-     * Specialized {@link MethodHandle} used to implement the {@link StringTemplate StringTemplate's}
-     * {@code values} method. This {@link MethodHandle} is shared by all instances created at the
-     * {@link java.lang.invoke.CallSite CallSite}.
-     */
-    private final MethodHandle valuesMH;
-
-    /**
-     * Specialized {@link MethodHandle} used to implement the {@link StringTemplate StringTemplate's}
-     * {@code interpolate} method. This {@link MethodHandle} is shared by all instances created at the
-     * {@link java.lang.invoke.CallSite CallSite}.
-     */
-    private final MethodHandle interpolateMH;
+    final StringTemplateSharedData sharedData;
 
     /**
      * Constructor.
      *
      * @param primitiveCount  number of primitive slots required (bound at callsite)
      * @param objectCount     number of object slots required (bound at callsite)
-     * @param fragments       list of string fragments (bound in (bound at callsite)
-     * @param valuesMH        {@link MethodHandle} to produce list of values (bound at callsite)
-     * @param interpolateMH   {@link MethodHandle} to produce interpolation (bound at callsite)
+     * @param sharedData      StringTemplate shared data
      */
-    StringTemplateImpl(int primitiveCount, int objectCount,
-                       List<String> fragments, MethodHandle valuesMH, MethodHandle interpolateMH) {
+    StringTemplateImpl(int primitiveCount, int objectCount, StringTemplateSharedData sharedData) {
         super(primitiveCount, objectCount);
-        this.fragments = fragments;
-        this.valuesMH = valuesMH;
-        this.interpolateMH = interpolateMH;
+        this.sharedData = sharedData;
     }
 
     @Override
     public List<String> fragments() {
-        return fragments;
+        return sharedData.fragments();
     }
 
     @Override
     public List<Object> values() {
         try {
-            return (List<Object>)valuesMH.invokeExact(this);
+            return (List<Object>)sharedData.valuesMH().invokeExact(this);
         } catch (RuntimeException | Error ex) {
             throw ex;
         } catch (Throwable ex) {
@@ -107,7 +83,7 @@ final class StringTemplateImpl extends Carriers.CarrierObject implements StringT
     @Override
     public String interpolate() {
         try {
-            return (String)interpolateMH.invokeExact(this);
+            return (String)sharedData.interpolateMH().invokeExact(this);
         } catch (RuntimeException | Error ex) {
             throw ex;
         } catch (Throwable ex) {
@@ -131,4 +107,5 @@ final class StringTemplateImpl extends Carriers.CarrierObject implements StringT
     public String toString() {
         return StringTemplate.toString(this);
     }
+
 }
