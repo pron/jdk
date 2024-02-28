@@ -93,6 +93,7 @@ public interface JavaTemplateAccess {
      * the metadata is not available.
      *
      * @param st        target {@link StringTemplate}
+     * @param owner     metadata owner
      * @param supplier  metadata supplier
      * @return metadata associated with the owner
      * @param <T> type of metadata

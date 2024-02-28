@@ -31,6 +31,7 @@ import java.util.FormatProcessor;
 import java.util.function.Function;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 import jdk.internal.access.JavaTemplateAccess;
 import jdk.internal.access.SharedSecrets;
@@ -435,7 +436,7 @@ public interface StringTemplate {
      * {@link StringTemplate#process(Processor)} or
      * {@link Processor#process(StringTemplate)} methods.
      * {@snippet :
-     * import static java.lang.StringTemplate.RAW;
+     * import static StringTemplate.RAW;
      * ...
      * StringTemplate st = RAW."\{x} + \{y} = \{x + y}";
      * ...other steps...
@@ -618,5 +619,73 @@ public interface StringTemplate {
             MethodHandle linkage(List<String> fragments, MethodType type);
         }
     }
+
+    // JavaTemplateAccess
+
+    /**
+     * Just here to hide JTA.
+     */
+    class TMP {
+        private TMP() {}
+        /**
+         * Access to internal {@link StringTemplate} internals.
+         */
+        private static JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
+    }
+
+    /**
+     * Determine if the {@link StringTemplate} was derived from a java language construct.
+     *
+     * @param st {@link StringTemplate} to test
+     * @return true if {@link StringTemplate} was derived from a java language construct
+     */
+    static boolean isLiteral(StringTemplate st) {
+        return TMP.JTA.isLiteral(st);
+    }
+
+    /**
+     * Return a list of the embedded expression types.
+     *
+     * @param st {@link StringTemplate} to query
+     * @return list of the embedded expression types
+     * @throws NullPointerException if st is null
+     * @throws IllegalArgumentException if the {@link StringTemplate} is not a literal
+     */
+    static List<Class<?>> getTypes(StringTemplate st) {
+        return TMP.JTA.getTypes(st);
+    }
+
+    /**
+     * Return the metadata associated with the owner, getting from the supplier if
+     * the metadata is not available.
+     *
+     * @param st        target {@link StringTemplate}
+     * @param owner     metadata owner
+     * @param supplier  metadata supplier
+     * @return metadata associated with the owner
+     * @param <T> type of metadata
+     * @throws NullPointerException if st, owner or supplier is null
+     * @throws IllegalArgumentException if the {@link StringTemplate} is not a literal
+     */
+    static <T> T getMetaData(StringTemplate st, Object owner, Supplier<T> supplier) {
+        return TMP.JTA.getMetaData(st, owner, supplier);
+    }
+
+    /**
+     * Bind the getters of this {@link StringTemplate StringTemplate's} values to the inputs of the
+     * supplied  {@link MethodHandle}.
+     *
+     * @param st target {@link StringTemplate}
+     * @param mh {@link MethodHandle} to bind to
+     * @return bound {@link MethodHandle}
+     * @throws NullPointerException     if the {@link StringTemplate} or {@link MethodHandle} is null
+     * @throws IllegalArgumentException if the {@link StringTemplate} is not a literal or
+     *                                  if the types of the {@link MethodHandle} don't align with
+     *                                  the getters of the {@link StringTemplate}.
+     */
+    static MethodHandle bindTo(StringTemplate st, MethodHandle mh) {
+        return TMP.JTA.bindTo(st, mh);
+    }
+
 
 }
