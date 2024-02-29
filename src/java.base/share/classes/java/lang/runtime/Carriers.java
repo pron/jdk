@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import jdk.internal.vm.annotation.Stable;
 import jdk.internal.misc.Unsafe;
 import jdk.internal.util.ReferencedKeyMap;
 
@@ -404,11 +405,13 @@ final class Carriers {
         /**
          * Carrier for primitive values.
          */
+        @Stable
         private final long[] primitives;
 
         /**
          * Carrier for objects;
          */
+        @Stable
         private final Object[] objects;
 
         /**

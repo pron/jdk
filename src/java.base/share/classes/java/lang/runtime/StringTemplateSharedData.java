@@ -25,12 +25,12 @@
 
 package java.lang.runtime;
 
-import jdk.internal.vm.annotation.Stable;
-
 import java.lang.invoke.MethodHandle;
 import java.util.function.Supplier;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+
+import jdk.internal.vm.annotation.Stable;
 
 /**
  * StringTemplate shared data.
@@ -40,16 +40,19 @@ final class StringTemplateSharedData {
      * List of string fragments for the string template. This value of this list is shared by
      * all instances created at the {@link java.lang.invoke.CallSite CallSite}.
      */
+    @Stable
     private final List<String> fragments;
 
     /**
      * Carrier elements.
      */
+    @Stable
     private final Carriers.CarrierElements elements;
 
     /**
      * List of input argument types.
      */
+    @Stable
     private final List<Class<?>> types;
 
     /**
@@ -57,6 +60,7 @@ final class StringTemplateSharedData {
      * {@code values} method. This {@link MethodHandle} is shared by all instances created at the
      * {@link java.lang.invoke.CallSite CallSite}.
      */
+    @Stable
     private final MethodHandle valuesMH;
 
     /**
@@ -64,11 +68,13 @@ final class StringTemplateSharedData {
      * {@code interpolate} method. This {@link MethodHandle} is shared by all instances created at the
      * {@link java.lang.invoke.CallSite CallSite}.
      */
+    @Stable
     private final MethodHandle interpolateMH;
 
     /**
      * Owner of metadata.
      */
+    @Stable
     private final AtomicReference<Object> owner;
 
     /**
