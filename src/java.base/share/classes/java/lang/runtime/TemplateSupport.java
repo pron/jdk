@@ -103,7 +103,12 @@ final class TemplateSupport implements JavaTemplateAccess {
         int i = 0, j = 0;
         for (; j < valuesSize; j++) {
             strings[i++] = fragments.get(j);
-            strings[i++] = String.valueOf(values.get(j));
+            Object value = values.get(j);
+            if (value instanceof StringTemplate st) {
+                strings[i++] = st.interpolate();
+            } else {
+                strings[i++] = String.valueOf(value);
+            }
         }
         strings[i] = fragments.get(j);
         return JLA.join("", "", "", strings, size);

@@ -26,6 +26,7 @@
 package java.lang.runtime;
 
 import java.lang.invoke.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -53,6 +54,20 @@ final class StringTemplateImplFactory {
      */
     private static final MethodHandle CONSTRUCTOR;
 
+    /**
+     * List (for nullable) of MethodHandle;
+     */
+    private static final MethodHandle TO_LIST;
+
+    /**
+     * Object to string, special casing {@link StringTemplate};
+     */
+    private static final MethodHandle OBJECT_TO_STRING;
+
+    /**
+     * {@link StringTemplate} to string using interpolation.
+     */
+    private static final MethodHandle TEMPLATE_TO_STRING;
 
     /*
      * Frequently used method types.
@@ -61,11 +76,6 @@ final class StringTemplateImplFactory {
             MethodType.methodType(String.class, StringTemplateImpl.class);
     private static final MethodType MT_LIST_STIMPL =
             MethodType.methodType(List.class, StringTemplateImpl.class);
-
-    /**
-     * List (for nullable) of MethodHandle;
-     */
-    private static final MethodHandle TO_LIST;
 
     static {
         try {
@@ -77,6 +87,10 @@ final class StringTemplateImplFactory {
 
             mt = MethodType.methodType(List.class, Object[].class);
             TO_LIST = lookup.findStatic(StringTemplateImplFactory.class, "toList", mt);
+            mt = MethodType.methodType(String.class, Object.class);
+            OBJECT_TO_STRING = lookup.findStatic(StringTemplateImplFactory.class, "objectToString", mt);
+            mt = MethodType.methodType(String.class, StringTemplate.class);
+            TEMPLATE_TO_STRING = lookup.findStatic(StringTemplateImplFactory.class, "templateToString", mt);
         } catch(ReflectiveOperationException ex) {
             throw new AssertionError("carrier static init fail", ex);
         }
@@ -93,32 +107,37 @@ final class StringTemplateImplFactory {
      */
     static MethodHandle createStringTemplateImplMH(List<String> fragments, MethodType type) {
         Carriers.CarrierElements elements = Carriers.CarrierFactory.of(type);
-        MethodHandle[] components = elements
-                .components()
-                .stream()
+        List<MethodHandle> components = elements.components();
+        List<MethodHandle> getters = components.stream()
                 .map(c -> c.asType(c.type().changeParameterType(0, StringTemplateImpl.class)))
-                .toArray(MethodHandle[]::new);
-        Class<?>[] ptypes = elements
-                .components()
-                .stream()
-                .map(c -> c.type().returnType())
-                .toArray(Class<?>[]::new);
-        int[] permute = new int[ptypes.length];
+                .toList();
+        List<Class<?>> ptypes = new ArrayList<>();
+        for (MethodHandle c : components) {
+            ptypes.add(c.type().returnType());
+        }
+        int[] permute = new int[ptypes.size()];
+        MethodType constructorMT = MethodType.methodType(StringTemplate.class, ptypes);
+
+        MethodType valuesMT = MethodType.methodType(List.class, ptypes);
+        MethodHandle valuesMH = TO_LIST.asCollector(Object[].class, getters.size()).asType(valuesMT);
+        valuesMH = MethodHandles.filterArguments(valuesMH, 0, getters.toArray(MethodHandle[]::new));
+        valuesMH = MethodHandles.permuteArguments(valuesMH, MT_LIST_STIMPL, permute);
+
+        List<MethodHandle> filters = filterGetters(getters);
+        ptypes.clear();
+        for (MethodHandle f : filters) {
+            ptypes.add(f.type().returnType());
+        }
 
         MethodHandle interpolateMH;
-        MethodType mt;
+
         try {
-            interpolateMH = StringConcatFactory.makeConcatWithTemplate(fragments, List.of(ptypes));
+            interpolateMH = StringConcatFactory.makeConcatWithTemplate(fragments, ptypes);
         } catch (StringConcatException ex) {
             throw new RuntimeException("constructing internal string template", ex);
         }
-        interpolateMH = MethodHandles.filterArguments(interpolateMH, 0, components);
+        interpolateMH = MethodHandles.filterArguments(interpolateMH, 0, filters.toArray(MethodHandle[]::new));
         interpolateMH = MethodHandles.permuteArguments(interpolateMH, MT_STRING_STIMPL, permute);
-
-        mt = MethodType.methodType(List.class, ptypes);
-        MethodHandle valuesMH = TO_LIST.asCollector(Object[].class, components.length).asType(mt);
-        valuesMH = MethodHandles.filterArguments(valuesMH, 0, components);
-        valuesMH = MethodHandles.permuteArguments(valuesMH, MT_LIST_STIMPL, permute);
 
         StringTemplateSharedData sharedData = new StringTemplateSharedData(
                 fragments, elements, type.parameterList(), valuesMH, interpolateMH);
@@ -127,10 +146,54 @@ final class StringTemplateImplFactory {
                 elements.primitiveCount(), elements.objectCount(), sharedData);
         constructor = MethodHandles.foldArguments(elements.initializer(), 0, constructor);
 
-        mt = MethodType.methodType(StringTemplate.class, ptypes);
-        constructor = constructor.asType(mt);
+        constructor = constructor.asType(constructorMT);
 
         return constructor;
+    }
+
+    /**
+     * Interpolate nested {@link StringTemplate StringTemplates}.
+     * @param getters {@link Carriers} component getters
+     * @return getters filtered to translate {@link StringTemplate StringTemplates} to strings
+     */
+    private static List<MethodHandle> filterGetters(List<MethodHandle> getters) {
+        List<MethodHandle> filters = new ArrayList<>();
+        for (MethodHandle getter : getters) {
+            Class<?> type = getter.type().returnType();
+            if (type == StringTemplate.class) {
+                getter = MethodHandles.filterArguments(TEMPLATE_TO_STRING, 0, getter);
+            } else if (type == Object.class) {
+                getter = MethodHandles.filterArguments(OBJECT_TO_STRING, 0, getter);
+            }
+            filters.add(getter);
+        }
+        return filters;
+    }
+
+    /**
+     * Filter object for {@link StringTemplate} and convert to string, {@link String#valueOf(Object)} otherwise.
+     * @param object object to filter
+     * @return {@link StringTemplate} interpolation otherwise result of {@link String#valueOf(Object)}.
+     */
+    private static String objectToString(Object object) {
+        if (object instanceof StringTemplate st) {
+            return st.interpolate();
+        } else {
+            return String.valueOf(object);
+        }
+    }
+
+    /**
+     * Filter {@link StringTemplate} to strings.
+     * @param st {@link StringTemplate} to filter
+     * @return {@link StringTemplate} interpolation otherwise "null"
+     */
+    private static String templateToString(StringTemplate st) {
+        if (st != null) {
+            return st.interpolate();
+        } else {
+            return "null";
+        }
     }
 
     /**
