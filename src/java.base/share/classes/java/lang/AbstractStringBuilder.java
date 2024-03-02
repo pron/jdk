@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,9 +31,11 @@ import jdk.internal.math.FloatToDecimal;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Spliterator;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
+import jdk.internal.javac.PreviewFeature;
 import jdk.internal.util.ArraysSupport;
 import jdk.internal.util.Preconditions;
 
@@ -550,6 +552,41 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
     }
 
     /**
+     * Appends the specified {@link StringTemplate} to this character sequence.
+     * <p>
+     * The fragments and values of the {@link StringTemplate} argument are appended, in
+     * order, increasing the length of this sequence by the length of the
+     * argument. If {@code stringTemplate} is {@code null}, then the four
+     * characters {@code "null"} are appended.
+     *
+     * @param   stringTemplate   a {@link StringTemplate}.
+     *
+     * @return  a reference to this object.
+     *
+     * @since  23
+     */
+    @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
+    public AbstractStringBuilder append(StringTemplate stringTemplate) {
+        if (stringTemplate == null) {
+            return appendNull();
+        }
+        List<String> fragments = stringTemplate.fragments();
+        List<Object> values = stringTemplate.values();
+        int n = values.size();
+        for (int i = 0; i < n; i++) {
+            append(fragments.get(i));
+            Object value = values.get(i);
+            if (value instanceof StringTemplate st) {
+                append(st);
+            } else {
+                append(value);
+            }
+        }
+        append(fragments.get(n));
+        return this;
+    }
+
+    /**
      * Appends the string representation of the {@code Object} argument.
      * <p>
      * The overall effect is exactly as if the argument were converted
@@ -561,6 +598,9 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
      * @return  a reference to this object.
      */
     public AbstractStringBuilder append(Object obj) {
+        if (obj instanceof StringTemplate st) {
+            return append(st);
+        }
         return append(String.valueOf(obj));
     }
 

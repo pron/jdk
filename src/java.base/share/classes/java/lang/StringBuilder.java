@@ -170,7 +170,14 @@ public final class StringBuilder
 
     @Override
     public StringBuilder append(Object obj) {
-        return append(String.valueOf(obj));
+       super.append(obj);
+       return this;
+    }
+
+    @Override
+    public StringBuilder append(StringTemplate stringTemplate) {
+        super.append(stringTemplate);
+        return this;
     }
 
     @Override
