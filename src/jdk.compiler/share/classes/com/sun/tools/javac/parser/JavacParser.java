@@ -709,7 +709,8 @@ public class JavacParser implements Parser {
         int endPos = stringToken.endPos;
         TokenKind kind = stringToken.kind;
         String string = token.stringVal();
-        List<String> fragments = List.of(string);
+        List<String> literals = List.of(string);
+        List<String> fragments = List.nil();
         List<JCExpression> expressions = List.nil();
         nextToken();
         if (kind != STRINGLITERAL) {
@@ -717,18 +718,26 @@ public class JavacParser implements Parser {
                 stringToken = token;
                 endPos = stringToken.endPos;
                 string = stringToken.stringVal();
-                fragments = fragments.append(string);
+                literals = literals.append(string);
                 nextToken();
-             }
+            }
+            String fragment = literals.head;
+            literals = literals.tail;
             while (token.pos < endPos && token.kind != DEFAULT && token.kind != ERROR) {
                 accept(LBRACE);
-                JCExpression expression = token.kind == RBRACE ? F.at(pos).Literal(TypeTag.BOT, null)
-                                                               : term(EXPR);
-                expressions = expressions.append(expression);
+                if (token.kind == RBRACE) {
+                    fragment += literals.head;
+                } else {
+                    expressions = expressions.append(term(EXPR));
+                    fragments = fragments.append(fragment);
+                    fragment = literals.head;
+                }
+                literals = literals.tail;
                 if (token.kind != ERROR) {
                     accept(RBRACE);
                 }
             }
+            fragments = fragments.append(fragment);
             // clean up remaining expression tokens if error
             while (token.pos < endPos && token.kind != DEFAULT) {
                 nextToken();
