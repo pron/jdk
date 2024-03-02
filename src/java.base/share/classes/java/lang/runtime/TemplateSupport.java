@@ -92,7 +92,7 @@ final class TemplateSupport implements JavaTemplateAccess {
      * @return String interpolation of fragments and values
      */
     @Override
-    public String interpolate(List<String> fragments, List<?> values) {
+    public String join(List<String> fragments, List<?> values) {
         int fragmentsSize = fragments.size();
         int valuesSize = values.size();
         if (fragmentsSize == 1) {
@@ -105,7 +105,7 @@ final class TemplateSupport implements JavaTemplateAccess {
             strings[i++] = fragments.get(j);
             Object value = values.get(j);
             if (value instanceof StringTemplate st) {
-                strings[i++] = st.interpolate();
+                strings[i++] = st.join();
             } else {
                 strings[i++] = String.valueOf(value);
             }
@@ -118,7 +118,7 @@ final class TemplateSupport implements JavaTemplateAccess {
      * Combine one or more {@link StringTemplate StringTemplates} to produce a combined {@link StringTemplate}.
      * {@snippet :
      * StringTemplate st = StringTemplate.combine("\{a}", "\{b}", "\{c}");
-     * assert st.interpolate().equals("\{a}\{b}\{c}");
+     * assert st.join().equals("\{a}\{b}\{c}");
      * }
      *
      * @param sts  zero or more {@link StringTemplate}

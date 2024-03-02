@@ -81,13 +81,13 @@ final class StringTemplateImpl extends Carriers.CarrierObject implements StringT
     }
 
     @Override
-    public String interpolate() {
+    public String join() {
         try {
-            return (String)sharedData.interpolateMH().invokeExact(this);
+            return (String)sharedData.joinMH().invokeExact(this);
         } catch (RuntimeException | Error ex) {
             throw ex;
         } catch (Throwable ex) {
-            throw new RuntimeException("string template interpolate failure", ex);
+            throw new RuntimeException("string template join failure", ex);
         }
     }
 

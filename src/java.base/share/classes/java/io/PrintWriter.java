@@ -772,7 +772,7 @@ public class PrintWriter extends Writer {
     /**
      * Prints a {@link StringTemplate}.  If the argument is {@code null} then the string
      * {@code "null"} is printed.  Otherwise, the {@link StringTemplate StringTemplate's}
-     * interpolation are converted into bytes according to the default charset,
+     * join results are converted into bytes according to the default charset,
      * and these bytes are written in exactly the manner of the
      * {@link #write(int)} method.
      *
@@ -783,7 +783,7 @@ public class PrintWriter extends Writer {
      */
     @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
     public void print(StringTemplate st) {
-        write(st == null ? String.valueOf(null) : st.interpolate());
+        write(st == null ? "null" : st.join());
     }
 
     /**

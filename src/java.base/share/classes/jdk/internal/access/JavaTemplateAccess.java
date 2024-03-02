@@ -52,15 +52,15 @@ public interface JavaTemplateAccess {
      *
      * @param fragments list of String fragments
      * @param values    list of expression values
-     * @return String interpolation of fragments and values
+     * @return String join of fragments and values
      */
-    String interpolate(List<String> fragments, List<?> values);
+    String join(List<String> fragments, List<?> values);
 
     /**
      * Combine one or more {@link StringTemplate StringTemplates} to produce a combined {@link StringTemplate}.
      * {@snippet :
      * StringTemplate st = StringTemplate.combine("\{a}", "\{b}", "\{c}");
-     * assert st.interpolate().equals("\{a}\{b}\{c}");
+     * assert st.join().equals("\{a}\{b}\{c}");
      * }
      *
      * @param sts zero or more {@link StringTemplate}

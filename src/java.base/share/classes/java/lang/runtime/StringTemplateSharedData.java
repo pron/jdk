@@ -65,11 +65,11 @@ final class StringTemplateSharedData {
 
     /**
      * Specialized {@link MethodHandle} used to implement the {@link StringTemplate StringTemplate's}
-     * {@code interpolate} method. This {@link MethodHandle} is shared by all instances created at the
+     * {@code join} method. This {@link MethodHandle} is shared by all instances created at the
      * {@link java.lang.invoke.CallSite CallSite}.
      */
     @Stable
-    private final MethodHandle interpolateMH;
+    private final MethodHandle joinMH;
 
     /**
      * Owner of metadata.
@@ -89,15 +89,15 @@ final class StringTemplateSharedData {
      * @param elements        carrier elements
      * @param types;          list of value types
      * @param valuesMH        {@link MethodHandle} to produce list of values (bound at callsite)
-     * @param interpolateMH   {@link MethodHandle} to produce interpolation (bound at callsite)
+     * @param joinMH          {@link MethodHandle} to produce interpolation (bound at callsite)
      */
     StringTemplateSharedData(List<String> fragments, Carriers.CarrierElements elements, List<Class<?>> types,
-                             MethodHandle valuesMH, MethodHandle interpolateMH) {
+                             MethodHandle valuesMH, MethodHandle joinMH) {
         this.fragments = fragments;
         this.elements = elements;
         this.types = types;
         this.valuesMH = valuesMH;
-        this.interpolateMH = interpolateMH;
+        this.joinMH = joinMH;
         this.owner = new AtomicReference<>(null);
         this.metaData = null;
 
@@ -134,8 +134,8 @@ final class StringTemplateSharedData {
     /**
      * {@return MethodHandle to return string interpolation }
      */
-    MethodHandle interpolateMH() {
-        return interpolateMH;
+    MethodHandle joinMH() {
+        return joinMH;
     }
 
 

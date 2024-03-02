@@ -78,16 +78,16 @@ import jdk.internal.javac.PreviewFeature;
  * When the template expression is evaluated, an instance of {@link StringTemplate} is
  * produced that returns the same lists from {@link StringTemplate#fragments()} and
  * {@link StringTemplate#values()} as shown above. The {@link StringTemplate#STR} template
- * processor uses these lists to yield an interpolated string. The value of {@code s} will
+ * processor uses these lists to yield an joined string. The value of {@code s} will
  * be equivalent to {@code "10 + 20 = 30"}.
  * <p>
- * The {@code interpolate()} method provides a direct way to perform string interpolation
+ * The {@code join()} method provides a direct way to perform string interpolation
  * of a {@link StringTemplate}. Template processors can use the following code pattern:
  * {@snippet :
  * List<String> fragments = st.fragments();
  * List<Object> values    = st.values();
  * ... check or manipulate the fragments and/or values ...
- * String result = StringTemplate.interpolate(fragments, values);
+ * String result = StringTemplate.join(fragments, values);
  * }
  * The {@link StringTemplate#process(Processor)} method, in conjunction with
  * the {@link StringTemplate#RAW} processor, may be used to defer processing of a
@@ -160,12 +160,12 @@ public interface StringTemplate {
      * {@link StringTemplate}.
      * @apiNote For better visibility and when practical, it is recommended to use the
      * {@link StringTemplate#STR} processor instead of invoking the
-     * {@link StringTemplate#interpolate()} method.
+     * {@link StringTemplate#join()} method.
      * {@snippet :
      * String student = "Mary";
      * String teacher = "Johnson";
      * StringTemplate st = RAW."The student \{student} is in \{teacher}'s classroom.";
-     * String result = st.interpolate(); // @highlight substring="interpolate()"
+     * String result = st.join(); // @highlight substring="join()"
      * }
      * In the above example, the value of  {@code result} will be
      * {@code "The student Mary is in Johnson's classroom."}. This is
@@ -176,10 +176,10 @@ public interface StringTemplate {
      * @return interpolation of this {@link StringTemplate}
      *
      * @implSpec The default implementation returns the result of invoking
-     * {@code StringTemplate.interpolate(this.fragments(), this.values())}.
+     * {@code StringTemplate.join(this.fragments(), this.values())}.
      */
-    default String interpolate() {
-        return StringTemplate.interpolate(fragments(), values());
+    default String join() {
+        return StringTemplate.join(fragments(), values());
     }
 
     /**
@@ -292,7 +292,7 @@ public interface StringTemplate {
      *         than values list size
      * @throws NullPointerException fragments or values is null or if any of the fragments is null
      */
-    static String interpolate(List<String> fragments, List<?> values) {
+    static String join(List<String> fragments, List<?> values) {
         Objects.requireNonNull(fragments, "fragments must not be null");
         Objects.requireNonNull(values, "values must not be null");
         int fragmentsSize = fragments.size();
@@ -301,7 +301,7 @@ public interface StringTemplate {
             throw new IllegalArgumentException("fragments must have one more element than values");
         }
         JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
-        return JTA.interpolate(fragments, values);
+        return JTA.join(fragments, values);
     }
 
     /**
@@ -309,7 +309,7 @@ public interface StringTemplate {
      * {@link StringTemplate}.
      * {@snippet :
      * StringTemplate st = StringTemplate.combine(RAW."\{a}", RAW."\{b}", RAW."\{c}");
-     * assert st.interpolate().equals(STR."\{a}\{b}\{c}");
+     * assert st.join().equals(STR."\{a}\{b}\{c}");
      * }
      * Fragment lists from the {@link StringTemplate StringTemplates} are combined end to
      * end with the last fragment from each {@link StringTemplate} concatenated with the
@@ -361,7 +361,7 @@ public interface StringTemplate {
      * {@link StringTemplate}.
      * {@snippet :
      * StringTemplate st = StringTemplate.combine(List.of(RAW."\{a}", RAW."\{b}", RAW."\{c}"));
-     * assert st.interpolate().equals(STR."\{a}\{b}\{c}");
+     * assert st.join().equals(STR."\{a}\{b}\{c}");
      * }
      * Fragment lists from the {@link StringTemplate StringTemplates} are combined end to
      * end with the last fragment from each {@link StringTemplate} concatenated with the
@@ -414,7 +414,7 @@ public interface StringTemplate {
      * <p>
      * For better visibility and when practical, it is recommended that users use the
      * {@link StringTemplate#STR} processor instead of invoking the
-     * {@link StringTemplate#interpolate()} method.
+     * {@link StringTemplate#join()} method.
      * Example: {@snippet :
      * int x = 10;
      * int y = 20;
@@ -427,7 +427,7 @@ public interface StringTemplate {
      * @apiNote {@link StringTemplate#STR} is statically imported implicitly into every
      * Java compilation unit.
      */
-    Processor<String, RuntimeException> STR = StringTemplate::interpolate;
+    Processor<String, RuntimeException> STR = StringTemplate::join;
 
     /**
      * This {@link Processor} instance is conventionally used to indicate that the
@@ -511,18 +511,18 @@ public interface StringTemplate {
      *     List<Object> values = st.values();
      *     // check or manipulate the fragments and/or values
      *     ...
-     *     return StringTemplate.interpolate(fragments, values);
+     *     return StringTemplate.join(fragments, values);
      * };
      * }
-     * The {@link StringTemplate#interpolate()} method is available for those processors
+     * The {@link StringTemplate#join()} method is available for those processors
      * that just need to work with the string interpolation;
      * {@snippet :
-     * Processor<String, RuntimeException> processor = StringTemplate::interpolate;
+     * Processor<String, RuntimeException> processor = StringTemplate::join;
      * }
      * or simply transform the string interpolation into something other than
      * {@link String};
      * {@snippet :
-     * Processor<JSONObject, RuntimeException> jsonProcessor = st -> new JSONObject(st.interpolate());
+     * Processor<JSONObject, RuntimeException> jsonProcessor = st -> new JSONObject(st.join());
      * }
      * @implNote The Java compiler automatically imports {@link StringTemplate#STR}
      *
@@ -563,7 +563,7 @@ public interface StringTemplate {
          * This factory method can be used to create a {@link Processor} containing a
          * {@link Processor#process} method derived from a lambda expression. As an example;
          * {@snippet :
-         * Processor<String, RuntimeException> mySTR = Processor.of(StringTemplate::interpolate);
+         * Processor<String, RuntimeException> mySTR = Processor.of(StringTemplate::join);
          * int x = 10;
          * int y = 20;
          * String str = mySTR."\{x} + \{y} = \{x + y}";
@@ -572,7 +572,7 @@ public interface StringTemplate {
          * the lambda expression, thus this method may be used in a var
          * statement. For example, {@code mySTR} from above can also be declared using;
          * {@snippet :
-         * var mySTR = Processor.of(StringTemplate::interpolate);
+         * var mySTR = Processor.of(StringTemplate::join);
          * }
          * {@link RuntimeException} is the assumed exception thrown type.
          *

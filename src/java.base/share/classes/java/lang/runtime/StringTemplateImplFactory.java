@@ -129,18 +129,18 @@ final class StringTemplateImplFactory {
             ptypes.add(f.type().returnType());
         }
 
-        MethodHandle interpolateMH;
+        MethodHandle joinMH;
 
         try {
-            interpolateMH = StringConcatFactory.makeConcatWithTemplate(fragments, ptypes);
+            joinMH = StringConcatFactory.makeConcatWithTemplate(fragments, ptypes);
         } catch (StringConcatException ex) {
             throw new RuntimeException("constructing internal string template", ex);
         }
-        interpolateMH = MethodHandles.filterArguments(interpolateMH, 0, filters.toArray(MethodHandle[]::new));
-        interpolateMH = MethodHandles.permuteArguments(interpolateMH, MT_STRING_STIMPL, permute);
+        joinMH = MethodHandles.filterArguments(joinMH, 0, filters.toArray(MethodHandle[]::new));
+        joinMH = MethodHandles.permuteArguments(joinMH, MT_STRING_STIMPL, permute);
 
         StringTemplateSharedData sharedData = new StringTemplateSharedData(
-                fragments, elements, type.parameterList(), valuesMH, interpolateMH);
+                fragments, elements, type.parameterList(), valuesMH, joinMH);
 
         MethodHandle constructor = MethodHandles.insertArguments(CONSTRUCTOR, 0,
                 elements.primitiveCount(), elements.objectCount(), sharedData);
@@ -177,7 +177,7 @@ final class StringTemplateImplFactory {
      */
     private static String objectToString(Object object) {
         if (object instanceof StringTemplate st) {
-            return st.interpolate();
+            return st.join();
         } else {
             return String.valueOf(object);
         }
@@ -190,7 +190,7 @@ final class StringTemplateImplFactory {
      */
     private static String templateToString(StringTemplate st) {
         if (st != null) {
-            return st.interpolate();
+            return st.join();
         } else {
             return "null";
         }
