@@ -1946,7 +1946,7 @@ public class JavacParserTest extends TestCase {
                       package test;
                       public class Test {
                            Test(int a) {
-                               String s = STR."prefix \\{a} suffix";
+                               String s = "prefix \\{a} suffix".join();
                            }
                       }
                       """;
@@ -1960,7 +1960,7 @@ public class JavacParserTest extends TestCase {
         SourcePositions sp = Trees.instance(ct).getSourcePositions();
         int initStart = (int) sp.getStartPosition(cut, decl.getInitializer());
         int initEnd   = (int) sp.getEndPosition(cut, decl.getInitializer());
-        assertEquals("correct templated String span expected", code.substring(initStart, initEnd), "STR.\"prefix \\{a} suffix\"");
+        assertEquals("correct templated String span expected", code.substring(initStart, initEnd), "\"prefix \\{a} suffix\".join()");
     }
 
     @Test //JDK-8293897
