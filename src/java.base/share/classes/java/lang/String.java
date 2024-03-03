@@ -4473,7 +4473,7 @@ public final class String
 
     /**
      * Returns a formatted string using the specified format and
-     * value contained in the {@link StringTemplate}.
+     * values contained in the {@link StringTemplate}.
      *
      * <p> The locale always used is the one returned by {@link
      * java.util.Locale#getDefault(java.util.Locale.Category)
@@ -4481,7 +4481,7 @@ public final class String
      * {@link java.util.Locale.Category#FORMAT FORMAT} category specified.
      *
      * @param  st {@link StringTemplate} containing values and
-     *         a <a href="../util/Formatter.html#syntax">format</a>
+     *         <a href="../util/Formatter.html#syntax">format</a>
      *
      * @throws  java.util.IllegalFormatException
      *          If a format string contains an illegal syntax, a format
@@ -4503,16 +4503,12 @@ public final class String
     }
 
     /**
-     * Returns a formatted string using the specified locale, format string,
-     * and arguments.
-     * Returns a formatted string using  the specified locale along with the specified
-     * format and values contained in the {@link StringTemplate}.
+     * Returns a formatted string using the specified locale and, the format and
+     * values contained in the {@link StringTemplate}.
      *
-     * @param  l
-     *         The {@linkplain java.util.Locale locale} to apply during
-     *         formatting.  If {@code l} is {@code null} then no localization
+     * @param  l  The {@linkplain java.util.Locale locale} to apply during
+     *         formatting. If {@code l} is {@code null} then no localization
      *         is applied.
-     *
      * @param  st {@link StringTemplate} containing values and
      *         a <a href="../util/Formatter.html#syntax">format</a>
      *
@@ -4538,7 +4534,6 @@ public final class String
                 MethodHandle mh = FormatterBuilder.create(st, l);
                 return new StringFormatMetaData(l, mh);
             });
-
             if (metaData.l == l) {
                 try {
                     return (String)metaData.formatter().invokeExact(st);
@@ -4552,7 +4547,6 @@ public final class String
     }
 
     private record StringFormatMetaData(Locale l, MethodHandle formatter) {}
-
     private static final Object STRING_FORMAT_OWNER = new Object();
 
     /**

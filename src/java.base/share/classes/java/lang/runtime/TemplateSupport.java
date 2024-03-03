@@ -87,7 +87,7 @@ final class TemplateSupport implements JavaTemplateAccess {
      * elements of fragments.
      *
      * @param fragments  list of String fragments
-     * @param values     list of expression values
+     * @param values     list of embedded expression values
      *
      * @return String interpolation of fragments and values
      */
@@ -121,7 +121,7 @@ final class TemplateSupport implements JavaTemplateAccess {
      * assert st.join().equals("\{a}\{b}\{c}");
      * }
      *
-     * @param sts  zero or more {@link StringTemplate}
+     * @param sts  zero or more {@link StringTemplate StringTemplates}
      *
      * @return combined {@link StringTemplate}
      *

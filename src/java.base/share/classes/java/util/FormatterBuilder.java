@@ -25,29 +25,59 @@
 
 package java.util;
 
-import java.io.IOException;
-import java.lang.invoke.*;
-import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodType;
+import java.lang.invoke.StringConcatFactory;
+import java.lang.invoke.StringConcatException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.text.spi.NumberFormatProvider;
-import java.util.FormatItem.*;
-import java.util.Formatter.*;
+import java.util.FormatItem.FormatItemBoolean;
+import java.util.FormatItem.FormatItemCharacter;
+import java.util.FormatItem.FormatItemDecimal;
+import java.util.FormatItem.FormatItemFillLeft;
+import java.util.FormatItem.FormatItemFillRight;
+import java.util.FormatItem.FormatItemFormatSpecifier;
+import java.util.FormatItem.FormatItemHexadecimal;
+import java.util.FormatItem.FormatItemNull;
+import java.util.FormatItem.FormatItemOctal;
+import java.util.FormatItem.FormatItemString;
+import java.util.Formatter.FormatSpecifier;
+import java.util.Formatter.FormatString;
 
 import jdk.internal.access.JavaTemplateAccess;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.javac.PreviewFeature;
 import jdk.internal.util.FormatConcatItem;
 
-import sun.invoke.util.Wrapper;
 import sun.util.locale.provider.LocaleProviderAdapter;
 import sun.util.locale.provider.ResourceBundleBasedAdapter;
 
-import static java.util.Formatter.Conversion.*;
-import static java.util.Formatter.Flags.*;
-import static java.lang.invoke.MethodHandles.*;
-import static java.lang.invoke.MethodType.*;
+import static java.lang.invoke.MethodHandles.Lookup;
+import static java.lang.invoke.MethodHandles.dropArguments;
+import static java.lang.invoke.MethodHandles.explicitCastArguments;
+import static java.lang.invoke.MethodHandles.filterArguments;
+import static java.lang.invoke.MethodHandles.filterReturnValue;
+import static java.lang.invoke.MethodHandles.guardWithTest;
+import static java.lang.invoke.MethodHandles.identity;
+import static java.lang.invoke.MethodHandles.insertArguments;
+import static java.lang.invoke.MethodHandles.lookup;
+import static java.lang.invoke.MethodType.methodType;
+import static java.util.Formatter.Conversion.BOOLEAN;
+import static java.util.Formatter.Conversion.CHARACTER;
+import static java.util.Formatter.Conversion.DECIMAL_INTEGER;
+import static java.util.Formatter.Conversion.HEXADECIMAL_INTEGER;
+import static java.util.Formatter.Conversion.OCTAL_INTEGER;
+import static java.util.Formatter.Conversion.STRING;
+import static java.util.Formatter.Flags.ALTERNATE;
+import static java.util.Formatter.Flags.GROUP;
+import static java.util.Formatter.Flags.LEADING_SPACE;
+import static java.util.Formatter.Flags.LEFT_JUSTIFY;
+import static java.util.Formatter.Flags.PARENTHESES;
+import static java.util.Formatter.Flags.PLUS;
+import static java.util.Formatter.Flags.UPPERCASE;
+import static java.util.Formatter.Flags.ZERO_PAD;
 
 /**
  * This  class supports the construction of the {@link MethodHandle}
@@ -160,9 +190,9 @@ public final class FormatterBuilder {
 
     private static boolean isGenericDFS(DecimalFormatSymbols dfs) {
         return dfs.getZeroDigit() == '0' &&
-               dfs.getDecimalSeparator() == '.' &&
-               dfs.getGroupingSeparator() == ',' &&
-               dfs.getMinusSign() == '-';
+            dfs.getDecimalSeparator() == '.' &&
+            dfs.getGroupingSeparator() == ',' &&
+            dfs.getMinusSign() == '-';
     }
 
     private static Class<?> mapType(Class<?> type) {
@@ -170,7 +200,7 @@ public final class FormatterBuilder {
     }
 
     private static MethodHandle findStringConcatItemConstructor(Class<?> cls,
-                                          Class<?>... ptypes) {
+                                                                Class<?>... ptypes) {
         MethodType methodType = methodType(void.class, ptypes);
 
         try {
@@ -179,7 +209,7 @@ public final class FormatterBuilder {
             return mh.asType(mh.type().changeReturnType(FormatConcatItem.class));
         } catch (ReflectiveOperationException e) {
             throw new AssertionError("Missing constructor in " +
-                    cls + ": " + methodType);
+                cls + ": " + methodType);
         }
     }
 
@@ -191,7 +221,7 @@ public final class FormatterBuilder {
             return LOOKUP.findVirtual(cls, name, methodType);
         } catch (ReflectiveOperationException e) {
             throw new AssertionError("Missing method in " +
-                    cls + ": " + name + " " + methodType);
+                cls + ": " + name + " " + methodType);
         }
     }
 
@@ -203,74 +233,74 @@ public final class FormatterBuilder {
             return LOOKUP.findStatic(cls, name, methodType);
         } catch (ReflectiveOperationException e) {
             throw new AssertionError("Missing static method in " +
-                    cls + ": " + name + " " + methodType);
+                cls + ": " + name + " " + methodType);
         }
     }
 
     private static final MethodHandle FIDecimal_MH =
-            findStringConcatItemConstructor(FormatItemDecimal.class,
-                    DecimalFormatSymbols.class, int.class, char.class, boolean.class,
-                    int.class, long.class);
+        findStringConcatItemConstructor(FormatItemDecimal.class,
+            DecimalFormatSymbols.class, int.class, char.class, boolean.class,
+            int.class, long.class);
 
     private static final MethodHandle FIHexadecimal_MH =
-            findStringConcatItemConstructor(FormatItemHexadecimal.class,
-                    int.class, boolean.class, long.class);
+        findStringConcatItemConstructor(FormatItemHexadecimal.class,
+            int.class, boolean.class, long.class);
 
     private static final MethodHandle FIOctal_MH =
-            findStringConcatItemConstructor(FormatItemOctal.class,
-                    int.class, boolean.class, long.class);
+        findStringConcatItemConstructor(FormatItemOctal.class,
+            int.class, boolean.class, long.class);
 
     private static final MethodHandle FIBoolean_MH =
-            findStringConcatItemConstructor(FormatItemBoolean.class,
-                    boolean.class);
+        findStringConcatItemConstructor(FormatItemBoolean.class,
+            boolean.class);
 
     private static final MethodHandle FICharacter_MH =
-            findStringConcatItemConstructor(FormatItemCharacter.class,
-                    char.class);
+        findStringConcatItemConstructor(FormatItemCharacter.class,
+            char.class);
 
     private static final MethodHandle FIString_MH =
-            findStringConcatItemConstructor(FormatItemString.class,
-                    String.class);
+        findStringConcatItemConstructor(FormatItemString.class,
+            String.class);
 
     private static final MethodHandle FIFormatSpecifier_MH =
-            findStringConcatItemConstructor(FormatItemFormatSpecifier.class,
-                    FormatSpecifier.class, Locale.class, Object.class);
+        findStringConcatItemConstructor(FormatItemFormatSpecifier.class,
+            FormatSpecifier.class, Locale.class, Object.class);
 
     private static final MethodHandle FIFormattable_MH =
-            findStringConcatItemConstructor(FormatItemFormatSpecifier.class,
-                    Locale.class, int.class, int.class, int.class,
-                    Formattable.class);
+        findStringConcatItemConstructor(FormatItemFormatSpecifier.class,
+            Locale.class, int.class, int.class, int.class,
+            Formattable.class);
 
     private static final MethodHandle FIFillLeft_MH =
-             findStringConcatItemConstructor(FormatItemFillLeft.class,
-                    int.class, FormatConcatItem.class);
+        findStringConcatItemConstructor(FormatItemFillLeft.class,
+            int.class, FormatConcatItem.class);
 
     private static final MethodHandle FIFillRight_MH =
-            findStringConcatItemConstructor(FormatItemFillRight.class,
-                     int.class, FormatConcatItem.class);
+        findStringConcatItemConstructor(FormatItemFillRight.class,
+            int.class, FormatConcatItem.class);
 
     private static final MethodHandle FINull_MH =
-            findStringConcatItemConstructor(FormatItemNull.class);
+        findStringConcatItemConstructor(FormatItemNull.class);
 
     private static final MethodHandle NullCheck_MH =
-            findStaticMethod(FormatterBuilder.class, "nullCheck", boolean.class,
-                    Object.class);
+        findStaticMethod(FormatterBuilder.class, "nullCheck", boolean.class,
+            Object.class);
 
     private static final MethodHandle FormattableCheck_MH =
-            findStaticMethod(FormatterBuilder.class, "formattableCheck", boolean.class,
-                    Object.class);
+        findStaticMethod(FormatterBuilder.class, "formattableCheck", boolean.class,
+            Object.class);
 
     private static final MethodHandle ToLong_MH =
-            findStaticMethod(java.util.FormatterBuilder.class, "toLong", long.class,
-                    int.class);
+        findStaticMethod(java.util.FormatterBuilder.class, "toLong", long.class,
+            int.class);
 
     private static final MethodHandle ToString_MH =
-            findStaticMethod(String.class, "valueOf", String.class,
-                    Object.class);
+        findStaticMethod(String.class, "valueOf", String.class,
+            Object.class);
 
     private static final MethodHandle HashCode_MH =
-            findStaticMethod(Objects.class, "hashCode", int.class,
-                    Object.class);
+        findStaticMethod(Objects.class, "hashCode", int.class,
+            Object.class);
 
     private static boolean nullCheck(Object object) {
         return object == null;
@@ -304,14 +334,14 @@ public final class FormatterBuilder {
             df = (DecimalFormat)nf;
         } else {
             LocaleProviderAdapter adapter = LocaleProviderAdapter
-                    .getAdapter(NumberFormatProvider.class, locale);
+                .getAdapter(NumberFormatProvider.class, locale);
 
             if (!(adapter instanceof ResourceBundleBasedAdapter)) {
                 adapter = LocaleProviderAdapter.getResourceBundleBased();
             }
 
             String[] all = adapter.getLocaleResources(locale)
-                    .getNumberPatterns();
+                                  .getNumberPatterns();
 
             df = new DecimalFormat(all[0], dfs);
         }
@@ -383,7 +413,7 @@ public final class FormatterBuilder {
                         MethodHandle test = FormattableCheck_MH;
                         test = test.asType(test.type().changeParameterType(0, ptype));
                         MethodHandle pass = insertArguments(FIFormattable_MH,
-                                0, locale, flags, width, precision);
+                            0, locale, flags, width, precision);
                         pass = pass.asType(pass.type().changeParameterType(0, ptype));
                         MethodHandle fail = ToString_MH;
                         fail = filterReturnValue(fail, FIString_MH);
@@ -408,31 +438,31 @@ public final class FormatterBuilder {
                 if ((itype == int.class || itype == long.class) && precision == -1) {
                     if (itype == int.class) {
                         mh = explicitCastArguments(mh,
-                                mh.type().changeReturnType(long.class));
+                            mh.type().changeReturnType(long.class));
                     }
 
                     if (flags == 0 && isGenericDFS && width == -1) {
                         return mh;
                     } else if (validFlags(flags, PLUS | LEADING_SPACE |
-                                                 ZERO_PAD | GROUP |
-                                                 PARENTHESES)) {
+                        ZERO_PAD | GROUP |
+                        PARENTHESES)) {
                         handled = true;
                         int zeroPad = isFlag(flags, ZERO_PAD) ? width : -1;
                         char sign = isFlag(flags, PLUS)          ? '+' :
-                                    isFlag(flags, LEADING_SPACE) ? ' ' : '\0';
+                            isFlag(flags, LEADING_SPACE) ? ' ' : '\0';
                         boolean parentheses = isFlag(flags, PARENTHESES);
                         int groupSize = isFlag(flags, GROUP) ?
-                                groupSize(locale, dfs) : 0;
+                            groupSize(locale, dfs) : 0;
                         mh = filterReturnValue(mh,
-                                insertArguments(FIDecimal_MH, 0, dfs, zeroPad,
-                                        sign, parentheses, groupSize));
+                            insertArguments(FIDecimal_MH, 0, dfs, zeroPad,
+                                sign, parentheses, groupSize));
                     }
                 }
             }
             case OCTAL_INTEGER -> {
                 if ((itype == int.class || itype == long.class) &&
-                         precision == -1 &&
-                         validFlags(flags, ZERO_PAD | ALTERNATE)) {
+                    precision == -1 &&
+                    validFlags(flags, ZERO_PAD | ALTERNATE)) {
                     handled = true;
 
                     if (itype == int.class) {
@@ -442,13 +472,13 @@ public final class FormatterBuilder {
                     int zeroPad = isFlag(flags, ZERO_PAD) ? width : -1;
                     boolean hasPrefix = isFlag(flags, ALTERNATE);
                     mh = filterReturnValue(mh,
-                            insertArguments(FIOctal_MH, 0, zeroPad, hasPrefix));
+                        insertArguments(FIOctal_MH, 0, zeroPad, hasPrefix));
                 }
             }
             case HEXADECIMAL_INTEGER -> {
                 if ((itype == int.class || itype == long.class) &&
-                        precision == -1 &&
-                        validFlags(flags, ZERO_PAD | ALTERNATE)) {
+                    precision == -1 &&
+                    validFlags(flags, ZERO_PAD | ALTERNATE)) {
                     handled = true;
 
                     if (itype == int.class) {
@@ -458,7 +488,7 @@ public final class FormatterBuilder {
                     int zeroPad = isFlag(flags, ZERO_PAD) ? width : -1;
                     boolean hasPrefix = isFlag(flags, ALTERNATE);
                     mh = filterReturnValue(mh,
-                            insertArguments(FIHexadecimal_MH, 0, zeroPad, hasPrefix));
+                        insertArguments(FIHexadecimal_MH, 0, zeroPad, hasPrefix));
                 }
             }
             default -> {
@@ -469,7 +499,7 @@ public final class FormatterBuilder {
         if (handled) {
             if (!isPrimitive) {
                 MethodHandle test = NullCheck_MH.asType(
-                        NullCheck_MH.type().changeParameterType(0, ptype));
+                    NullCheck_MH.type().changeParameterType(0, ptype));
                 MethodHandle pass = dropArguments(FINull_MH, 0, ptype);
                 mh = guardWithTest(test, pass, mh);
             }
@@ -477,10 +507,10 @@ public final class FormatterBuilder {
             if (0 < width) {
                 if (isFlag(flags, LEFT_JUSTIFY)) {
                     mh = filterReturnValue(mh,
-                            insertArguments(FIFillRight_MH, 0, width));
+                        insertArguments(FIFillRight_MH, 0, width));
                 } else {
                     mh = filterReturnValue(mh,
-                            insertArguments(FIFillLeft_MH, 0, width));
+                        insertArguments(FIFillLeft_MH, 0, width));
                 }
             }
 
@@ -564,7 +594,7 @@ public final class FormatterBuilder {
 
         try {
             MethodHandle mh = StringConcatFactory.makeConcatWithTemplate(segments,
-                    List.of(ftypes));
+                List.of(ftypes));
             mh = filterArguments(mh, 0, filters);
 
             return mh;

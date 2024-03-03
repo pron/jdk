@@ -559,9 +559,9 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
      * argument. If {@code stringTemplate} is {@code null}, then the four
      * characters {@code "null"} are appended.
      *
-     * @param   stringTemplate   a {@link StringTemplate}.
+     * @param stringTemplate  a {@link StringTemplate}.
      *
-     * @return  a reference to this object.
+     * @return a reference to this object.
      *
      * @since  23
      */

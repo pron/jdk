@@ -33,7 +33,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import jdk.internal.vm.annotation.Stable;
 
 /**
- * StringTemplate shared data.
+ * StringTemplate shared data. Used to hold information for a {@link StringTemplate}
+ * constructed at a specific {@link java.lang.invoke.CallSite CallSite}.
  */
 final class StringTemplateSharedData {
     /**
@@ -44,7 +45,7 @@ final class StringTemplateSharedData {
     private final List<String> fragments;
 
     /**
-     * Carrier elements.
+     * Description of the {@link StringTemplate StringTemplate's} carrier elements.
      */
     @Stable
     private final Carriers.CarrierElements elements;
@@ -72,24 +73,28 @@ final class StringTemplateSharedData {
     private final MethodHandle joinMH;
 
     /**
-     * Owner of metadata.
+     * Owner of metadata. Metadata is used to cache information at a
+     * {@link java.lang.invoke.CallSite CallSite} by a processor. Only one
+     * cache is aavailable, first processor wins. This is under the assumption
+     * that each {@link StringTemplate} serves one purpose. A processor should
+     * have a fallback if it does not win the cache.
      */
     @Stable
     private final AtomicReference<Object> owner;
 
     /**
-     *  Value of metadata.
+     *  Metadata cache.
      */
     @Stable
     private Object metaData;
 
     /**
-     * Constructor.
-     * @param fragments       list of string fragments (bound in (bound at callsite)
+     * Constructor. Contents are bound to the {@link java.lang.invoke.CallSite CallSite}.
+     * @param fragments       list of string fragments
      * @param elements        carrier elements
      * @param types;          list of value types
-     * @param valuesMH        {@link MethodHandle} to produce list of values (bound at callsite)
-     * @param joinMH          {@link MethodHandle} to produce interpolation (bound at callsite)
+     * @param valuesMH        {@link MethodHandle} to produce list of values
+     * @param joinMH          {@link MethodHandle} to produce interpolation
      */
     StringTemplateSharedData(List<String> fragments, Carriers.CarrierElements elements, List<Class<?>> types,
                              MethodHandle valuesMH, MethodHandle joinMH) {
@@ -142,7 +147,7 @@ final class StringTemplateSharedData {
     /**
      * Get processor meta data.
      *
-     * @param owner     owner object
+     * @param owner owner object, should be unique to the processor
      * @param supplier  supplier of meta data
      * @return meta data
      *

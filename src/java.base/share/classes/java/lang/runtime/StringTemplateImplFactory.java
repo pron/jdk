@@ -55,7 +55,7 @@ final class StringTemplateImplFactory {
     private static final MethodHandle CONSTRUCTOR;
 
     /**
-     * List (for nullable) of MethodHandle;
+     * Nullable list constructing MethodHandle;
      */
     private static final MethodHandle TO_LIST;
 
@@ -87,8 +87,10 @@ final class StringTemplateImplFactory {
 
             mt = MethodType.methodType(List.class, Object[].class);
             TO_LIST = lookup.findStatic(StringTemplateImplFactory.class, "toList", mt);
+
             mt = MethodType.methodType(String.class, Object.class);
             OBJECT_TO_STRING = lookup.findStatic(StringTemplateImplFactory.class, "objectToString", mt);
+
             mt = MethodType.methodType(String.class, StringTemplate.class);
             TEMPLATE_TO_STRING = lookup.findStatic(StringTemplateImplFactory.class, "templateToString", mt);
         } catch(ReflectiveOperationException ex) {
@@ -97,10 +99,10 @@ final class StringTemplateImplFactory {
     }
 
     /**
-     * Create a new {@link StringTemplateImpl} constructor.
+     * Create a new {@link StringTemplateImpl}.
      *
      * @param fragments  string template fragments
-     * @param type       values types with StringTemplate return
+     * @param type       value types with a StringTemplate return
      *
      * @return {@link MethodHandle} that can construct a {@link StringTemplateImpl} with arguments
      * used as values.

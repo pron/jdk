@@ -2813,16 +2813,16 @@ public final class Formatter implements Closeable, Flushable {
 
     /**
      * Writes a formatted string to this object's destination using the
-     * specified format {@StringTemplate}.  The locale used is the one
+     * specified format embedded in (@code st}.  The locale used is the one
      * defined during the construction of this formatter.
      *
      * @param  st
-     *         A format {@StringTemplate} combining the
+     *         A formatting {@link StringTemplate} combining the
      *         format as described in <a href="#syntax">Format string
      *         syntax</a> and the expressions immediately following specifiers.
      *
      * @throws  IllegalFormatException
-     *          If a format string contains an illegal syntax, a format
+     *          If a format {@link StringTemplate} contains an illegal syntax, a format
      *          specifier that is incompatible with the given arguments,
      *          insufficient arguments given the format string, or other
      *          illegal conditions.  For specification of all possible
@@ -2848,21 +2848,21 @@ public final class Formatter implements Closeable, Flushable {
 
     /**
      * Writes a formatted string to this object's destination using the
-     * specified locale, format string, and arguments.
+     * specified format and values embedded in (@code st}. Locale is specified
+     * with {@code l}.
      *
      * @param  l
      *         The {@linkplain java.util.Locale locale} to apply during
      *         formatting.  If {@code l} is {@code null} then no localization
      *         is applied.  This does not change this object's locale that was
      *         set during construction.
-     *
      * @param  st
-     *         A format {@StringTemplate} combining the
+     *         A formatting {@link StringTemplate} combining the
      *         format as described in <a href="#syntax">Format string
      *         syntax</a> and the expressions immediately following specifiers.
      *
      * @throws  IllegalFormatException
-     *          If a format string contains an illegal syntax, a format
+     *          If a format {@link StringTemplate} contains an illegal syntax, a format
      *          specifier that is incompatible with the given arguments,
      *          insufficient arguments given the format string, or other
      *          illegal conditions.  For specification of all possible
@@ -2947,8 +2947,8 @@ public final class Formatter implements Closeable, Flushable {
     /**
      * Convert {@link StringTemplate} fragments, containing format specifications,
      * to a form that can be passed on to {@link Formatter}. The method scans each fragment,
-     * matching up formatter specifications with the following expression. If no
-     * specification is found, the method inserts "%s".
+     * matching up formatter specifications with the following expression value. If no
+     * specification is found, this method inserts "%s".
      *
      * @param fragments  string template fragments
      *
@@ -2975,7 +2975,6 @@ public final class Formatter implements Closeable, Flushable {
 
         return sb.toString();
     }
-
 
     /**
      * Finds format specifiers in the format string.

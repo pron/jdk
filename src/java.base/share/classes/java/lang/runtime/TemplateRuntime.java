@@ -36,13 +36,13 @@ import java.util.Objects;
 import jdk.internal.javac.PreviewFeature;
 
 /**
- * Manages string template bootstrap methods. These methods may be used, for example,
- * by Java compiler implementations to create {@link StringTemplate} instances. For example,
- * the java compiler will translate the following code;
+ * Manages string template bootstrap methods. These methods may be used,
+ * by Java compiler implementations to create {@link StringTemplate} instances.
+ * For example, the java compiler will translate the following code;
  * {@snippet :
  * int x = 10;
  * int y = 20;
- * StringTemplate st = RAW."\{x} + \{y} = \{x + y}";
+ * StringTemplate st = "\{x} + \{y} = \{x + y}";
  * }
  * to byte code that invokes the {@link java.lang.runtime.TemplateRuntime#newStringTemplate}
  * bootstrap method to construct a {@link CallSite} that accepts two integers and produces a new

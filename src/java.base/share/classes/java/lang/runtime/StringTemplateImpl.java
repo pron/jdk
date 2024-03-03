@@ -57,7 +57,7 @@ final class StringTemplateImpl extends Carriers.CarrierObject implements StringT
      *
      * @param primitiveCount  number of primitive slots required (bound at callsite)
      * @param objectCount     number of object slots required (bound at callsite)
-     * @param sharedData      StringTemplate shared data
+     * @param sharedData      {@link }StringTemplate} shared data
      */
     StringTemplateImpl(int primitiveCount, int objectCount, StringTemplateSharedData sharedData) {
         super(primitiveCount, objectCount);
