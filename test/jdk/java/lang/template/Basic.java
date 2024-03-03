@@ -33,17 +33,14 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.*;
 
-import static java.lang.StringTemplate.RAW;
-
 public class Basic {
     public static void main(String... arg) {
         equalsHashCode();
         concatenationTests();
         componentTests();
         limitsTests();
-        processorTests();
         stringTemplateCoverage();
-        simpleProcessorCoverage();
+        emptyExpressionTest();
     }
 
     static void ASSERT(String a, String b) {
@@ -71,11 +68,11 @@ public class Basic {
         int a = 10;
         int b = 20;
 
-        StringTemplate st0 = RAW."\{x} + \{y} = \{x + y}";
-        StringTemplate st1 = RAW."\{a} + \{b} = \{a + b}";
-        StringTemplate st2 = RAW."\{x} + \{y} = \{x + y}!";
+        StringTemplate st0 = "\{x} + \{y} = \{x + y}";
+        StringTemplate st1 = "\{a} + \{b} = \{a + b}";
+        StringTemplate st2 = "\{x} + \{y} = \{x + y}!";
         x++;
-        StringTemplate st3 = RAW."\{x} + \{y} = \{x + y}";
+        StringTemplate st3 = "\{x} + \{y} = \{x + y}";
 
         if (!st0.equals(st1)) throw new RuntimeException("st0 != st1");
         if (st0.equals(st2)) throw new RuntimeException("st0 == st2");
@@ -91,12 +88,8 @@ public class Basic {
         int x = 10;
         int y = 20;
 
-        ASSERT(STR."\{x} \{y}", x + " " + y);
-        ASSERT(STR."\{x + y}", "" + (x + y));
-        ASSERT(STR.process(RAW."\{x} \{y}"), x + " " + y);
-        ASSERT(STR.process(RAW."\{x + y}"), "" + (x + y));
-        ASSERT((RAW."\{x} \{y}").process(STR), x + " " + y);
-        ASSERT((RAW."\{x + y}").process(STR), "" + (x + y));
+        ASSERT("\{x} \{y}".join(), x + " " + y);
+        ASSERT("\{x + y}".join(), "" + (x + y));
     }
 
     /*
@@ -106,10 +99,10 @@ public class Basic {
         int x = 10;
         int y = 20;
 
-        StringTemplate st = RAW."\{x} + \{y} = \{x + y}";
+        StringTemplate st = "\{x} + \{y} = \{x + y}";
         ASSERT(st.values(), List.of(x, y, x + y));
         ASSERT(st.fragments(), List.of("", " + ", " = ", ""));
-        ASSERT(st.interpolate(), x + " + " + y + " = " + (x + y));
+        ASSERT(st.join(), x + " + " + y + " = " + (x + y));
     }
 
     /*
@@ -118,7 +111,7 @@ public class Basic {
     static void limitsTests() {
         int x = 9;
 
-        StringTemplate ts250 = RAW."""
+        StringTemplate ts250 = """
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
@@ -136,7 +129,7 @@ public class Basic {
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              """;
         ASSERT(ts250.values().size(), 250);
-        ASSERT(ts250.interpolate(), """
+        ASSERT(ts250.join(), """
                9999999999 9999999999
                9999999999 9999999999
                9999999999 9999999999
@@ -154,7 +147,7 @@ public class Basic {
                9999999999
                """);
 
-        StringTemplate ts251 = RAW."""
+        StringTemplate ts251 = """
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
@@ -172,7 +165,7 @@ public class Basic {
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}
              """;
         ASSERT(ts251.values().size(), 251);
-        ASSERT(ts251.interpolate(), """
+        ASSERT(ts251.join(), """
                9999999999 9999999999
                9999999999 9999999999
                9999999999 9999999999
@@ -190,7 +183,7 @@ public class Basic {
                9999999999 9
                """);
 
-        StringTemplate ts252 = RAW."""
+        StringTemplate ts252 = """
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
@@ -208,7 +201,7 @@ public class Basic {
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}
              """;
         ASSERT(ts252.values().size(), 252);
-        ASSERT(ts252.interpolate(), """
+        ASSERT(ts252.join(), """
                9999999999 9999999999
                9999999999 9999999999
                9999999999 9999999999
@@ -226,7 +219,7 @@ public class Basic {
                9999999999 99
                """);
 
-        StringTemplate ts253 = RAW."""
+        StringTemplate ts253 = """
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
@@ -244,7 +237,7 @@ public class Basic {
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}
              """;
         ASSERT(ts253.values().size(), 253);
-        ASSERT(ts253.interpolate(), """
+        ASSERT(ts253.join(), """
                9999999999 9999999999
                9999999999 9999999999
                9999999999 9999999999
@@ -262,7 +255,7 @@ public class Basic {
                9999999999 999
                """);
 
-        StringTemplate ts254 = RAW."""
+        StringTemplate ts254 = """
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
@@ -280,7 +273,7 @@ public class Basic {
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}
              """;
         ASSERT(ts254.values().size(), 254);
-        ASSERT(ts254.interpolate(), """
+        ASSERT(ts254.join(), """
                9999999999 9999999999
                9999999999 9999999999
                9999999999 9999999999
@@ -298,7 +291,7 @@ public class Basic {
                9999999999 9999
                """);
 
-        StringTemplate ts255 = RAW."""
+        StringTemplate ts255 = """
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
@@ -316,7 +309,7 @@ public class Basic {
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}
              """;
         ASSERT(ts255.values().size(), 255);
-        ASSERT(ts255.interpolate(), """
+        ASSERT(ts255.join(), """
                9999999999 9999999999
                9999999999 9999999999
                9999999999 9999999999
@@ -334,7 +327,7 @@ public class Basic {
                9999999999 99999
                """);
 
-        StringTemplate ts256 = RAW."""
+        StringTemplate ts256 = """
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}
@@ -352,7 +345,7 @@ public class Basic {
              \{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x}\{x} \{x}\{x}\{x}\{x}\{x}\{x}
              """;
         ASSERT(ts256.values().size(), 256);
-        ASSERT(ts256.interpolate(), """
+        ASSERT(ts256.join(), """
                9999999999 9999999999
                9999999999 9999999999
                9999999999 9999999999
@@ -373,39 +366,6 @@ public class Basic {
     }
 
     /*
-     * Processor tests.
-     */
-    public static final Processor<StringTemplate, RuntimeException> STRINGIFY = st -> {
-        List<Object> values = st.values()
-                .stream()
-                .map(v -> (Object)String.valueOf(v))
-                .toList();
-
-        return StringTemplate.of(st.fragments(), values);
-    };
-
-    public static final Processor<StringTemplate, RuntimeException> UPPER = st -> {
-        List<String> fragments = st.fragments()
-                .stream()
-                .map(String::toUpperCase)
-                .toList();
-
-        return StringTemplate.of(fragments, st.values());
-    };
-
-    public static final Processor<String, RuntimeException> CHAIN = st -> {
-        st = STRINGIFY.process(st);
-        st = UPPER.process(st);
-        return STR.process(st);
-    };
-
-    static void processorTests() {
-        String name = "Joan";
-        int age = 25;
-        ASSERT(CHAIN."\{name} is \{age} years old", "Joan IS 25 YEARS OLD");
-    }
-
-    /*
      *  StringTemplate coverage
      */
     static void stringTemplateCoverage() {
@@ -413,92 +373,27 @@ public class Basic {
 
         ASSERT(tsNoValues.values(), List.of());
         ASSERT(tsNoValues.fragments(), List.of("No Values"));
-        ASSERT(tsNoValues.interpolate(), STR."No Values");
+        ASSERT(tsNoValues.join(), "No Values");
 
         int x = 10, y = 20;
-        StringTemplate src = RAW."\{x} + \{y} = \{x + y}";
+        StringTemplate src = "\{x} + \{y} = \{x + y}";
         StringTemplate tsValues = StringTemplate.of(src.fragments(), src.values());
         ASSERT(tsValues.fragments(), List.of("", " + ", " = ", ""));
         ASSERT(tsValues.values(), List.of(x, y, x + y));
-        ASSERT(tsValues.interpolate(), x + " + " + y + " = " + (x + y));
-        ASSERT(StringTemplate.combine(src, src).interpolate(),
-                RAW."\{x} + \{y} = \{x + y}\{x} + \{y} = \{x + y}".interpolate());
+        ASSERT(tsValues.join(), x + " + " + y + " = " + (x + y));
+        ASSERT(StringTemplate.combine(src, src).join(),
+                "\{x} + \{y} = \{x + y}\{x} + \{y} = \{x + y}".join());
         ASSERT(StringTemplate.combine(src), src);
-        ASSERT(StringTemplate.combine().interpolate(), "");
-        ASSERT(StringTemplate.combine(List.of(src, src)).interpolate(),
-                RAW."\{x} + \{y} = \{x + y}\{x} + \{y} = \{x + y}".interpolate());
+        ASSERT(StringTemplate.combine().join(), "");
+        ASSERT(StringTemplate.combine(List.of(src, src)).join(),
+                "\{x} + \{y} = \{x + y}\{x} + \{y} = \{x + y}".join());
     }
 
     /*
-     * SimpleProcessor coverage.
+     *  Empty expression
      */
-
-    static class Processor0 implements Processor<String, IllegalArgumentException> {
-        @Override
-        public String process(StringTemplate stringTemplate) throws IllegalArgumentException {
-            StringBuilder sb = new StringBuilder();
-            Iterator<String> fragmentsIter = stringTemplate.fragments().iterator();
-
-            for (Object value : stringTemplate.values()) {
-                sb.append(fragmentsIter.next());
-
-                if (value instanceof Boolean) {
-                    throw new IllegalArgumentException("I don't like Booleans");
-                }
-
-                sb.append(value);
-            }
-
-            sb.append(fragmentsIter.next());
-
-            return sb.toString();
-        }
+    static void emptyExpressionTest() {
+        ASSERT("\{}".fragments().size(), 1);
+        ASSERT("\{}".fragments().get(0), "");
     }
-
-    static Processor0 processor0 = new Processor0();
-
-    static Processor<String, RuntimeException> processor1 =
-        st -> st.interpolate();
-
-    static Processor<String, RuntimeException> processor2 = st -> st.interpolate();
-
-    static Processor<String, RuntimeException> processor3 = st -> st.interpolate();
-
-    static Processor<String, RuntimeException> processor4 = st ->
-        StringTemplate.interpolate(st.fragments(), st.values());
-
-
-    static void simpleProcessorCoverage() {
-        try {
-            int x = 10;
-            int y = 20;
-            ASSERT(processor0."\{x} + \{y} = \{x + y}", "10 + 20 = 30");
-            ASSERT(processor1."\{x} + \{y} = \{x + y}", "10 + 20 = 30");
-            ASSERT(processor2."\{x} + \{y} = \{x + y}", "10 + 20 = 30");
-            ASSERT(processor3."\{x} + \{y} = \{x + y}", "10 + 20 = 30");
-            ASSERT(processor4."\{x} + \{y} = \{x + y}", "10 + 20 = 30");
-        } catch (IllegalArgumentException ex) {
-            throw new RuntimeException("processor fail");
-        }
-    }
-
-    static String justify(String string, int width) {
-        boolean leftJustify = width < 0;
-        int length = string.length();
-        width = Math.abs(width);
-        int diff = width - length;
-
-        if (diff < 0) {
-            string = "*".repeat(width);
-        } else if (0 < diff) {
-            if (leftJustify) {
-                string += " ".repeat(diff);
-            } else {
-                string = " ".repeat(diff) + string;
-            }
-        }
-
-        return string;
-    }
-
 }
