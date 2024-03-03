@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -2485,22 +2485,13 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
      * String template expression.
      */
     public static class JCStringTemplate extends JCExpression implements StringTemplateTree {
-        public JCExpression processor;
         public List<String> fragments;
         public List<JCExpression> expressions;
-        public Type processMethodType;
 
-        protected JCStringTemplate(JCExpression processor,
-                                   List<String> fragments,
+        protected JCStringTemplate(List<String> fragments,
                                    List<JCExpression> expressions) {
-            this.processor = processor;
             this.fragments = fragments;
             this.expressions = expressions;
-        }
-
-        @Override
-        public ExpressionTree getProcessor() {
-            return processor;
         }
 
         @Override
@@ -3513,8 +3504,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         JCFieldAccess Select(JCExpression selected, Name selector);
         JCIdent Ident(Name idname);
         JCLiteral Literal(TypeTag tag, Object value);
-        JCStringTemplate StringTemplate(JCExpression processor,
-                                        List<String> fragments,
+        JCStringTemplate StringTemplate(List<String> fragments,
                                         List<JCExpression> expressions);
         JCPrimitiveTypeTree TypeIdent(TypeTag typetag);
         JCArrayTypeTree TypeArray(JCExpression elemtype);

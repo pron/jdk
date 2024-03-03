@@ -700,7 +700,7 @@ public class JavacParser implements Parser {
      * EmbeddedExpression =
      *  LBRACE term RBRACE
      */
-    JCExpression stringTemplate(JCExpression processor) {
+    JCExpression stringTemplate() {
         checkSourceLevel(Feature.STRING_TEMPLATES);
         int oldmode = mode;
         selectExprMode();
@@ -744,7 +744,7 @@ public class JavacParser implements Parser {
             }
             S.setPrevToken(stringToken);
         }
-        JCExpression t = toP(F.at(pos).StringTemplate(processor, fragments, expressions));
+        JCExpression t = toP(F.at(pos).StringTemplate(fragments, expressions));
         setMode(oldmode);
         return t;
     }
@@ -1429,7 +1429,7 @@ public class JavacParser implements Parser {
          case STRINGFRAGMENT:
              if (typeArgs == null && isMode(EXPR)) {
                  selectExprMode();
-                 t = stringTemplate(null);
+                 t = stringTemplate();
              } else {
                  return illegal();
              }
@@ -1562,12 +1562,6 @@ public class JavacParser implements Parser {
                                 nextToken();
                                 if (token.kind == LT) typeArgs = typeArguments(false);
                                 t = innerCreator(pos1, typeArgs, t);
-                                typeArgs = null;
-                                break loop;
-                            case STRINGFRAGMENT:
-                            case STRINGLITERAL:
-                                if (typeArgs != null) return illegal();
-                                t = stringTemplate(t);
                                 typeArgs = null;
                                 break loop;
                             }
@@ -1793,12 +1787,6 @@ public class JavacParser implements Parser {
                     if (token.kind == LT) typeArgs = typeArguments(false);
                     t = innerCreator(pos2, typeArgs, t);
                     typeArgs = null;
-                } else if (token.kind == TokenKind.STRINGFRAGMENT ||
-                           token.kind == TokenKind.STRINGLITERAL) {
-                    if (typeArgs != null) {
-                        return illegal();
-                    }
-                    t = stringTemplate(t);
                 } else {
                     List<JCAnnotation> tyannos = null;
                     if (isMode(TYPE) && token.kind == MONKEYS_AT) {

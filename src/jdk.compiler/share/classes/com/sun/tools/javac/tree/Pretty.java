@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1478,12 +1478,7 @@ public class Pretty extends JCTree.Visitor {
 
     public void visitStringTemplate(JCStringTemplate tree) {
         try {
-            JCExpression processor = tree.processor;
-            print("[");
-            if (processor != null) {
-                printExpr(processor);
-            }
-            print("]");
+            print("StringTemplate(");
             print("\"" + tree.fragments.stream().collect(Collectors.joining("\\{}")) + "\"");
             print("(");
             printExprs(tree.expressions);

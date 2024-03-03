@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -115,10 +115,6 @@ public final class TransLiterals extends TreeTranslator {
         return tree;
     }
 
-    MethodSymbol lookupMethod(DiagnosticPosition pos, Name name, Type qual, List<Type> args) {
-        return rs.resolveInternalMethod(pos, env, qual, name, args, List.nil());
-    }
-
     @Override
     public void visitClassDef(JCClassDecl tree) {
         ClassSymbol prevCurrentClass = currentClass;
@@ -143,7 +139,6 @@ public final class TransLiterals extends TreeTranslator {
 
     final class TransStringTemplate {
         final JCStringTemplate tree;
-        final JCExpression processor;
         final List<String> fragments;
         final List<JCExpression> expressions;
         final List<Type> expressionTypes;
@@ -151,7 +146,6 @@ public final class TransLiterals extends TreeTranslator {
 
         TransStringTemplate(JCStringTemplate tree) {
             this.tree = tree;
-            this.processor = tree.processor;
             this.fragments = tree.fragments;
             this.expressions = translate(tree.expressions);
             this.expressionTypes = expressions.stream()
@@ -193,22 +187,12 @@ public final class TransLiterals extends TreeTranslator {
                     indyType,
                     staticArgValues.toArray(new LoadableConstant[0])
             );
-            JCFieldAccess qualifier = make.Select(make.Type(syms.processorType), dynSym.name);
+            JCFieldAccess qualifier = make.Select(make.Type(syms.templateRuntimeType), dynSym.name);
             qualifier.sym = dynSym;
             qualifier.type = type;
             JCMethodInvocation apply = make.Apply(List.nil(), qualifier, args);
             apply.type = type;
             return apply;
-        }
-
-        JCExpression processCall(JCExpression stringTemplate) {
-            MethodSymbol appyMeth = lookupMethod(tree.pos(), names.process,
-                    syms.processorType, List.of(syms.stringTemplateType));
-            JCExpression applySelect = make.Select(processor, appyMeth);
-            JCExpression process = make.Apply(null, applySelect, List.of(stringTemplate))
-                    .setType(syms.objectType);
-            JCTypeCast cast = make.TypeCast(tree.type, process);
-            return cast;
         }
 
         JCExpression newStringTemplate() {
@@ -237,73 +221,17 @@ public final class TransLiterals extends TreeTranslator {
             }
         }
 
-        JCExpression bsmProcessCall() {
-            List<JCExpression> args = expressions.prepend(processor);
-            List<Type> argTypes = expressionTypes.prepend(processor.type);
-            VarSymbol processorSym = (VarSymbol)TreeInfo.symbol(processor);
-            List<LoadableConstant> staticArgValues = List.of(processorSym.asMethodHandle(true));
-            List<Type> staticArgsTypes =
-                    List.of(syms.methodHandleLookupType, syms.stringType,
-                            syms.methodTypeType, syms.methodHandleType);
-            for (String fragment : fragments) {
-                staticArgValues = staticArgValues.append(LoadableConstant.String(fragment));
-                staticArgsTypes = staticArgsTypes.append(syms.stringType);
-            }
-            return bsmCall(names.process, names.processStringTemplate, tree.type,
-                    args, argTypes, staticArgValues, staticArgsTypes);
-        }
-
-        boolean isNamedProcessor(Name name) {
-            Symbol sym = switch (processor) {
-                case JCIdent ident -> ident.sym;
-                case JCFieldAccess access -> access.sym;
-                default -> null;
-            };
-            if (sym instanceof VarSymbol varSym) {
-                if (varSym.flags() == (Flags.PUBLIC | Flags.FINAL | Flags.STATIC) &&
-                        varSym.name == name &&
-                        types.isSameType(varSym.owner.type, syms.stringTemplateType)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        boolean isLinkageProcessor() {
-            return !useValuesList &&
-                   types.isSubtype(processor.type, syms.linkageType) &&
-                   processor.type.isFinal() &&
-                   TreeInfo.symbol(processor) instanceof VarSymbol varSymbol &&
-                   varSymbol.isStatic() &&
-                   varSymbol.isFinal();
-        }
-
         JCExpression visit() {
-            JCExpression result;
             make.at(tree.pos);
-
-            if (processor == null || isNamedProcessor(names.RAW)) {
-                result = newStringTemplate();
-            } else if (isNamedProcessor(names.STR)) {
-                result = concatExpression(fragments, expressions);
-            } else if (isLinkageProcessor()) {
-                result = bsmProcessCall();
-            } else {
-                result = processCall(newStringTemplate());
-            }
-
-            return result;
+            return newStringTemplate();
         }
     }
 
     public void visitStringTemplate(JCStringTemplate tree) {
         int prevPos = make.pos;
         try {
-            tree.processor = translate(tree.processor);
             tree.expressions = translate(tree.expressions);
-
             TransStringTemplate transStringTemplate = new TransStringTemplate(tree);
-
             result = transStringTemplate.visit();
         } catch (Throwable ex) {
             ex.printStackTrace();

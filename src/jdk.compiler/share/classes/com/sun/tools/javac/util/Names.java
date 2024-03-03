@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -229,11 +229,8 @@ public class Names {
 
     // templated string
     public final Name process;
-    public final Name STR;
-    public final Name RAW;
     public final Name newStringTemplate;
     public final Name newLargeStringTemplate;
-    public final Name processStringTemplate;
 
     public final Name.Table table;
 
@@ -415,11 +412,8 @@ public class Names {
 
         // templated string
         process = fromString("process");
-        STR = fromString("STR");
-        RAW = fromString("RAW");
         newStringTemplate = fromString("newStringTemplate");
         newLargeStringTemplate = fromString("newLargeStringTemplate");
-        processStringTemplate = fromString("processStringTemplate");
 
         // pattern switches
         typeSwitch = fromString("typeSwitch");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -589,7 +589,7 @@ public class TreeInfo {
             }
             case STRING_TEMPLATE: {
                 JCStringTemplate node = (JCStringTemplate) tree;
-                return node.processor == null ? node.pos : getStartPos(node.processor);
+                return node.pos;
             }
             case ERRONEOUS: {
                 JCErroneous node = (JCErroneous)tree;

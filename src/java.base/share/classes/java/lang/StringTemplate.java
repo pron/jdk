@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,6 @@ package java.lang;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
-import java.util.FormatProcessor;
 import java.util.function.Function;
 import java.util.List;
 import java.util.Objects;
@@ -49,18 +48,17 @@ import jdk.internal.javac.PreviewFeature;
  * provide access to the source code of the embedded expressions themselves; it is
  * not a compile-time representation of a string template or text block template.
  * <p>
- * {@link StringTemplate} is primarily used in conjunction with a template processor
+ * {@link StringTemplate} is primarily used in conjunction with APIs
  * to produce a string or other meaningful value. Evaluation of a template expression
- * first produces an instance of {@link StringTemplate}, representing the right hand side
- * of the template expression, and then passes the instance to the template processor
- * given by the template expression.
+ * produces an instance of {@link StringTemplate}, with fragements and the values
+ * of embedded expressions evaluated from left to right.
  * <p>
- * For example, the following code contains a template expression that uses the template
- * processor {@code RAW}, which simply yields the {@link StringTemplate} passed to it:
+ * For example, the following code contains a template expression, which simply yields
+ * a {@link StringTemplate}:
  * {@snippet :
  * int x = 10;
  * int y = 20;
- * StringTemplate st = RAW."\{x} + \{y} = \{x + y}";
+ * StringTemplate st = "\{x} + \{y} = \{x + y}";
  * List<String> fragments = st.fragments();
  * List<Object> values = st.values();
  * }
@@ -68,40 +66,29 @@ import jdk.internal.javac.PreviewFeature;
  * which includes the empty first and last fragments. {@code values} will be the
  * equivalent of {@code List.of(10, 20, 30)}.
  * <p>
- * The following code contains a template expression with the same template but with a
- * different template processor, {@code STR}:
+ * The following code contains a template expression with the same template but converting
+ * to a string using the {@link #join()} method:
  * {@snippet :
  * int x = 10;
  * int y = 20;
- * String s = STR."\{x} + \{y} = \{x + y}";
+ * String s = "\{x} + \{y} = \{x + y}".join();
  * }
  * When the template expression is evaluated, an instance of {@link StringTemplate} is
  * produced that returns the same lists from {@link StringTemplate#fragments()} and
- * {@link StringTemplate#values()} as shown above. The {@link StringTemplate#STR} template
- * processor uses these lists to yield an joined string. The value of {@code s} will
+ * {@link StringTemplate#values()} as shown above. The {@link #join()} method
+ * uses these lists to yield an interpolated string. The value of {@code s} will
  * be equivalent to {@code "10 + 20 = 30"}.
  * <p>
- * The {@code join()} method provides a direct way to perform string interpolation
- * of a {@link StringTemplate}. Template processors can use the following code pattern:
+ * The {@code join(List, List)} method provides a direct way to perform string interpolation
+ * of fragments and values.
  * {@snippet :
  * List<String> fragments = st.fragments();
  * List<Object> values    = st.values();
  * ... check or manipulate the fragments and/or values ...
  * String result = StringTemplate.join(fragments, values);
  * }
- * The {@link StringTemplate#process(Processor)} method, in conjunction with
- * the {@link StringTemplate#RAW} processor, may be used to defer processing of a
- * {@link StringTemplate}.
- * {@snippet :
- * StringTemplate st = RAW."\{x} + \{y} = \{x + y}";
- * ...other steps...
- * String result = st.process(STR);
- * }
  * The factory methods {@link StringTemplate#of(String)} and
  * {@link StringTemplate#of(List, List)} can be used to construct a {@link StringTemplate}.
- *
- * @see Processor
- * @see java.util.FormatProcessor
  *
  * @implNote Implementations of {@link StringTemplate} must minimally implement the
  * methods {@link StringTemplate#fragments()} and {@link StringTemplate#values()}.
@@ -126,7 +113,7 @@ public interface StringTemplate {
      * In the example: {@snippet :
      * String student = "Mary";
      * String teacher = "Johnson";
-     * StringTemplate st = RAW."The student \{student} is in \{teacher}'s classroom.";
+     * StringTemplate st = "The student \{student} is in \{teacher}'s classroom.";
      * List<String> fragments = st.fragments(); // @highlight substring="fragments()"
      * }
      * {@code fragments} will be equivalent to
@@ -144,7 +131,7 @@ public interface StringTemplate {
      * {@snippet :
      * String student = "Mary";
      * String teacher = "Johnson";
-     * StringTemplate st = RAW."The student \{student} is in \{teacher}'s classroom.";
+     * StringTemplate st = "The student \{student} is in \{teacher}'s classroom.";
      * List<Object> values = st.values(); // @highlight substring="values()"
      * }
      * {@code values} will be equivalent to {@code List.of(student, teacher)}
@@ -158,13 +145,10 @@ public interface StringTemplate {
     /**
      * Returns the string interpolation of the fragments and values for this
      * {@link StringTemplate}.
-     * @apiNote For better visibility and when practical, it is recommended to use the
-     * {@link StringTemplate#STR} processor instead of invoking the
-     * {@link StringTemplate#join()} method.
      * {@snippet :
      * String student = "Mary";
      * String teacher = "Johnson";
-     * StringTemplate st = RAW."The student \{student} is in \{teacher}'s classroom.";
+     * StringTemplate st = "The student \{student} is in \{teacher}'s classroom.";
      * String result = st.join(); // @highlight substring="join()"
      * }
      * In the above example, the value of  {@code result} will be
@@ -182,37 +166,6 @@ public interface StringTemplate {
         return StringTemplate.join(fragments(), values());
     }
 
-    /**
-     * Returns the result of applying the specified processor to this {@link StringTemplate}.
-     * This method can be used as an alternative to string template expressions. For example,
-     * {@snippet :
-     * String student = "Mary";
-     * String teacher = "Johnson";
-     * String result1 = STR."The student \{student} is in \{teacher}'s classroom.";
-     * String result2 = RAW."The student \{student} is in \{teacher}'s classroom.".process(STR); // @highlight substring="process"
-     * }
-     * Produces an equivalent result for both {@code result1} and {@code result2}.
-     *
-     * @param processor the {@link Processor} instance to process
-     *
-     * @param <R>  Processor's process result type.
-     * @param <E>  Exception thrown type.
-     *
-     * @return constructed object of type {@code R}
-     *
-     * @throws E exception thrown by the template processor when validation fails
-     * @throws NullPointerException if processor is null
-     *
-     * @implSpec The default implementation returns the result of invoking
-     * {@code processor.process(this)}. If the invocation throws an exception that
-     * exception is forwarded to the caller.
-     */
-    default <R, E extends Throwable> R
-    process(Processor<? extends R, ? extends E> processor) throws E {
-        Objects.requireNonNull(processor, "processor should not be null");
-
-        return processor.process(this);
-    }
 
     /**
      * Produces a diagnostic string that describes the fragments and values of the supplied
@@ -308,8 +261,8 @@ public interface StringTemplate {
      * Combine zero or more {@link StringTemplate StringTemplates} into a single
      * {@link StringTemplate}.
      * {@snippet :
-     * StringTemplate st = StringTemplate.combine(RAW."\{a}", RAW."\{b}", RAW."\{c}");
-     * assert st.join().equals(STR."\{a}\{b}\{c}");
+     * StringTemplate st = StringTemplate.combine("\{a}", "\{b}", "\{c}");
+     * assert st.join().equals("\{a}\{b}\{c}".join());
      * }
      * Fragment lists from the {@link StringTemplate StringTemplates} are combined end to
      * end with the last fragment from each {@link StringTemplate} concatenated with the
@@ -324,9 +277,9 @@ public interface StringTemplate {
      * character {@code "x"} of the second string. The same would be true of combining
      * {@link StringTemplate StringTemplates}.
      * {@snippet lang ="java":
-     * StringTemplate st1 = RAW."a\{}b\{}c";
-     * StringTemplate st2 = RAW."x\{}y\{}z";
-     * StringTemplate st3 = RAW."a\{}b\{}cx\{}y\{}z";
+     * StringTemplate st1 = "a\{""}b\{""}c";
+     * StringTemplate st2 = "x\{""}y\{""}z";
+     * StringTemplate st3 = "a\{""}b\{""}cx\{""}y\{""}z";
      * StringTemplate stc = StringTemplate.combine(st1, st2);
      *
      * assert Objects.equals(st1.fragments(), List.of("a", "b", "c"));
@@ -360,8 +313,8 @@ public interface StringTemplate {
      * Combine a list of {@link StringTemplate StringTemplates} into a single
      * {@link StringTemplate}.
      * {@snippet :
-     * StringTemplate st = StringTemplate.combine(List.of(RAW."\{a}", RAW."\{b}", RAW."\{c}"));
-     * assert st.join().equals(STR."\{a}\{b}\{c}");
+     * StringTemplate st = StringTemplate.combine(List.of("\{a}", "\{b}", "\{c}"));
+     * assert st.join().equals("\{a}\{b}\{c}".join());
      * }
      * Fragment lists from the {@link StringTemplate StringTemplates} are combined end to
      * end with the last fragment from each {@link StringTemplate} concatenated with the
@@ -376,9 +329,9 @@ public interface StringTemplate {
      * character {@code "x"} of the second string. The same would be true of combining
      * {@link StringTemplate StringTemplates}.
      * {@snippet lang ="java":
-     * StringTemplate st1 = RAW."a\{}b\{}c";
-     * StringTemplate st2 = RAW."x\{}y\{}z";
-     * StringTemplate st3 = RAW."a\{}b\{}cx\{}y\{}z";
+     * StringTemplate st1 = "a\{""}b\{""}c";
+     * StringTemplate st2 = "x\{""}y\{""}z";
+     * StringTemplate st3 = "a\{""}b\{""}cx\{""}y\{""}z";
      * StringTemplate stc = StringTemplate.combine(List.of(st1, st2));
      *
      * assert Objects.equals(st1.fragments(), List.of("a", "b", "c"));
@@ -406,218 +359,6 @@ public interface StringTemplate {
     static StringTemplate combine(List<StringTemplate> stringTemplates) {
         JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
         return JTA.combine(stringTemplates.toArray(new StringTemplate[0]));
-    }
-
-    /**
-     * This {@link Processor} instance is conventionally used for the string interpolation
-     * of a supplied {@link StringTemplate}.
-     * <p>
-     * For better visibility and when practical, it is recommended that users use the
-     * {@link StringTemplate#STR} processor instead of invoking the
-     * {@link StringTemplate#join()} method.
-     * Example: {@snippet :
-     * int x = 10;
-     * int y = 20;
-     * String result = STR."\{x} + \{y} = \{x + y}"; // @highlight substring="STR"
-     * }
-     * In the above example, the value of {@code result} will be {@code "10 + 20 = 30"}. This is
-     * produced by the interleaving concatenation of fragments and values from the supplied
-     * {@link StringTemplate}. To accommodate concatenation, values are converted to strings
-     * as if invoking {@link String#valueOf(Object)}.
-     * @apiNote {@link StringTemplate#STR} is statically imported implicitly into every
-     * Java compilation unit.
-     */
-    Processor<String, RuntimeException> STR = StringTemplate::join;
-
-    /**
-     * This {@link Processor} instance is conventionally used to indicate that the
-     * processing of the {@link StringTemplate} is to be deferred to a later time. Deferred
-     * processing can be resumed by invoking the
-     * {@link StringTemplate#process(Processor)} or
-     * {@link Processor#process(StringTemplate)} methods.
-     * {@snippet :
-     * import static StringTemplate.RAW;
-     * ...
-     * StringTemplate st = RAW."\{x} + \{y} = \{x + y}";
-     * ...other steps...
-     * String result = STR.process(st);
-     * }
-     * @implNote Unlike {@link StringTemplate#STR}, {@link StringTemplate#RAW} must be
-     * statically imported explicitly.
-     */
-    Processor<StringTemplate, RuntimeException> RAW = st -> st;
-
-    /**
-     * This interface describes the methods provided by a generalized string template processor. The
-     * primary method {@link Processor#process(StringTemplate)} is used to validate
-     * and compose a result using a {@link StringTemplate StringTemplate's} fragments and values lists.
-     * <p>
-     * For example:
-     * {@snippet :
-     * class MyProcessor implements Processor<String, IllegalArgumentException> {
-     *     @Override
-     *     public String process(StringTemplate st) throws IllegalArgumentException {
-     *          StringBuilder sb = new StringBuilder();
-     *          Iterator<String> fragmentsIter = st.fragments().iterator();
-     *
-     *          for (Object value : st.values()) {
-     *              sb.append(fragmentsIter.next());
-     *
-     *              if (value instanceof Boolean) {
-     *                  throw new IllegalArgumentException("I don't like Booleans");
-     *              }
-     *
-     *              sb.append(value);
-     *          }
-     *
-     *          sb.append(fragmentsIter.next());
-     *
-     *          return sb.toString();
-     *     }
-     * }
-     *
-     * MyProcessor myProcessor = new MyProcessor();
-     * try {
-     *     int x = 10;
-     *     int y = 20;
-     *     String result = myProcessor."\{x} + \{y} = \{x + y}";
-     *     ...
-     * } catch (IllegalArgumentException ex) {
-     *     ...
-     * }
-     * }
-     * Implementations of this interface may provide, but are not limited to, validating
-     * inputs, composing inputs into a result, and transforming an intermediate string
-     * result to a non-string value before delivering the final result.
-     * <p>
-     * The user has the option of validating inputs used in composition. For example an SQL
-     * processor could prevent injection vulnerabilities by sanitizing inputs or throwing an
-     * exception of type {@code E} if an SQL statement is a potential vulnerability.
-     * <p>
-     * Composing allows user control over how the result is assembled. Most often, a
-     * user will construct a new string from the string template, with placeholders
-     * replaced by string representations of value list elements. These string
-     * representations are created as if invoking {@link String#valueOf}.
-     * <p>
-     * Transforming allows the processor to return something other than a string. For
-     * instance, a JSON processor could return a JSON object, by parsing the string created
-     * by composition, instead of the composed string.
-     * <p>
-     * {@link Processor} is a {@link FunctionalInterface}. This permits
-     * declaration of a processor using lambda expressions;
-     * {@snippet :
-     * Processor<String, RuntimeException> processor = st -> {
-     *     List<String> fragments = st.fragments();
-     *     List<Object> values = st.values();
-     *     // check or manipulate the fragments and/or values
-     *     ...
-     *     return StringTemplate.join(fragments, values);
-     * };
-     * }
-     * The {@link StringTemplate#join()} method is available for those processors
-     * that just need to work with the string interpolation;
-     * {@snippet :
-     * Processor<String, RuntimeException> processor = StringTemplate::join;
-     * }
-     * or simply transform the string interpolation into something other than
-     * {@link String};
-     * {@snippet :
-     * Processor<JSONObject, RuntimeException> jsonProcessor = st -> new JSONObject(st.join());
-     * }
-     * @implNote The Java compiler automatically imports {@link StringTemplate#STR}
-     *
-     * @param <R>  Processor's process result type
-     * @param <E>  Exception thrown type
-     *
-     * @see StringTemplate
-     * @see java.util.FormatProcessor
-     *
-     * @since 21
-     *
-     * @jls 15.8.6 Process Template Expressions
-     */
-    @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
-    @FunctionalInterface
-    public interface Processor<R, E extends Throwable> {
-
-        /**
-         * Constructs a result based on the template fragments and values in the
-         * supplied {@link StringTemplate stringTemplate} object.
-         * @apiNote Processing of a {@link StringTemplate} may include validation according to the particular facts relating
-         * to each situation. The {@code E} type parameter indicates the type of checked exception that is thrown by
-         * {@link #process} if validation fails, ex. {@code java.sql.SQLException}. If no checked exception is expected
-         * then {@link RuntimeException} may be used. Note that unchecked exceptions, such as {@link RuntimeException},
-         * {@link NullPointerException} or {@link IllegalArgumentException} may be thrown as part of the normal
-         * method arguments processing. Details of which exceptions are thrown will be found in the documentation
-         * of the specific implementation.
-         *
-         * @param stringTemplate  a {@link StringTemplate} instance
-         *
-         * @return constructed object of type R
-         *
-         * @throws E exception thrown by the template processor when validation fails
-         */
-        R process(StringTemplate stringTemplate) throws E;
-
-        /**
-         * This factory method can be used to create a {@link Processor} containing a
-         * {@link Processor#process} method derived from a lambda expression. As an example;
-         * {@snippet :
-         * Processor<String, RuntimeException> mySTR = Processor.of(StringTemplate::join);
-         * int x = 10;
-         * int y = 20;
-         * String str = mySTR."\{x} + \{y} = \{x + y}";
-         * }
-         * The result type of the constructed {@link Processor} may be derived from
-         * the lambda expression, thus this method may be used in a var
-         * statement. For example, {@code mySTR} from above can also be declared using;
-         * {@snippet :
-         * var mySTR = Processor.of(StringTemplate::join);
-         * }
-         * {@link RuntimeException} is the assumed exception thrown type.
-         *
-         * @param process a function that takes a {@link StringTemplate} as an argument
-         *                and returns the inferred result type
-         *
-         * @return a {@link Processor}
-         *
-         * @param <T>  Processor's process result type
-         */
-        static <T> Processor<T, RuntimeException> of(Function<? super StringTemplate, ? extends T> process) {
-            return process::apply;
-        }
-
-        /**
-         * Built-in policies using this additional interface have the flexibility to
-         * specialize the composition of the templated string by returning a customized
-         * {@link MethodHandle} from {@link Linkage#linkage linkage}.
-         * These specializations are typically implemented to improve performance;
-         * specializing value types or avoiding boxing and vararg arrays.
-         *
-         * @implNote This interface is sealed to only allow standard processors.
-         *
-         * @sealedGraph
-         * @since 21
-         */
-        @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
-        public sealed interface Linkage permits FormatProcessor {
-            /**
-             * This method creates a {@link MethodHandle} that when invoked with arguments of
-             * those specified in {@code type} returns a result that equals that returned by
-             * the template processor's process method. The difference being that this method
-             * can preview the template's fragments and value types in advance of usage and
-             * thereby has the opportunity to produce a specialized implementation.
-             *
-             * @param fragments  string template fragments
-             * @param type       method type, includes the StringTemplate receiver as
-             * well as the value types
-             *
-             * @return {@link MethodHandle} for the processor applied to template
-             *
-             * @throws NullPointerException if any of the arguments are null
-             */
-            MethodHandle linkage(List<String> fragments, MethodType type);
-        }
     }
 
 }
