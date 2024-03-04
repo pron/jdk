@@ -93,14 +93,12 @@ final class StringTemplateImpl extends Carriers.CarrierObject implements StringT
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof StringTemplate st &&
-                Objects.equals(fragments(), st.fragments()) &&
-                Objects.equals(values(), st.values());
+        return StringTemplate.equals(this, other);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(fragments(), values());
+        return StringTemplate.hashCode(this);
     }
 
     @Override

@@ -5039,4 +5039,11 @@ public final class String
         return this;
     }
 
+    /**
+     * {@return a {@link StringTemplate} with no values and a single fragment composed of this String}
+     */
+    public StringTemplate asTemplate() {
+        return StringTemplate.of(this);
+    }
+
 }

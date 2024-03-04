@@ -29,6 +29,7 @@ import java.lang.invoke.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This class synthesizes {@link StringTemplate StringTemplates} based on
@@ -200,15 +201,44 @@ final class StringTemplateImplFactory {
 
     /**
      * Generic {@link StringTemplate}.
-     *
-     * @param fragments  immutable list of string fragments from string template
-     * @param values     immutable list of expression values
      */
-    private record SimpleStringTemplate(List<String> fragments, List<Object> values)
-            implements StringTemplate {
+        private static final class SimpleStringTemplate
+                implements StringTemplate {
+        private final List<String> fragments;
+        private final List<Object> values;
+
+        /**
+         * @param fragments immutable list of string fragments from string template
+         * @param values    immutable list of expression values
+         */
+        private SimpleStringTemplate(List<String> fragments, List<Object> values) {
+            this.fragments = fragments;
+            this.values = values;
+        }
+
         @Override
         public String toString() {
             return StringTemplate.toString(this);
+        }
+
+        @Override
+        public List<String> fragments() {
+            return fragments;
+        }
+
+        @Override
+        public List<Object> values() {
+            return values;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return StringTemplate.equals(this, obj);
+        }
+
+        @Override
+        public int hashCode() {
+            return StringTemplate.hashCode(this);
         }
     }
 

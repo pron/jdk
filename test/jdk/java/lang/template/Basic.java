@@ -387,6 +387,8 @@ public class Basic {
         ASSERT(StringTemplate.combine().join(), "");
         ASSERT(StringTemplate.combine(List.of(src, src)).join(),
                 "\{x} + \{y} = \{x + y}\{x} + \{y} = \{x + y}".join());
+        ASSERT(StringTemplate.join(src), x + " + " + y + " = " + (x + y));
+        ASSERT("a string".asTemplate(), "\{}a string");
     }
 
     /*

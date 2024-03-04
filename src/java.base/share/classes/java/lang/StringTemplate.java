@@ -166,6 +166,32 @@ public interface StringTemplate {
         return StringTemplate.join(fragments(), values());
     }
 
+    /**
+     * Returns the string interpolation of the fragments and values for the specified
+     * {@link StringTemplate}.
+     * {@snippet :
+     * String student = "Mary";
+     * String teacher = "Johnson";
+     * StringTemplate st = "The student \{student} is in \{teacher}'s classroom.";
+     * String result = StringTemplate.join(st); // @highlight substring="join()"
+     * }
+     * In the above example, the value of  {@code result} will be
+     * {@code "The student Mary is in Johnson's classroom."}. This is
+     * produced by the interleaving concatenation of fragments and values from the supplied
+     * {@link StringTemplate}. To accommodate concatenation, values are converted to strings
+     * as if invoking {@link String#valueOf(Object)}.
+     *
+     * @param stringTemplate target {@link StringTemplate}
+     * @return interpolation of this {@link StringTemplate}
+     *
+     * @throws NullPointerException if stringTemplate is null
+     *
+     * @implSpec The implementation returns the result of invoking {@code stringTemplate.join()}.
+     */
+    static String join(StringTemplate stringTemplate) {
+        Objects.requireNonNull(stringTemplate, "stringTemplate should not be null");
+        return stringTemplate.join();
+    }
 
     /**
      * Produces a diagnostic string that describes the fragments and values of the supplied
@@ -359,6 +385,70 @@ public interface StringTemplate {
     static StringTemplate combine(List<StringTemplate> stringTemplates) {
         JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
         return JTA.combine(stringTemplates.toArray(new StringTemplate[0]));
+    }
+
+    /**
+     * Test two {@link StringTemplate StringTemplates} for equality.
+     *
+     * @param stringTemplate1  first {@link StringTemplate}
+     * @param stringTemplate2  second {@link StringTemplate}
+     *
+     * @return true if the {@link StringTemplate#fragments()} and {@link StringTemplate#values()}
+     * of the two {@link StringTemplate StringTemplates} are equal.
+     */
+    static boolean equals(Object stringTemplate1, Object stringTemplate2) {
+        if (stringTemplate1 == stringTemplate2) {
+            return true;
+        }
+        if (stringTemplate1 instanceof StringTemplate st1 && stringTemplate2 instanceof StringTemplate st2) {
+            List<String> fragments1 = st1.fragments();
+            List<String> fragments2 = st2.fragments();
+            int length1 = fragments1.size();
+            int length2 = fragments2.size();
+            if (length1 != length2) {
+                return false;
+            }
+            for (int i = 0; i < length1; i++) {
+                if (!Objects.equals(fragments1.get(i), fragments2.get(i))) {
+                    return false;
+                }
+            }
+            List<Object> values1 = st1.values();
+            List<Object> values2 = st2.values();
+            int length3 = values1.size();
+            int length4 = values2.size();
+            if (length3 != length4) {
+                return false;
+            }
+            for (int i = 0; i < length3; i++) {
+                if (!Objects.equals(values1.get(i), values2.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Return a hashCode that derived from the {@link StringTemplate StringTemplate's} fragments and values.
+     *
+     * @param stringTemplate specified {@link StringTemplate}
+     *
+     * @return a hash code for a sequences of fragments and values
+     */
+    static int hashCode(StringTemplate stringTemplate) {
+        Objects.requireNonNull(stringTemplate, "stringTemplate must not be null");
+        int hashCode = 1;
+        List<Object> values = stringTemplate.values();
+        List<String> fragments = stringTemplate.fragments();
+        int length = values.size();
+        for (int i = 0; i < length; i++) {
+            hashCode = 31 * hashCode + Objects.hashCode(fragments.get(i));
+            hashCode = 31 * hashCode + Objects.hashCode(values.get(i));
+        }
+        hashCode = 31 * hashCode + Objects.hashCode(fragments.get(length));
+        return hashCode;
     }
 
 }
