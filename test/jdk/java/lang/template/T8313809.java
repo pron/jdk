@@ -29,12 +29,10 @@
  * @enablePreview true
  */
 
-import static java.util.FormatProcessor.FMT;
-
 public class T8313809 {
     public static void main(final String[] args) throws Exception {
         double sum = 12.34;
-        final String message = FMT."The sum is : %f\{sum} €"; // this fails
+        final String message = String.format("The sum is : %f\{sum} €"); // this fails
         if (!message.equals("The sum is : 12.340000 €")) {
             throw new RuntimeException("Incorrect result");
         }

@@ -206,7 +206,7 @@ public class StringTemplateTest {
             }
         };
         var source = genSource();
-//        System.out.println(source);
+        System.out.println(source);
         if (ToolProvider.getSystemJavaCompiler().getTask(null, fileManager, null,
                 List.of("--enable-preview", "-source", String.valueOf(Runtime.version().feature())), null,
                 List.of(SimpleJavaFileObject.forSource(URI.create("StringTemplateTest$.java"), source))
@@ -223,18 +223,16 @@ public class StringTemplateTest {
             var format = randomFormat(c);
             var value = randomValue(c);
             var qValue = value.replace("\\", "\\\\").replace("\"", "\\\"");
-            fragments.add(STR."test(FMT.\"\{format}\\{\{value}}\", \"\{format}\", \"\{qValue}\", \{value}, log);");
+            fragments.add("test(String.format(Locale.US,\"\{format}\\{\{value}}\"), \"\{format}\", \"\{qValue}\", \{value}, log);".join());
         }
         return String.join("\n        ", fragments);
     }
 
     String genSource() {
-        return STR."""
-            import java.util.FormatProcessor;
+        return """
             import java.util.Locale;
 
             public class StringTemplateTest$ {
-                static final FormatProcessor FMT = FormatProcessor.create(Locale.US);
                 static String STR = "this is static String";
                 static char C = 'c';
                 static Character CHAR = 'C';
@@ -290,7 +288,7 @@ public class StringTemplateTest {
                     }
                 }
             }
-            """;
+            """.join();
     }
 
     public static void main(String... args) throws Exception {
@@ -298,7 +296,7 @@ public class StringTemplateTest {
         new StringTemplateTest().compile().getMethod("run", List.class).invoke(null, log);
         if (!log.isEmpty()) {
             log.forEach(System.out::println);
-            throw new AssertionError(STR."failed \{log.size()} tests");
+            throw new AssertionError("failed \{log.size()} tests".join());
         }
     }
 }
