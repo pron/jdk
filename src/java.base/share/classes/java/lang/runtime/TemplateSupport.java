@@ -177,7 +177,7 @@ final class TemplateSupport implements JavaTemplateAccess {
     @Override
     public <T> T getMetaData(StringTemplate st, Object owner, Supplier<T> supplier) {
         Objects.requireNonNull(st, "st must not be null");
-        Objects.requireNonNull(st, "owner must not be null");
+        Objects.requireNonNull(owner, "owner must not be null");
         Objects.requireNonNull(st, "supplier must not be null");
         if (st instanceof StringTemplateImpl sti) {
             return sti.sharedData.getMetaData(owner, supplier);
@@ -189,6 +189,8 @@ final class TemplateSupport implements JavaTemplateAccess {
     @Override
     public MethodHandle bindTo(StringTemplate st, MethodHandle mh) {
         if (st instanceof StringTemplateImpl sti) {
+            Objects.requireNonNull(st, "st must not be null");
+            Objects.requireNonNull(mh, "mh must not be null");
             MethodHandle[] components = sti.sharedData.elements()
                                                   .components()
                                                   .toArray(new MethodHandle[0]);
