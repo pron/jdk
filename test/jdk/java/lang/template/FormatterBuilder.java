@@ -87,6 +87,20 @@ public class FormatterBuilder {
         test(String.format(l, "%-10B", false), "%-10B\{false}");
         test(String.format(l, "%-10B", true), "%-10B\{true}");
 
+        // utf16
+        test(String.format(l, "\u8336%b", false), "\u8336%b\{false}");
+        test(String.format(l, "\u8336%b", true), "\u8336%b\{true}");
+        test(String.format(l, "\u8336%10b", false), "\u8336%10b\{false}");
+        test(String.format(l, "\u8336%10b", true), "\u8336%10b\{true}");
+        test(String.format(l, "\u8336%-10b", false), "\u8336%-10b\{false}");
+        test(String.format(l, "\u8336%-10b", true), "\u8336%-10b\{true}");
+        test(String.format(l, "\u8336%B", false), "\u8336%B\{false}");
+        test(String.format(l, "\u8336%B", true), "\u8336%B\{true}");
+        test(String.format(l, "\u8336%10B", false), "\u8336%10B\{false}");
+        test(String.format(l, "\u8336%10B", true), "\u8336%10B\{true}");
+        test(String.format(l, "\u8336%-10B", false), "\u8336%-10B\{false}");
+        test(String.format(l, "\u8336%-10B", true), "\u8336%-10B\{true}");
+
         test(String.format(l, "%h", 12345), "%h\{12345}");
         test(String.format(l, "%h", 0xABCDE), "%h\{0xABCDE}");
         test(String.format(l, "%10h", 12345), "%10h\{12345}");
@@ -108,6 +122,7 @@ public class FormatterBuilder {
         test(String.format(l, "%s", 1.33), "%s\{1.33}");
         test(String.format(l, "%s", "abcde"), "%s\{"abcde"}");
         test(String.format(l, "%s", nullObject), "%s\{nullObject}");
+        test(String.format(l, "\u8336%s", nullObject), "\u8336%s\{nullObject}"); // utf16
         test(String.format(l, "%10s", (byte)0xFF), "%10s\{(byte)0xFF}");
         test(String.format(l, "%10s", (short)0xFFFF), "%10s\{(short)0xFFFF}");
         test(String.format(l, "%10s", 12345), "%10s\{12345}");
@@ -150,6 +165,7 @@ public class FormatterBuilder {
         test(String.format(l, "%-10S", nullObject), "%-10S\{nullObject}");
 
         test(String.format(l, "%c", 'a'), "%c\{'a'}");
+        test(String.format(l, "\u8336%c", 'a'), "\u8336%c\{'a'}"); // utf16
         test(String.format(l, "%10c", 'a'), "%10c\{'a'}");
         test(String.format(l, "%-10c", 'a'), "%-10c\{'a'}");
         test(String.format(l, "%C", 'a'), "%C\{'a'}");
@@ -160,6 +176,7 @@ public class FormatterBuilder {
         test(String.format(l, "%d", 0), "%d\{0}");
         test(String.format(l, "%d", 12345), "%d\{12345}");
         test(String.format(l, "%10d", -12345), "%10d\{-12345}");
+        test(String.format(l, "\u8336%10d", -12345), "\u8336%10d\{-12345}"); // utf16
         test(String.format(l, "%10d", 0), "%10d\{0}");
         test(String.format(l, "%10d", 12345), "%10d\{12345}");
         test(String.format(l, "%-10d", -12345), "%-10d\{-12345}");
@@ -329,6 +346,7 @@ public class FormatterBuilder {
         test(String.format(l, "%,(010d", 12345), "%,(010d\{12345}");
 
         test(String.format(l, "%o", -12345), "%o\{-12345}");
+        test(String.format(l, "\u8336%o", -12345), "\u8336%o\{-12345}"); // utf16
         test(String.format(l, "%o", 0), "%o\{0}");
         test(String.format(l, "%o", 12345), "%o\{12345}");
         test(String.format(l, "%10o", -12345), "%10o\{-12345}");
@@ -354,6 +372,7 @@ public class FormatterBuilder {
         test(String.format(l, "%#010o", 12345), "%#010o\{12345}");
 
         test(String.format(l, "%x", -12345), "%x\{-12345}");
+        test(String.format(l, "\u8336%x", -12345), "\u8336%x\{-12345}");
         test(String.format(l, "%x", 0), "%x\{0}");
         test(String.format(l, "%x", 12345), "%x\{12345}");
         test(String.format(l, "%10x", -12345), "%10x\{-12345}");
