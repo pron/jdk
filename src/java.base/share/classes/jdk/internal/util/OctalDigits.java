@@ -86,6 +86,6 @@ public final class OctalDigits implements Digits {
 
     @Override
     public int size(long value) {
-        return (66 - Long.numberOfLeadingZeros(value)) / 3;
+        return value == 0 ? 1 : ((66 - Long.numberOfLeadingZeros(value)) / 3);
     }
 }

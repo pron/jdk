@@ -198,7 +198,7 @@ class FormatItem {
             }
 
             for (int i = length + signLength() + groupLength(); i < width; i++) {
-                putCharMH.invokeExact(buffer, (int)--lengthCoder, (int)'0');
+                putCharMH.invokeExact(buffer, (int)--lengthCoder, (int)'0' + digitOffset);
             }
 
             if (parentheses) {
@@ -277,7 +277,7 @@ class FormatItem {
         }
 
         private int prefixLength() {
-            return hasPrefix && value != 0 ? 1 : 0;
+            return hasPrefix ? 1 : 0;
         }
 
         private int zeroesLength() {
@@ -299,7 +299,7 @@ class FormatItem {
                 putCharMH.invokeExact(buffer, (int)--lengthCoder, (int)'0');
             }
 
-            if (hasPrefix && value != 0) {
+            if (hasPrefix) {
                 putCharMH.invokeExact(buffer, (int)--lengthCoder, (int)'0');
             }
 
