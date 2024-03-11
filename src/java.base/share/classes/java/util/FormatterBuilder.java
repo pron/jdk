@@ -49,6 +49,7 @@ import java.util.Formatter.FormatString;
 import jdk.internal.access.JavaTemplateAccess;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.javac.PreviewFeature;
+import jdk.internal.template.StringTemplateMetaData;
 import jdk.internal.util.FormatConcatItem;
 
 import sun.util.locale.provider.LocaleProviderAdapter;
@@ -604,4 +605,47 @@ public final class FormatterBuilder {
             throw new AssertionError("concat fail", ex);
         }
     }
+
+    /**
+     * Format the {@link StringTemplate} from a cached {@link MethodHandle} if possible. Return null otherwise
+     * so that an unoptimized method can be used.
+     *
+     * @param l   Locale
+     * @param st  associated {@link StringTemplate}
+     * @return the formatted string or null if no cached {@link MethodHandle}
+     */
+    public static String format(Locale l, StringTemplate st) {
+        FormatterBuilderMetaData metaData = FormatterBuilderMetaData.getMetaData(st, FormatterBuilderMetaData.class,
+            () -> new FormatterBuilderMetaData(st, l));
+        if (metaData != null && metaData.l == l) {
+            return metaData.invoke(st);
+        }
+        return null;
+    }
+
+    /**
+     * Metadata for {@link FormatterBuilder}.
+     */
+    private static class FormatterBuilderMetaData extends StringTemplateMetaData {
+        /**
+         * Locale use for {@link MethodHandle}.
+         */
+        private final Locale l;
+
+        /**
+         * Constructor.
+         * @param st  associated {@link StringTemplate}
+         * @param l   Locale
+         */
+        FormatterBuilderMetaData(StringTemplate st, Locale l) {
+            super(st);
+            this.l = l;
+        }
+
+        @Override
+        public MethodHandle createMethodHandle(StringTemplate st) {
+            return FormatterBuilder.create(st, l);
+        }
+    }
+
 }

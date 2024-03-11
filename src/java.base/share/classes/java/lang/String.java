@@ -49,6 +49,7 @@ import java.util.stream.StreamSupport;
 import jdk.internal.access.JavaTemplateAccess;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.javac.PreviewFeature;
+import jdk.internal.template.StringTemplateMetaData;
 import jdk.internal.util.ArraysSupport;
 import jdk.internal.util.Preconditions;
 import jdk.internal.vm.annotation.ForceInline;
@@ -4528,26 +4529,9 @@ public final class String
      */
     @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
     public static String format(Locale l, StringTemplate st) {
-        JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
-        if (JTA.isLiteral(st)) {
-            StringFormatMetaData metaData = JTA.getMetaData(st, STRING_FORMAT_OWNER, () -> {
-                MethodHandle mh = FormatterBuilder.create(st, l);
-                return new StringFormatMetaData(l, mh);
-            });
-            if (metaData.l == l) {
-                try {
-                    return (String)metaData.formatter().invokeExact(st);
-                } catch (Throwable ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-        }
-
-        return new Formatter(l).format(st).toString();
+        String result = FormatterBuilder.format(l, st);
+        return result != null ? result : new Formatter(l).format(st).toString();
     }
-
-    private record StringFormatMetaData(Locale l, MethodHandle formatter) {}
-    private static final Object STRING_FORMAT_OWNER = new Object();
 
     /**
      * Formats using this string as the format string, and the supplied

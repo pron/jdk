@@ -2842,10 +2842,6 @@ public final class Formatter implements Closeable, Flushable {
         return format(l, st);
     }
 
-    private record FormatterMetaData(Locale l, MethodHandle formatter) {}
-    private static final Object FORMATTER_OWNER = new Object();
-    JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
-
     /**
      * Writes a formatted string to this object's destination using the
      * specified format and values embedded in (@code st}. Locale is specified
@@ -2880,25 +2876,16 @@ public final class Formatter implements Closeable, Flushable {
     @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
     public Formatter format(Locale l, StringTemplate st) {
         ensureOpen();
-
-        if (JTA.isLiteral(st)) {
-            FormatterMetaData metaData = JTA.getMetaData(st, FORMATTER_OWNER, () -> {
-                MethodHandle mh = FormatterBuilder.create(st, l);
-                return new FormatterMetaData(l, mh);
-            });
-
-            if (metaData.l == l) {
-                try {
-                    String result = (String)metaData.formatter().invokeExact(st);
-                    a.append(result);
-                } catch (Throwable ex) {
-                    throw new RuntimeException(ex);
-                }
-                return this;
+        String result = FormatterBuilder.format(l, st);
+        if (result != null) {
+            try {
+                a.append(result);
+            } catch (IOException ioe) {
+                lastException = ioe;
             }
+            return this;
         }
-
-        return format(l, stringTemplateFormat(st.fragments()), st.values().toArray(new Object[0]));
+        return format(l, stringTemplateFormat(st.fragments()), st.values().toArray(Object[]::new));
     }
 
     /**
