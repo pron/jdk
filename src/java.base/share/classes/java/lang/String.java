@@ -30,7 +30,6 @@ import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Native;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.constant.Constable;
 import java.lang.constant.ConstantDesc;
