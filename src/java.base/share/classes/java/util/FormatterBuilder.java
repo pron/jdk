@@ -536,7 +536,7 @@ public final class FormatterBuilder {
      * @return concat {@link MethodHandle} for based on format
      */
     private MethodHandle buildFilters(List<FormatString> fsa,
-                                      List<String> segments,
+                                      List<String> fragments,
                                       MethodHandle[] filters) {
         MethodHandle mh = null;
         int iParam = 0;
@@ -558,7 +558,7 @@ public final class FormatterBuilder {
                     }
                     break;
                 case 0:  // ordinary index
-                    segments.add(segment.toString());
+                    fragments.add(segment.toString());
                     segment.setLength(0);
 
                     if (iParam < ptypes.length) {
@@ -574,7 +574,7 @@ public final class FormatterBuilder {
             }
         }
 
-        segments.add(segment.toString());
+        fragments.add(segment.toString());
 
         return mh;
     }

@@ -26,9 +26,10 @@
 package java.lang.runtime;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.function.Supplier;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import jdk.internal.vm.annotation.Stable;
 
@@ -37,6 +38,21 @@ import jdk.internal.vm.annotation.Stable;
  * constructed at a specific {@link java.lang.invoke.CallSite CallSite}.
  */
 final class StringTemplateSharedData {
+    /**
+     * owner field {@link VarHandle}.
+     */
+    private static final VarHandle OWNER_VH;
+
+    static {
+        try {
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            OWNER_VH = lookup.findVarHandle(StringTemplateSharedData.class, "owner", Object.class);
+        } catch (ReflectiveOperationException ex) {
+            throw new InternalError(ex);
+        }
+    }
+
+
     /**
      * List of string fragments for the string template. This value of this list is shared by
      * all instances created at the {@link java.lang.invoke.CallSite CallSite}.
@@ -80,7 +96,7 @@ final class StringTemplateSharedData {
      * have a fallback if it does not win the cache.
      */
     @Stable
-    private final AtomicReference<Object> owner;
+    private Object owner;
 
     /**
      *  Metadata cache.
@@ -103,7 +119,7 @@ final class StringTemplateSharedData {
         this.types = types;
         this.valuesMH = valuesMH;
         this.joinMH = joinMH;
-        this.owner = new AtomicReference<>(null);
+        this.owner = null;
         this.metaData = null;
 
     }
@@ -143,11 +159,10 @@ final class StringTemplateSharedData {
         return joinMH;
     }
 
-
     /**
-     * Get processor meta data.
+     * Get owner meta data.
      *
-     * @param owner owner object, should be unique to the processor
+     * @param owner     owner object, should be unique to the processor
      * @param supplier  supplier of meta data
      * @return meta data
      *
@@ -156,12 +171,10 @@ final class StringTemplateSharedData {
      */
     @SuppressWarnings("unchecked")
     <S, T> T getMetaData(S owner, Supplier<T> supplier) {
-        boolean isOwner = this.owner.get() == owner;
-        Object temp = isOwner && metaData != null ? metaData : supplier.get();
-        if (!isOwner && this.owner.compareAndExchange(null, owner) == null) {
-            metaData = temp;
+        if (this.owner == null && (Object)OWNER_VH.compareAndExchange(this, null, owner) == null) {
+            metaData = supplier.get();
         }
-        return (T)temp;
+        return this.owner == owner ? (T)metaData : null;
     }
 
 }
