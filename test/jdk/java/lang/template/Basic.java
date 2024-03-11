@@ -41,6 +41,7 @@ public class Basic {
         limitsTests();
         stringTemplateCoverage();
         emptyExpressionTest();
+        mapTests();
     }
 
     static void ASSERT(String a, String b) {
@@ -398,4 +399,36 @@ public class Basic {
         ASSERT("\{}".fragments().size(), 1);
         ASSERT("\{}".fragments().get(0), "");
     }
+
+    /*
+     *  mapFragments and mapValues
+     */
+    static void mapTests() {
+        int x = 10, y = 20;
+        StringTemplate st = "The sum of \{x} and \{y} equals \{x + y}";
+        StringTemplate st1 = st.mapFragments(String::toUpperCase);
+        StringTemplate st2 = st.mapValues(v -> v instanceof Integer i ? i * 100 : v);
+        ASSERT(st1.join(), "THE SUM OF 10 AND 20 EQUALS 30");
+        ASSERT(st2.join(), "The sum of 1000 and 2000 equals 3000");
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

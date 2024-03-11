@@ -388,6 +388,60 @@ public interface StringTemplate {
     }
 
     /**
+     * Constructs a new {@link StringTemplate} using this instance's values and
+     * fragments mapped from this instance's fragments by the specified
+     * {@code mapper} function. For example:
+     * {@snippet lang = JAVA:
+     * StringTemplate st2 = st1.mapFragments(f -> f.toUpperCase());
+     * }
+     * or
+     * {@snippet lan g =JAVA:
+     * StringTemplate st4 = st3.mapFragments(f -> {
+     *     if (f.contains("\"")) {
+     *         throw new RuntimeException("Should not use quotes in the template");
+     *     }
+     *     return f;
+     * });
+     * }
+     *
+     * @param mapper mapper function
+     * @return new {@link StringTemplate}
+     */
+    default StringTemplate mapFragments(Function<String, String> mapper) {
+        Objects.requireNonNull(mapper, "mapper must not be null");
+        List<String> fragments = fragments()
+            .stream()
+            .map(mapper)
+            .toList();
+        return StringTemplate.of(fragments, values());
+    }
+
+    /**
+     * Constructs a new {@link StringTemplate} using this instance's fragments and
+     * values mapped from this instance's values by the specified
+     * {@code mapper} function.
+     * {@snippet lan g =JAVA :
+     * StringTemplate st2 = st1.mapValue(v -> {
+     *      if (v instanceof Supplier<?> s) {
+     *          return s.get();
+     *      }
+     *      return v;
+     * });
+     * }
+     *
+     * @param mapper mapper function
+     * @return new {@link StringTemplate}
+     */
+    default StringTemplate mapValues(Function<Object, Object> mapper) {
+        Objects.requireNonNull(mapper, "mapper must not be null");
+        List<Object> values = values()
+            .stream()
+            .map(mapper)
+            .toList();
+        return StringTemplate.of(fragments(), values);
+    }
+
+    /**
      * Test two {@link StringTemplate StringTemplates} for equality.
      *
      * @param stringTemplate1  first {@link StringTemplate}
