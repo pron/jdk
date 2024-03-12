@@ -34,6 +34,7 @@ import java.lang.invoke.StringConcatException;
 import java.lang.invoke.StringConcatFactory;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -51,10 +52,8 @@ public class StringTemplateMetaData {
 
     /**
      * Public constructor.
-     *
-     * @param st  associated {@link StringTemplate}
      */
-    public StringTemplateMetaData(StringTemplate st) {
+    public StringTemplateMetaData() {
         this.methodHandle = null;
     }
 
@@ -77,9 +76,10 @@ public class StringTemplateMetaData {
     /**
      * Construct the {@link MethodHandle}.  Override if special handling is required.
      * @param st  associated {@link StringTemplate}
-     * @return
+     * @return constructed {@link MethodHandle}
      */
     public MethodHandle createMethodHandle(StringTemplate st) {
+        Objects.requireNonNull(st, "st must not be null");
         List<String> fragments = filterFragments(st.fragments());
         List<Class<?>> ptypes = JTA.getTypes(st);
         MethodHandle[] filters = createValueFilters(ptypes);
@@ -105,6 +105,7 @@ public class StringTemplateMetaData {
      * @return filtered fragments
      */
     public List<String> filterFragments(List<String> fragments) {
+        Objects.requireNonNull(fragments, "fragments must not be null");
         return fragments;
     }
 
@@ -118,6 +119,7 @@ public class StringTemplateMetaData {
      * a value needs no filtering.
      */
     public MethodHandle[] createValueFilters(List<Class<?>> ptypes) {
+        Objects.requireNonNull(ptypes, "ptypes must not be null");
         return new MethodHandle[ptypes.size()];
     }
 
@@ -130,6 +132,8 @@ public class StringTemplateMetaData {
      * @return {@link MethodHandle} that performs the basic concat.
      */
     public MethodHandle createConcat(List<String> fragments, List<Class<?>> ptypes) {
+        Objects.requireNonNull(fragments, "fragments must not be null");
+        Objects.requireNonNull(ptypes, "ptypes must not be null");
         MethodHandle mh;
         try {
             mh = StringConcatFactory.makeConcatWithTemplate(fragments, ptypes);
@@ -139,15 +143,23 @@ public class StringTemplateMetaData {
         return mh;
     }
 
+    /**
+     * invoke the constructed {@link MethodHandle} to return the processor's string result.
+     * May return null if
+     *
+     * @param st  associated {@link StringTemplate}
+     * @return the processor's string result
+     */
     public String invoke(StringTemplate st) {
-       if (methodHandle != null) {
-           try {
-               return (String)methodHandle.invokeExact(st);
-           } catch (Throwable e) {
-               throw new InternalError(e);
-           }
-       }
-       return null;
+        Objects.requireNonNull(st, "st must not be null");
+        if (methodHandle != null) {
+            try {
+                return (String)methodHandle.invokeExact(st);
+            } catch (Throwable e) {
+                throw new InternalError(e);
+            }
+        }
+        return null;
     }
 
     /**
@@ -161,6 +173,9 @@ public class StringTemplateMetaData {
      * @return instance of the metadata class.
      */
     public static <M extends StringTemplateMetaData> M getMetaData(StringTemplate st, Object owner, Supplier<M> supplier) {
+        Objects.requireNonNull(st, "st must not be null");
+        Objects.requireNonNull(owner, "owner must not be null");
+        Objects.requireNonNull(supplier, "supplier must not be null");
         if (JTA.isLiteral(st)) {
             M metaData = JTA.getMetaData(st, owner, () -> {
                 M md = supplier.get();

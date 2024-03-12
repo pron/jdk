@@ -28,6 +28,7 @@ package java.lang.runtime;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -121,41 +122,58 @@ final class TemplateSupport implements JavaTemplateAccess {
      * assert st.join().equals("\{a}\{b}\{c}");
      * }
      *
-     * @param sts  zero or more {@link StringTemplate StringTemplates}
+     * @param flatten  if true will flatten nested {@link StringTemplate StringTemplates} into the
+     *                 combination
+     * @param sts      zero or more {@link StringTemplate StringTemplates}
      *
      * @return combined {@link StringTemplate}
      *
      * @throws NullPointerException if sts is null or if any element of sts is null
      */
     @Override
-    public StringTemplate combine(StringTemplate... sts) {
+    public StringTemplate combine(boolean flatten, StringTemplate... sts) {
         Objects.requireNonNull(sts, "sts must not be null");
         if (sts.length == 0) {
             return StringTemplate.of("");
-        } else if (sts.length == 1) {
+        } else if (sts.length == 1 && !flatten) {
             return Objects.requireNonNull(sts[0], "string templates should not be null");
         }
-        int size = 0;
+        List<String> fragments = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
         for (StringTemplate st : sts) {
             Objects.requireNonNull(st, "string templates should not be null");
-            size += st.values().size();
+            flatten(flatten, st, fragments, values);
         }
-        String[] combinedFragments = new String[size + 1];
-        Object[] combinedValues = new Object[size];
-        combinedFragments[0] = "";
-        int fragmentIndex = 1;
-        int valueIndex = 0;
-        for (StringTemplate st : sts) {
-            Iterator<String> iterator = st.fragments().iterator();
-            combinedFragments[fragmentIndex - 1] += iterator.next();
-            while (iterator.hasNext()) {
-                combinedFragments[fragmentIndex++] = iterator.next();
-            }
-            for (Object value : st.values()) {
-                combinedValues[valueIndex++] = value;
+        return of(fragments, values);
+    }
+
+    /**
+     * Recursively combining the specified {@link StringTemplate} to the mix.
+     *
+     * @param flatten     if true will flatten nested {@link StringTemplate StringTemplates} into the
+     *                    combination
+     * @param st          specified {@link StringTemplate}
+     * @param fragments   accumulation of fragments
+     * @param values      accumulation of values
+     */
+    private static void flatten(boolean flatten, StringTemplate st, List<String> fragments, List<Object> values) {
+        Iterator<String> fragmentsIter = st.fragments().iterator();
+        if (fragments.isEmpty()) {
+            fragments.add(fragmentsIter.next());
+        } else {
+            int last = fragments.size() - 1;
+            fragments.set(last, fragments.get(last) + fragmentsIter.next());
+        }
+        for(Object value : st.values()) {
+            if (flatten && value instanceof StringTemplate nested) {
+                flatten(true, nested, fragments, values);
+                int last = fragments.size() - 1;
+                fragments.set(last, fragments.get(last) + fragmentsIter.next());
+            } else {
+                values.add(value);
+                fragments.add(fragmentsIter.next());
             }
         }
-        return StringTemplateImplFactory.newTrustedStringTemplate(combinedFragments, combinedValues);
     }
 
     @Override

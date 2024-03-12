@@ -63,11 +63,13 @@ public interface JavaTemplateAccess {
      * assert st.join().equals("\{a}\{b}\{c}");
      * }
      *
-     * @param sts zero or more {@link StringTemplate}
+     * @param flatten  if true will flatten nested {@link StringTemplate StringTemplates} into the
+     *                 combination
+     * @param sts      zero or more {@link StringTemplate}
      * @return combined {@link StringTemplate}
      * @throws NullPointerException if sts is null or if any element of sts is null
      */
-    StringTemplate combine(StringTemplate... sts);
+    StringTemplate combine(boolean flatten, StringTemplate... sts);
 
 
     /**

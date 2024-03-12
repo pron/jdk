@@ -137,7 +137,7 @@ public final class FormatterBuilder {
     public static MethodHandle create(String format, Class<?>[] ptypes) {
         Objects.requireNonNull(format, "format must not be null");
         Objects.requireNonNull(ptypes, "ptypes must not be null");
-        return new FormatterBuilder(format, Locale.ROOT, ptypes).build();
+        return new FormatterBuilder(format, Locale.getDefault(), ptypes).build();
     }
 
     private final static JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
@@ -178,7 +178,7 @@ public final class FormatterBuilder {
      */
     public static MethodHandle create(StringTemplate st) {
         Objects.requireNonNull(st, "st must not be null");
-        return create(st, Locale.ROOT);
+        return create(st, Locale.getDefault());
     }
 
     private FormatterBuilder(String format, Locale locale, Class<?>[] ptypes) {
@@ -638,8 +638,9 @@ public final class FormatterBuilder {
          * @param l   Locale
          */
         FormatterBuilderMetaData(StringTemplate st, Locale l) {
-            super(st);
-            this.l = l;
+            super();
+            this.l = l != null ? l : Locale.getDefault();
+
         }
 
         @Override

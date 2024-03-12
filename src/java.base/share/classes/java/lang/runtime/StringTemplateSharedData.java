@@ -164,10 +164,7 @@ final class StringTemplateSharedData {
      *
      * @param owner     owner object, should be unique to the processor
      * @param supplier  supplier of meta data
-     * @return meta data
-     *
-     * @param <S> type of owner
-     * @param <T> type of meta data
+     * @return meta data or null if it fails to win the cache
      */
     @SuppressWarnings("unchecked")
     <S, T> T getMetaData(S owner, Supplier<T> supplier) {

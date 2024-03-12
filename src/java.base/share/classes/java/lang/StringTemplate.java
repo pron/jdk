@@ -287,7 +287,7 @@ public interface StringTemplate {
      * Combine zero or more {@link StringTemplate StringTemplates} into a single
      * {@link StringTemplate}.
      * {@snippet :
-     * StringTemplate st = StringTemplate.combine("\{a}", "\{b}", "\{c}");
+     * StringTemplate st = StringTemplate.combine(false, "\{a}", "\{b}", "\{c}");
      * assert st.join().equals("\{a}\{b}\{c}".join());
      * }
      * Fragment lists from the {@link StringTemplate StringTemplates} are combined end to
@@ -306,7 +306,7 @@ public interface StringTemplate {
      * StringTemplate st1 = "a\{""}b\{""}c";
      * StringTemplate st2 = "x\{""}y\{""}z";
      * StringTemplate st3 = "a\{""}b\{""}cx\{""}y\{""}z";
-     * StringTemplate stc = StringTemplate.combine(st1, st2);
+     * StringTemplate stc = StringTemplate.combine(false, st1, st2);
      *
      * assert Objects.equals(st1.fragments(), List.of("a", "b", "c"));
      * assert Objects.equals(st2.fragments(), List.of("x", "y", "z"));
@@ -318,6 +318,8 @@ public interface StringTemplate {
      * n is the total of number of values across all the supplied
      * {@link StringTemplate StringTemplates}.
      *
+     * @param flatten          if true will flatten nested {@link StringTemplate StringTemplates} into the
+     *                         combination
      * @param stringTemplates  zero or more {@link StringTemplate}
      *
      * @return combined {@link StringTemplate}
@@ -330,16 +332,16 @@ public interface StringTemplate {
      * <code>StringTemplate.of("")</code> . If only one {@link StringTemplate} argument is provided
      * then it is returned unchanged.
      */
-    static StringTemplate combine(StringTemplate... stringTemplates) {
+    static StringTemplate combine(boolean flatten, StringTemplate... stringTemplates) {
         JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
-        return JTA.combine(stringTemplates);
+        return JTA.combine(flatten, stringTemplates);
     }
 
     /**
      * Combine a list of {@link StringTemplate StringTemplates} into a single
      * {@link StringTemplate}.
      * {@snippet :
-     * StringTemplate st = StringTemplate.combine(List.of("\{a}", "\{b}", "\{c}"));
+     * StringTemplate st = StringTemplate.combine(false, List.of("\{a}", "\{b}", "\{c}"));
      * assert st.join().equals("\{a}\{b}\{c}".join());
      * }
      * Fragment lists from the {@link StringTemplate StringTemplates} are combined end to
@@ -358,7 +360,7 @@ public interface StringTemplate {
      * StringTemplate st1 = "a\{""}b\{""}c";
      * StringTemplate st2 = "x\{""}y\{""}z";
      * StringTemplate st3 = "a\{""}b\{""}cx\{""}y\{""}z";
-     * StringTemplate stc = StringTemplate.combine(List.of(st1, st2));
+     * StringTemplate stc = StringTemplate.combine(false, List.of(st1, st2));
      *
      * assert Objects.equals(st1.fragments(), List.of("a", "b", "c"));
      * assert Objects.equals(st2.fragments(), List.of("x", "y", "z"));
@@ -370,6 +372,8 @@ public interface StringTemplate {
      * n is the total of number of values across all the supplied
      * {@link StringTemplate StringTemplates}.
      *
+     * @param flatten          if true will flatten nested {@link StringTemplate StringTemplates} into the
+     *                         combination
      * @param stringTemplates  list of {@link StringTemplate}
      *
      * @return combined {@link StringTemplate}
@@ -382,9 +386,9 @@ public interface StringTemplate {
      * <code>StringTemplate.of("")</code> . If {@code stringTemplates.size() == 1}
      * then the first element of the list is returned unchanged.
      */
-    static StringTemplate combine(List<StringTemplate> stringTemplates) {
+    static StringTemplate combine(boolean flatten, List<StringTemplate> stringTemplates) {
         JavaTemplateAccess JTA = SharedSecrets.getJavaTemplateAccess();
-        return JTA.combine(stringTemplates.toArray(new StringTemplate[0]));
+        return JTA.combine(flatten, stringTemplates.toArray(StringTemplate[]::new));
     }
 
     /**

@@ -382,14 +382,18 @@ public class Basic {
         ASSERT(tsValues.fragments(), List.of("", " + ", " = ", ""));
         ASSERT(tsValues.values(), List.of(x, y, x + y));
         ASSERT(tsValues.join(), x + " + " + y + " = " + (x + y));
-        ASSERT(StringTemplate.combine(src, src).join(),
+        ASSERT(StringTemplate.combine(false, src, src).join(),
                 "\{x} + \{y} = \{x + y}\{x} + \{y} = \{x + y}".join());
-        ASSERT(StringTemplate.combine(src), src);
-        ASSERT(StringTemplate.combine().join(), "");
-        ASSERT(StringTemplate.combine(List.of(src, src)).join(),
+        ASSERT(StringTemplate.combine(false, src), src);
+        ASSERT(StringTemplate.combine(false).join(), "");
+        ASSERT(StringTemplate.combine(false, List.of(src, src)).join(),
                 "\{x} + \{y} = \{x + y}\{x} + \{y} = \{x + y}".join());
         ASSERT(StringTemplate.join(src), x + " + " + y + " = " + (x + y));
         ASSERT("a string".asTemplate(), "\{}a string");
+        StringTemplate color = "\{"red"}";
+        StringTemplate shape = "\{"triangle"}";
+        StringTemplate statement = "This is a \{color} \{shape}.";
+        ASSERT(StringTemplate.combine(true, statement).join(), "This is a red triangle.");
     }
 
     /*
