@@ -2894,39 +2894,25 @@ public final class Formatter implements Closeable, Flushable {
      *
      * @return true if the specification is found and needed
      *
-     * @throws MissingFormatArgumentException if not at end or found and not needed
+     * @throws UnknownFormatConversionException if cannot parse
      */
-    private static boolean findFormat(String fragment, boolean needed) {
-        int max = fragment.length();
-        for (int i = 0; i < max;) {
-            int n = fragment.indexOf('%', i);
-            if (n < 0) {
-                return false;
-            }
-
-            i = n + 1;
-            if (i >= max) {
-                return false;
-            }
-
-            char c = fragment.charAt(i);
-            if (c == '%' || c == 'n') {
-                i++;
-                continue;
-            }
-            int off = new Formatter.FormatSpecifierParser(null, c, i, fragment, max)
-                    .parse();
-            if (off == 0) {
-                return false;
-            }
-            if (i + off == max && needed) {
-                return true;
-            }
-            throw new MissingFormatArgumentException(
-                    fragment.substring(i - 1, i + off)
-                            + " is not immediately followed by an embedded expression");
+    private static boolean findFormat(String fragment, int expected) {
+        List<FormatString> fs = parse(fragment);
+        long count = fs.stream()
+            .filter(f -> isValidSpecifier(f))
+            .count();
+        if (expected < count) {
+            throw new UnknownFormatConversionException("too many specifiers \"" + fragment + "\"");
         }
-        return false;
+        return count == 1 && isValidSpecifier(fs.getLast());
+    }
+
+    /**
+     * {@return true of a valid specifier at the end}
+     * @param formatString
+     */
+    private static boolean isValidSpecifier(FormatString formatString) {
+        return formatString instanceof FormatSpecifier fs && fs.c != 'n' && fs.c != '%';
     }
 
     /**
@@ -2938,6 +2924,8 @@ public final class Formatter implements Closeable, Flushable {
      * @param fragments  string template fragments
      *
      * @return  format string
+     *
+     * @throws UnknownFormatConversionException if cannot parse
      */
     static String stringTemplateFormat(List<String> fragments) {
         StringBuilder sb = new StringBuilder();
@@ -2946,7 +2934,7 @@ public final class Formatter implements Closeable, Flushable {
         String last = fragments.get(lastIndex);
 
         for (String format : formats) {
-            if (findFormat(format, true)) {
+            if (findFormat(format, 1)) {
                 sb.append(format);
             } else {
                 sb.append(format);
@@ -2954,9 +2942,8 @@ public final class Formatter implements Closeable, Flushable {
             }
         }
 
-        if (!findFormat(last, false)) {
-            sb.append(last);
-        }
+        findFormat(last, 0);
+        sb.append(last);
 
         return sb.toString();
     }
