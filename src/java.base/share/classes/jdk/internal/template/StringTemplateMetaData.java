@@ -176,14 +176,11 @@ public class StringTemplateMetaData {
         Objects.requireNonNull(st, "st must not be null");
         Objects.requireNonNull(owner, "owner must not be null");
         Objects.requireNonNull(supplier, "supplier must not be null");
-        if (JTA.isLiteral(st)) {
-            M metaData = JTA.getMetaData(st, owner, () -> {
-                M md = supplier.get();
-                md.setMethodHandle(md.createMethodHandle(st));
-                return md;
-            });
-            return metaData;
-        }
-        return null;
+        M metaData = JTA.getMetaData(st, owner, () -> {
+            M md = supplier.get();
+            md.setMethodHandle(md.createMethodHandle(st));
+            return md;
+        });
+        return metaData;
     }
 }

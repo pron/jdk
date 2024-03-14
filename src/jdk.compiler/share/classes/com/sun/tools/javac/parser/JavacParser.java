@@ -746,6 +746,9 @@ public class JavacParser implements Parser {
         }
         JCExpression t = toP(F.at(pos).StringTemplate(fragments, expressions));
         setMode(oldmode);
+        if (200 < expressions.size()) { // StringConcatFactory.MAX_INDY_CONCAT_ARG_SLOTS
+            log.error(DiagnosticFlag.SYNTAX, token.pos, Errors.TooManyEmbeddedExpressions);
+        }
         return t;
     }
 

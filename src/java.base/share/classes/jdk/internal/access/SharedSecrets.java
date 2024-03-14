@@ -540,7 +540,7 @@ public class SharedSecrets {
         var access = javaTemplateAccess;
         if (access == null) {
             try {
-                Class.forName("java.lang.runtime.TemplateSupport", true, null);
+                Class.forName("java.lang.StringTemplate$Support", true, null);
                 access = javaTemplateAccess;
             } catch (ClassNotFoundException e) {}
         }

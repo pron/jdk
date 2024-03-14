@@ -641,7 +641,7 @@ public class Symtab {
 
         // For string templates
         stringTemplateType = enterClass("java.lang.StringTemplate");
-        templateRuntimeType = enterClass("java.lang.runtime.TemplateRuntime");
+        templateRuntimeType = enterClass("java.lang.StringTemplate$Runtime");
 
         // Enter a synthetic class that is used to mark internal
         // proprietary classes in ct.sym.  This class does not have a

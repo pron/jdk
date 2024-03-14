@@ -155,16 +155,10 @@ public final class FormatterBuilder {
     public static MethodHandle create(StringTemplate st, Locale locale) {
         Objects.requireNonNull(st, "st must not be null");
         Objects.requireNonNull(locale, "locale must not be null");
-        if (JTA.isLiteral(st)) {
-            Objects.requireNonNull(st, "st must not be null");
-            Objects.requireNonNull(locale, "locale must not be null");
-            String format = Formatter.stringTemplateFormat(st.fragments());
-            Class<?>[] ptypes = JTA.getTypes(st).toArray(new Class<?>[0]);
-            MethodHandle mh = FormatterBuilder.create(format, locale, ptypes);
-            return JTA.bindTo(st, mh);
-        } else {
-            throw new IllegalArgumentException("StringTemplate is not a literal");
-        }
+        String format = Formatter.stringTemplateFormat(st.fragments());
+        Class<?>[] ptypes = JTA.getTypes(st).toArray(new Class<?>[0]);
+        MethodHandle mh = FormatterBuilder.create(format, locale, ptypes);
+        return JTA.bindTo(st, mh);
     }
 
     /**

@@ -30,55 +30,20 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public interface JavaTemplateAccess {
-
-    /**
-     * Returns a StringTemplate composed from fragments and values.
-     *
-     * @param fragments list of string fragments
-     * @param values    list of expression values
-     * @return StringTemplate composed from fragments and values
-     * @throws IllegalArgumentException if fragments list size is not one more
-     *                                  than values list size
-     * @throws NullPointerException     if fragments is null or values is null or if any fragment is null.
-     * @implSpec The {@code fragments} list size must be one more that the
-     * {@code values} list size.
-     * @implNote Contents of both lists are copied to construct immutable lists.
-     */
-    StringTemplate of(List<String> fragments, List<?> values);
-
-    /**
-     * Creates a string that interleaves the elements of values between the
-     * elements of fragments.
-     *
-     * @param fragments list of String fragments
-     * @param values    list of expression values
-     * @return String join of fragments and values
-     */
-    String join(List<String> fragments, List<?> values);
-
-    /**
-     * Combine one or more {@link StringTemplate StringTemplates} to produce a combined {@link StringTemplate}.
-     * {@snippet :
-     * StringTemplate st = StringTemplate.combine("\{a}", "\{b}", "\{c}");
-     * assert st.join().equals("\{a}\{b}\{c}");
-     * }
-     *
-     * @param flatten  if true will flatten nested {@link StringTemplate StringTemplates} into the
-     *                 combination
-     * @param sts      zero or more {@link StringTemplate}
-     * @return combined {@link StringTemplate}
-     * @throws NullPointerException if sts is null or if any element of sts is null
-     */
-    StringTemplate combine(boolean flatten, StringTemplate... sts);
-
-
-    /**
-     * Determine if the {@link StringTemplate} was derived from a java language construct.
-     *
-     * @param st {@link StringTemplate} to test
-     * @return true if {@link StringTemplate} was derived from a java language construct
-     */
-    boolean isLiteral(StringTemplate st);
+//    /**
+//     * Combine one or more {@link StringTemplate StringTemplates} to produce a combined {@link StringTemplate}.
+//     * {@snippet :
+//     * StringTemplate st = StringTemplate.combine("\{a}", "\{b}", "\{c}");
+//     * assert st.join().equals("\{a}\{b}\{c}");
+//     * }
+//     *
+//     * @param flatten  if true will flatten nested {@link StringTemplate StringTemplates} into the
+//     *                 combination
+//     * @param sts      zero or more {@link StringTemplate}
+//     * @return combined {@link StringTemplate}
+//     * @throws NullPointerException if sts is null or if any element of sts is null
+//     */
+//    StringTemplate combine(boolean flatten, StringTemplate... sts);
 
     /**
      * Return a list of the embedded expression types.

@@ -142,7 +142,6 @@ public final class TransLiterals extends TreeTranslator {
         final List<String> fragments;
         final List<JCExpression> expressions;
         final List<Type> expressionTypes;
-        final boolean useValuesList;
 
         TransStringTemplate(JCStringTemplate tree) {
             this.tree = tree;
@@ -154,8 +153,7 @@ public final class TransLiterals extends TreeTranslator {
             int slots = expressionTypes.stream()
                     .mapToInt(t -> types.isSameType(t, syms.longType) ||
                             types.isSameType(t, syms.doubleType) ? 2 : 1).sum();
-            this.useValuesList = 200 < slots; // StringConcatFactory.MAX_INDY_CONCAT_ARG_SLOTS
-         }
+        }
 
         JCExpression concatExpression(List<String> fragments, List<JCExpression> expressions) {
             JCExpression expr = null;
@@ -200,25 +198,12 @@ public final class TransLiterals extends TreeTranslator {
             List<Type> staticArgsTypes =
                     List.of(syms.methodHandleLookupType, syms.stringType,
                             syms.methodTypeType);
-            if (useValuesList) {
-                JCNewArray fragmentArray = make.NewArray(make.Type(syms.stringType),
-                        List.nil(), makeStringList(fragments));
-                fragmentArray.type = new ArrayType(syms.stringType, syms.arrayClass);
-                JCNewArray valuesArray = make.NewArray(make.Type(syms.objectType),
-                        List.nil(), expressions);
-                valuesArray.type = new ArrayType(syms.objectType, syms.arrayClass);
-                return bsmCall(names.process, names.newLargeStringTemplate, syms.stringTemplateType,
-                        List.of(fragmentArray, valuesArray),
-                        List.of(fragmentArray.type, valuesArray.type),
-                        staticArgValues, staticArgsTypes);
-            } else {
-                for (String fragment : fragments) {
-                    staticArgValues = staticArgValues.append(LoadableConstant.String(fragment));
-                    staticArgsTypes = staticArgsTypes.append(syms.stringType);
-                }
-                return bsmCall(names.process, names.newStringTemplate, syms.stringTemplateType,
-                        expressions, expressionTypes, staticArgValues, staticArgsTypes);
+            for (String fragment : fragments) {
+                staticArgValues = staticArgValues.append(LoadableConstant.String(fragment));
+                staticArgsTypes = staticArgsTypes.append(syms.stringType);
             }
+            return bsmCall(names.process, names.newStringTemplate, syms.stringTemplateType,
+                    expressions, expressionTypes, staticArgValues, staticArgsTypes);
         }
 
         JCExpression visit() {
