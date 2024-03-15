@@ -709,8 +709,7 @@ public class JavacParser implements Parser {
         int endPos = stringToken.endPos;
         TokenKind kind = stringToken.kind;
         String string = token.stringVal();
-        List<String> literals = List.of(string);
-        List<String> fragments = List.nil();
+        List<String> fragments = List.of(string);
         List<JCExpression> expressions = List.nil();
         nextToken();
         if (kind != STRINGLITERAL) {
@@ -718,32 +717,29 @@ public class JavacParser implements Parser {
                 stringToken = token;
                 endPos = stringToken.endPos;
                 string = stringToken.stringVal();
-                literals = literals.append(string);
+                fragments = fragments.append(string);
                 nextToken();
             }
-            String fragment = literals.head;
-            literals = literals.tail;
             while (token.pos < endPos && token.kind != DEFAULT && token.kind != ERROR) {
                 accept(LBRACE);
                 JCExpression expression = token.kind == RBRACE ? F.at(pos).Literal(TypeTag.BOT, null)
-                                                               : term(EXPR);
+                    : term(EXPR);
                 expressions = expressions.append(expression);
                 if (token.kind != ERROR) {
                     accept(RBRACE);
                 }
             }
-            fragments = fragments.append(fragment);
             // clean up remaining expression tokens if error
             while (token.pos < endPos && token.kind != DEFAULT) {
                 nextToken();
             }
             S.setPrevToken(stringToken);
         }
-        JCExpression t = toP(F.at(pos).StringTemplate(fragments, expressions));
-        setMode(oldmode);
         if (200 < expressions.size()) { // StringConcatFactory.MAX_INDY_CONCAT_ARG_SLOTS
             log.error(DiagnosticFlag.SYNTAX, token.pos, Errors.TooManyEmbeddedExpressions);
         }
+        JCExpression t = toP(F.at(pos).StringTemplate(fragments, expressions));
+        setMode(oldmode);
         return t;
     }
 

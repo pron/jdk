@@ -183,7 +183,7 @@ public final class TransLiterals extends TreeTranslator {
                     syms.noSymbol,
                     ((MethodSymbol)bsm).asHandle(),
                     indyType,
-                    staticArgValues.toArray(new LoadableConstant[0])
+                    staticArgValues.toArray(LoadableConstant[]::new)
             );
             JCFieldAccess qualifier = make.Select(make.Type(syms.templateRuntimeType), dynSym.name);
             qualifier.sym = dynSym;
