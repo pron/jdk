@@ -956,7 +956,7 @@ public class JavaTokenizer extends UnicodeReader {
                 case 'a': case 'b': case 'c': case 'd': case 'e':
                 case 'f': case 'g': case 'h': case 'i': case 'j':
                 case 'k': case 'l': case 'm': case 'n': case 'o':
-                case 'p': case 'q': case 'r': case 's': case 't':
+                case 'p': case 'q': case 'r': case 's': // case 't':
                 case 'u': case 'v': case 'w': case 'x': case 'y':
                 case 'z':
                 case '$': case '_': // (Spec. 3.8)
@@ -1134,7 +1134,19 @@ public class JavaTokenizer extends UnicodeReader {
                 case '\"': // (Spec. 3.10)
                     scanString(pos);
                     break loop;
-
+                case 't':
+                    int savePos = position();
+                    next();
+                    if (is('\"')) {
+                        checkSourceLevel(pos, Feature.STRING_TEMPLATES);
+                        fragmentRanges = fragmentRanges.append(pos);
+                        isStringTemplate = true;
+                        scanString(pos);
+                    } else {
+                        reset(savePos);
+                        scanIdent();
+                    }
+                    break loop;
                 default:
                     if (isSpecial(get())) {
                         scanOperator();

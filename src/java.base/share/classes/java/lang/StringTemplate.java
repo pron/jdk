@@ -76,7 +76,7 @@ import jdk.internal.vm.annotation.Stable;
  * equivalent of {@code List.of(10, 20, 30)}.
  * <p>
  * The following code contains a template expression with the same template but converting
- * to a string using the {@link #join()} method:
+ * to a string using the {@link #str()} method:
  * {@snippet lang=java :
  * int x = 10;
  * int y = 20;
@@ -169,12 +169,12 @@ public final class StringTemplate extends Carriers.CarrierObject  {
     /**
      * Returns the string interpolation of the fragments and values for this
      * {@link StringTemplate}.
-     * {@snippet lang=java :
+     * {@snippet lang = java:
      * String student = "Mary";
      * String teacher = "Johnson";
      * StringTemplate st = "The student \{student} is in \{teacher}'s classroom.";
-     * String result = st.join(); // @highlight substring="join()"
-     * }
+     * String result = st.str(); // @highlight substring="join()"
+     *}
      * In the above example, the value of  {@code result} will be
      * {@code "The student Mary is in Johnson's classroom."}. This is
      * produced by the interleaving concatenation of fragments and values from the supplied
@@ -186,7 +186,7 @@ public final class StringTemplate extends Carriers.CarrierObject  {
      * @implSpec The default implementation returns the result of invoking
      * {@code StringTemplate.join(this.fragments(), this.values())}.
      */
-    public String join() {
+    private String str() {
         try {
             return (String)sharedData.joinMH().invokeExact(this);
         } catch (RuntimeException | Error ex) {
@@ -199,12 +199,12 @@ public final class StringTemplate extends Carriers.CarrierObject  {
     /**
      * Returns the string interpolation of the fragments and values for the specified
      * {@link StringTemplate}.
-     * {@snippet lang=java :
+     * {@snippet lang = java:
      * String student = "Mary";
      * String teacher = "Johnson";
      * StringTemplate st = "The student \{student} is in \{teacher}'s classroom.";
-     * String result = StringTemplate.join(st); // @highlight substring="join()"
-     * }
+     * String result = StringTemplate.str(st); // @highlight substring="join()"
+     *}
      * In the above example, the value of  {@code result} will be
      * {@code "The student Mary is in Johnson's classroom."}. This is
      * produced by the interleaving concatenation of fragments and values from the supplied
@@ -218,9 +218,9 @@ public final class StringTemplate extends Carriers.CarrierObject  {
      *
      * @implSpec The implementation returns the result of invoking {@code stringTemplate.join()}.
      */
-    static String join(StringTemplate stringTemplate) {
+    public static String str(StringTemplate stringTemplate) {
         Objects.requireNonNull(stringTemplate, "stringTemplate should not be null");
-        return stringTemplate.join();
+        return stringTemplate.str();
     }
 
     /**
@@ -242,10 +242,10 @@ public final class StringTemplate extends Carriers.CarrierObject  {
 
     /**
      * Combine one or more {@link StringTemplate StringTemplates} to produce a combined {@link StringTemplate}.
-     * {@snippet lang=java :
+     * {@snippet lang = java:
      * StringTemplate st = StringTemplate.combine("\{a}", "\{b}", "\{c}");
-     * assert st.join().equals("\{a}\{b}\{c}");
-     * }
+     * assert st.str().equals("\{a}\{b}\{c}");
+     *}
      *
      * @param flatten  if true will flatten nested {@link StringTemplate StringTemplates} into the
      *                 combination
@@ -309,10 +309,10 @@ public final class StringTemplate extends Carriers.CarrierObject  {
     /**
      * Combine zero or more {@link StringTemplate StringTemplates} into a single
      * {@link StringTemplate}.
-     * {@snippet lang=java :
+     * {@snippet lang = java:
      * StringTemplate st = StringTemplate.combine(false, "\{a}", "\{b}", "\{c}");
-     * assert st.join().equals("\{a}\{b}\{c}".join());
-     * }
+     * assert st.str().equals("\{a}\{b}\{c}".join());
+     *}
      * Fragment lists from the {@link StringTemplate StringTemplates} are combined end to
      * end with the last fragment from each {@link StringTemplate} concatenated with the
      * first fragment of the next. To demonstrate, if we were to take two strings and we
@@ -362,10 +362,10 @@ public final class StringTemplate extends Carriers.CarrierObject  {
     /**
      * Combine a list of {@link StringTemplate StringTemplates} into a single
      * {@link StringTemplate}.
-     * {@snippet lang=java :
+     * {@snippet lang = java:
      * StringTemplate st = StringTemplate.combine(false, List.of("\{a}", "\{b}", "\{c}"));
-     * assert st.join().equals("\{a}\{b}\{c}".join());
-     * }
+     * assert st.str().equals("\{a}\{b}\{c}".join());
+     *}
      * Fragment lists from the {@link StringTemplate StringTemplates} are combined end to
      * end with the last fragment from each {@link StringTemplate} concatenated with the
      * first fragment of the next. To demonstrate, if we were to take two strings and we
@@ -814,7 +814,7 @@ public final class StringTemplate extends Carriers.CarrierObject  {
          */
         private static String objectToString(Object object) {
             if (object instanceof StringTemplate st) {
-                return st.join();
+                return st.str();
             } else {
                 return String.valueOf(object);
             }
@@ -827,7 +827,7 @@ public final class StringTemplate extends Carriers.CarrierObject  {
          */
         private static String templateToString(StringTemplate st) {
             if (st != null) {
-                return st.join();
+                return st.str();
             } else {
                 return "null";
             }

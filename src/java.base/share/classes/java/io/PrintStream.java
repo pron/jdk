@@ -1007,7 +1007,7 @@ public class PrintStream extends FilterOutputStream
      */
     @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
     public void print(StringTemplate st) {
-        write(st == null ? "null" : st.join());
+        write(st == null ? "null" : StringTemplate.str(st));
     }
 
     /**

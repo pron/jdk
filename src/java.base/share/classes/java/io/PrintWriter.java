@@ -783,7 +783,7 @@ public class PrintWriter extends Writer {
      */
     @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
     public void print(StringTemplate st) {
-        write(st == null ? "null" : st.join());
+        write(st == null ? "null" : StringTemplate.str(st));
     }
 
     /**
