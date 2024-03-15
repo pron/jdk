@@ -725,14 +725,9 @@ public class JavacParser implements Parser {
             literals = literals.tail;
             while (token.pos < endPos && token.kind != DEFAULT && token.kind != ERROR) {
                 accept(LBRACE);
-                if (token.kind == RBRACE) {
-                    fragment += literals.head;
-                } else {
-                    expressions = expressions.append(term(EXPR));
-                    fragments = fragments.append(fragment);
-                    fragment = literals.head;
-                }
-                literals = literals.tail;
+                JCExpression expression = token.kind == RBRACE ? F.at(pos).Literal(TypeTag.BOT, null)
+                                                               : term(EXPR);
+                expressions = expressions.append(expression);
                 if (token.kind != ERROR) {
                     accept(RBRACE);
                 }
