@@ -30,6 +30,8 @@ import java.nio.file.spi.FileSystemProvider;
 import java.util.Set;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.stream.Stream;
+
 
 /**
  * Provides an interface to a file system and is the factory for objects to
@@ -294,6 +296,83 @@ public abstract class FileSystem
      *          If the path string cannot be converted
      */
     public abstract Path getPath(String first, String... more);
+
+    /**
+     * Converts a path string, or a sequence of strings that when joined form
+     * a path string, to a {@code Path}. If {@code more} does not specify any
+     * elements then the value of the {@code first} parameter is the path string
+     * to convert. If {@code more} specifies one or more elements then each
+     * non-empty string, including {@code first}, is considered to be a sequence
+     * of name elements (see {@link Path}) and is joined to form a path string.
+     * The details as to how the Strings are joined is provider specific but
+     * typically they will be joined using the {@link #getSeparator
+     * name-separator} as the separator. For example, if the name separator is
+     * "{@code /}" and {@code getPath("/foo","bar","gus")} is invoked, then the
+     * path string {@code "/foo/bar/gus"} is converted to a {@code Path}.
+     * A {@code Path} representing an empty path is returned if {@code first}
+     * is the empty string and {@code more} does not contain any non-empty
+     * strings.
+     *
+     * <p> The parsing and conversion to a path object is inherently
+     * implementation dependent. In the simplest case, the path string is rejected,
+     * and {@link InvalidPathException} thrown, if the path string contains
+     * characters that cannot be converted to characters that are <em>legal</em>
+     * to the file store. For example, on UNIX systems, the NUL (&#92;u0000)
+     * character is not allowed to be present in a path. An implementation may
+     * choose to reject path strings that contain names that are longer than those
+     * allowed by any file store, and where an implementation supports a complex
+     * path syntax, it may choose to reject path strings that are <em>badly
+     * formed</em>.
+     *
+     * <p> In the case of the default provider, path strings are parsed based
+     * on the definition of paths at the platform or virtual file system level.
+     * For example, an operating system may not allow specific characters to be
+     * present in a file name, but a specific underlying file store may impose
+     * different or additional restrictions on the set of legal
+     * characters.
+     *
+     * <p> This method throws {@link InvalidPathException} when the path string
+     * cannot be converted to a path. Where possible, and where applicable,
+     * the exception is created with an {@link InvalidPathException#getIndex
+     * index} value indicating the first position in the {@code path} parameter
+     * that caused the path string to be rejected.
+     *
+     * @param   path
+     *          the path string template
+     *
+     * @return  the resulting {@code Path}
+     *
+     * @throws  InvalidPathException
+     *          If the path string cannot be converted
+     */
+    public final Path getPath(StringTemplate path) {
+        checkNoPathTraversal(path);
+        String pathString = StringTemplate.str(path);
+        String[] pathElements = pathString.split("/");
+        if (pathElements.length > 0) {
+            String first = pathElements[0];
+            if (pathString.startsWith(getSeparator())) {
+                first = getSeparator() + first; // deal with root
+            }
+            String[] more = Stream.of(pathElements).skip(1).toArray(String[]::new);
+            return getPath(first, more);
+        } else {
+            throw new InvalidPathException(path.toString(), "Invalid path string template");
+        }
+    }
+
+    private static void checkNoPathTraversal(StringTemplate template) {
+        for (Object o : template.values()) {
+            switch (o) {
+                case Path _ -> { } // in Path we trust!
+                case StringTemplate st ->
+                    checkNoPathTraversal(st);
+                case Object blob when blob.toString().contains("..") ->
+                    throw new InvalidPathException(blob.toString(), "Invalid path traversal");
+                case Object _ -> { } // everything else is ok
+            }
+        }
+    }
 
     /**
      * Returns a {@code PathMatcher} that performs match operations on the

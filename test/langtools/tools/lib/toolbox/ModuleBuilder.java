@@ -250,7 +250,7 @@ public class ModuleBuilder {
      * @throws IOException if an error occurs while compiling the files
      */
     public void build(Path modules) throws IOException {
-        build(Paths.get(modules + "Src"), modules);
+        build(Paths.get("\{modules}Src"), modules);
     }
 
     /**

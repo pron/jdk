@@ -39,6 +39,7 @@ import java.util.Set;
  * @test
  * @bug 8289643 8291760
  * @requires (os.family == "linux" & !vm.musl)
+ * @enablePreview
  * @summary File descriptor leak detection with ProcessBuilder.startPipeline
  * @run testng/othervm PipelineLeaksFD
  */
@@ -125,7 +126,7 @@ public class PipelineLeaksFD {
      * @return A set of PipeRecords, possibly empty
      */
     static Set<PipeRecord> myPipes() {
-        Path path = Path.of("/proc/" + ProcessHandle.current().pid() + "/fd");
+        Path path = Path.of("/proc/\{ProcessHandle.current().pid()}/fd");
         Set<PipeRecord> pipes = new HashSet<>();
         File[] files = path.toFile().listFiles(f -> Files.isSymbolicLink(f.toPath()));
         if (files != null) {

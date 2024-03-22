@@ -99,7 +99,7 @@ public class TestSingletonLists extends JavadocTester {
     }
 
     Path genSource(Source s) throws IOException {
-        Path src = Path.of("src-" + s);
+        Path src = Path.of("src-\{s}");
         switch (s) {
             case PACKAGES:
                 for (String p : new String[] { "1", "2", "3" }) {

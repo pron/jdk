@@ -95,7 +95,7 @@ public class DocLintReferencesTest extends TestRunner {
     void test(SuppressKind sk, ModuleKind mk, TypeKind tk) throws Exception {
         out.println();
         out.println("*** Test SuppressKind:" + sk + " ModuleKind: " + mk + " TypeKind: " + tk);
-        Path base = Path.of(sk + "-" + mk + "-" + tk);
+        Path base = Path.of("\{sk}-\{mk}-\{tk}");
 
         String sw = switch (sk) {
             case NO -> "";

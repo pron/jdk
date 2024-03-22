@@ -114,7 +114,7 @@ class SimpleClassLoader extends ClassLoader {
 
     private byte[] getClassImplFromDataBase(String className) {
         try {
-            return Files.readAllBytes(Paths.get(className + ".class"));
+            return Files.readAllBytes(Paths.get("\{className}.class"));
         } catch (Exception e) {
             throw new Error("could not load class " + className, e);
         }

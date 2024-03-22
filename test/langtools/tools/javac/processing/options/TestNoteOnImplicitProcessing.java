@@ -152,7 +152,7 @@ public class TestNoteOnImplicitProcessing extends TestRunner {
                    apDir.resolve(processorName + ".class").toString())
             .run();
 
-        return Paths.get(processorName + ".jar");
+        return Paths.get("\{processorName}.jar");
     }
 
     @Test

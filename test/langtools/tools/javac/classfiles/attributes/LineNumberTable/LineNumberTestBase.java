@@ -64,7 +64,7 @@ public class LineNumberTestBase extends TestBase {
         boolean failed = false;
         for (TestCase testCase : testCases) {
             try {
-                writeToFileIfEnabled(Paths.get(testCase.getName() + ".java"), testCase.src);
+                writeToFileIfEnabled(Paths.get("\{testCase.getName()}.java"), testCase.src);
                 Set<Integer> coveredLines = new HashSet<>();
                 for (JavaFileObject file : compile(testCase.extraCompilerOptions, testCase.src).getClasses().values()) {
                     ClassModel classFile;

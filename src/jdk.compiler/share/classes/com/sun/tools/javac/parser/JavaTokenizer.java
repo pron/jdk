@@ -348,7 +348,7 @@ public class JavaTokenizer extends UnicodeReader {
     private void scanEmbeddedExpression(int pos, int endPos) {
         // If first embedded expression.
         if (!isStringTemplate) {
-            checkSourceLevel(pos, Feature.STRING_TEMPLATES);
+            //checkSourceLevel(pos, Feature.STRING_TEMPLATES); // TODO: so that we can experiment
             fragmentRanges = fragmentRanges.append(pos);
             isStringTemplate = true;
         }
@@ -1138,7 +1138,7 @@ public class JavaTokenizer extends UnicodeReader {
                     int savePos = position();
                     next();
                     if (is('\"')) {
-                        checkSourceLevel(pos, Feature.STRING_TEMPLATES);
+                        //checkSourceLevel(pos, Feature.STRING_TEMPLATES); // TODO: so that we can experiment
                         fragmentRanges = fragmentRanges.append(pos);
                         isStringTemplate = true;
                         scanString(pos);

@@ -214,7 +214,7 @@ public abstract class AnnotationsTestBase extends TestResult {
             for (int i = 0; i < testCases.size(); ++i) {
                 TestCase testCase = testCases.get(i);
                 String source = testCase.generateSource();
-                Path sourceFile = Paths.get(getClass().getSimpleName() + i + ".java");
+                Path sourceFile = Paths.get("\{getClass().getSimpleName()}\{i}.java");
                 addTestCase(sourceFile.toAbsolutePath().toString());
                 writeToFileIfEnabled(sourceFile, source);
                 echo("Testing: " + sourceFile.toString());

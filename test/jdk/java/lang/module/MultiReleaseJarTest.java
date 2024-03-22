@@ -332,7 +332,7 @@ public class MultiReleaseJarTest {
             attrs.put(Attributes.Name.MANIFEST_VERSION, "1.0");
             attrs.put(Attributes.Name.MULTI_RELEASE, "true");
 
-            Path jarfile = Paths.get(name + ".jar");
+            Path jarfile = Paths.get("\{name}.jar");
             JarUtils.createJarFile(jarfile, man, dir, files.toArray(new Path[0]));
             return jarfile;
         }

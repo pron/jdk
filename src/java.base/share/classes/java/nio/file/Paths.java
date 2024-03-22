@@ -70,6 +70,29 @@ public final class Paths {
     }
 
     /**
+     * Converts a path string, or a sequence of strings that when joined form
+     * a path string, to a {@code Path}.
+     *
+     * @implSpec
+     * This method simply invokes {@link Path#of(String,String...)
+     * Path.of(String, String...)} with the given parameters.
+     *
+     * @param   path
+     *          the path string template
+     *
+     * @return  the resulting {@code Path}
+     *
+     * @throws  InvalidPathException
+     *          if the path string cannot be converted to a {@code Path}
+     *
+     * @see FileSystem#getPath
+     * @see Path#of(String,String...)
+     */
+    public static Path get(StringTemplate path) {
+        return Path.of(path);
+    }
+
+    /**
      * Converts the given URI to a {@link Path} object.
      *
      * @implSpec

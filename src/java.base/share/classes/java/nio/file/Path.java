@@ -149,6 +149,52 @@ public interface Path
     }
 
     /**
+     * Returns a {@code Path} by converting a path string, or a sequence of
+     * strings that when joined form a path string. If {@code more} does not
+     * specify any elements then the value of the {@code first} parameter is
+     * the path string to convert. If {@code more} specifies one or more
+     * elements then each non-empty string, including {@code first}, is
+     * considered to be a sequence of name elements and is joined to form a
+     * path string. The details as to how the Strings are joined is provider
+     * specific but typically they will be joined using the
+     * {@link FileSystem#getSeparator name-separator} as the separator.
+     * For example, if the name separator is "{@code /}" and
+     * {@code getPath("/foo","bar","gus")} is invoked, then the path string
+     * {@code "/foo/bar/gus"} is converted to a {@code Path}. A {@code Path}
+     * representing an empty path is returned if {@code first} is the empty
+     * string and {@code more} does not contain any non-empty strings.
+     *
+     * <p> The {@code Path} is obtained by invoking the {@link FileSystem#getPath
+     * getPath} method of the {@link FileSystems#getDefault default} {@link
+     * FileSystem}.
+     *
+     * <p> Note that while this method is very convenient, using it will imply
+     * an assumed reference to the default {@code FileSystem} and limit the
+     * utility of the calling code. Hence it should not be used in library code
+     * intended for flexible reuse. A more flexible alternative is to use an
+     * existing {@code Path} instance as an anchor, such as:
+     * {@snippet lang=java :
+     *     Path dir = ...
+     *     Path path = dir.resolve("file");
+     * }
+     *
+     * @param   path
+     *          the path string template
+     *
+     * @return  the resulting {@code Path}
+     *
+     * @throws  InvalidPathException
+     *          if the path string cannot be converted to a {@code Path}
+     *
+     * @see FileSystem#getPath
+     *
+     * @since 11
+     */
+    public static Path of(StringTemplate path) {
+        return FileSystems.getDefault().getPath(path);
+    }
+
+    /**
      * Returns a {@code Path} by converting a URI.
      *
      * <p> This method iterates over the {@link FileSystemProvider#installedProviders()

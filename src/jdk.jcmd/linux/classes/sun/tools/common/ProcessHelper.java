@@ -115,7 +115,7 @@ final class ProcessHelper {
 
     private static String getCommandLine(String pid) {
         try (Stream<String> lines =
-                     Files.lines(Paths.get("/proc/" + pid + "/cmdline"))) {
+                     Files.lines(Paths.get("/proc/\{pid}/cmdline"))) {
             return lines.findFirst().orElse(null);
         } catch (IOException | UncheckedIOException e) {
             return null;

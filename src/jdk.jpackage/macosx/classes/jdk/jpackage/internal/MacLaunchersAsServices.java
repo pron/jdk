@@ -80,7 +80,7 @@ public final class MacLaunchersAsServices extends UnixLaunchersAsServices {
     public static Path getServicePListFileName(String packageName,
             String launcherName) {
         String baseName = launcherName.replaceAll("[\\s]", "_");
-        return Path.of(packageName + "-" + baseName + ".plist");
+        return Path.of("\{packageName}-\{baseName}.plist");
     }
 
     private static class Launcher extends UnixLauncherAsService {

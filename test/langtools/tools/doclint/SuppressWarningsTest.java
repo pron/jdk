@@ -79,7 +79,7 @@ public class SuppressWarningsTest {
 
     void test(Kind outerKind, Kind innerKind, Kind memberKind) throws Exception {
         log.println("Test: outer:" + outerKind + " inner: " + innerKind + " member:" + memberKind);
-        Path base = Path.of(outerKind + "-" + innerKind + "-" + memberKind);
+        Path base = Path.of("\{outerKind}-\{innerKind}-\{memberKind}");
         Files.createDirectories(base);
         Path src = base.resolve("src");
         tb.writeJavaFiles(src, """

@@ -397,7 +397,7 @@ public class TestMetadata extends JavadocTester {
     }
 
     Path genSource(Source s) throws IOException {
-        Path src = Path.of("src-" + s);
+        Path src = Path.of("src-\{s}");
         switch (s) {
             case PACKAGES:
                 tb.writeJavaFiles(src,

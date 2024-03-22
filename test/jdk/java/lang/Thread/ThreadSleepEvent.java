@@ -187,7 +187,7 @@ class ThreadSleepEvent {
         Path recordingFile = recording.getDestination();
         if (recordingFile == null) {
             ProcessHandle h = ProcessHandle.current();
-            recordingFile = Path.of("recording-" + recording.getId() + "-pid" + h.pid() + ".jfr");
+            recordingFile = Path.of("recording-\{recording.getId()}-pid\{h.pid()}.jfr");
             recording.dump(recordingFile);
         }
         return recordingFile;

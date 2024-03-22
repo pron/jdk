@@ -296,7 +296,7 @@ abstract class LinuxPackageBundler extends AbstractBundler {
 
                 Path installDir = Path.of(installRoot, name());
                 if (installDir.isAbsolute()) {
-                    installDir = Path.of("." + installDir.toString()).normalize();
+                    installDir = Path.of(".\{installDir}").normalize();
                 }
                 return root.resolve(installDir);
             }

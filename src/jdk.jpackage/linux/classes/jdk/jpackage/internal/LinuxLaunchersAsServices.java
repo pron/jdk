@@ -69,7 +69,7 @@ public final class LinuxLaunchersAsServices extends UnixLaunchersAsServices {
     public static Path getServiceUnitFileName(String packageName,
             String launcherName) {
         String baseName = launcherName.replaceAll("[\\s]", "_");
-        return Path.of(packageName + "-" + baseName + ".service");
+        return Path.of(t"\{packageName}-\{baseName}.service");
     }
 
     private static class Launcher extends UnixLauncherAsService {

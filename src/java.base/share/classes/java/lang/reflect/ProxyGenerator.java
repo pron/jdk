@@ -293,7 +293,7 @@ final class ProxyGenerator {
                                     Files.createDirectories(dir);
                                     path = dir.resolve(name.substring(i + 1) + ".class");
                                 } else {
-                                    path = Path.of(name + ".class");
+                                    path = Path.of("\{name}.class");
                                 }
                                 Files.write(path, classFile);
                                 return null;
