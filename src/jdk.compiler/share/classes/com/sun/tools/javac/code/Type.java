@@ -1295,8 +1295,8 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             super(Type.noType, List.nil(), csym);
             Assert.check((csym.flags() & COMPOUND) != 0);
             alternatives_field = bounds;
-            if (ct != null)
-                setBound(ct);
+            // if (ct != null)
+            //     setBound(ct);
 
             supertype_field = ct; // lub?
         }
@@ -1317,7 +1317,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
         }
 
         @Override
-        public ThrowableUnionClassType cloneWithMetadata(TypeMetadata md) {
+        protected ThrowableUnionClassType cloneWithMetadata(List<TypeMetadata> metadata) {
             throw new AssertionError("Cannot add metadata to a union type");
         }
 

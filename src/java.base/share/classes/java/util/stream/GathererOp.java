@@ -54,21 +54,22 @@ import java.util.stream.Gatherer.Integrator;
  *
  * @since 22
  */
-final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
+final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_OUT extends X_IN|X> extends ReferencePipeline<T, X_IN, R, X_OUT, X> {
     @SuppressWarnings("unchecked")
-    static <P_IN, P_OUT extends T, T, A, R> Stream<R> of(
-            ReferencePipeline<P_IN, P_OUT> upstream,
-            Gatherer<T, A, R> gatherer) {
+    static <P_IN, P_OUT extends T, T, A, R, X_IN extends Exception, X extends Exception, X_OUT extends X_IN|X> Stream<R, X_OUT> of(
+            ReferencePipeline<P_IN, ?, P_OUT, X_IN, ?> upstream,
+            Gatherer<T, A, R, X> gatherer) {
         // When attaching a gather-operation onto another gather-operation,
         // we can fuse them into one
         if (upstream.getClass() == GathererOp.class) {
             return new GathererOp<>(
-                    ((GathererOp<P_IN, Object, P_OUT>) upstream).gatherer.andThen(gatherer),
-                    (GathererOp<?, ?, P_IN>) upstream);
+                    ((GathererOp<P_IN, X_IN, Object, ?, P_OUT, X_IN>) upstream).gatherer.andThen(gatherer),
+                    (GathererOp<?, ?, ?, ?, P_IN, X_IN>) upstream);
         } else {
-            return new GathererOp<>(
-                    (ReferencePipeline<?, T>) upstream,
+            return new GathererOp<T, X_IN, A, X, R, X_OUT>(
+                    (ReferencePipeline<?, ?, T, X_IN, ?>) upstream,
                     gatherer);
+
         }
     }
 
@@ -136,14 +137,15 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
         }
     }
 
-    static final class GatherSink<T, A, R> implements Sink<T>, Gatherer.Downstream<R> {
-        private final Sink<R> sink;
-        private final Gatherer<T, A, R> gatherer;
+
+    static final class GatherSink<T, X extends Exception, A, R, X_OUT extends X> implements Sink<T, X>, Gatherer.Downstream<R> {
+        private final Sink<R, ?> sink;
+        private final Gatherer<T, A, R, X> gatherer;
         private final Integrator<A, T, R> integrator; // Optimization: reuse
         private A state;
         private boolean proceed = true;
 
-        GatherSink(Gatherer<T, A, R> gatherer, Sink<R> sink) {
+        GatherSink(Gatherer<T, A, R, X> gatherer, Sink<R, ?> sink) {
             this.gatherer = gatherer;
             this.sink = sink;
             this.integrator = gatherer.integrator();
@@ -182,12 +184,17 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
         }
 
         @Override
-        public void end() {
+        public void end() throws X_OUT {
             final var finisher = gatherer.finisher();
             if (finisher != Gatherer.<A, R>defaultFinisher()) // Optimization
                 finisher.accept(state, this);
-            sink.end();
-            state = null; // GC assistance
+            try {
+                sink.end();
+            } catch (Exception ex) {
+                throw CheckedExceptions.wrap(ex);
+            } finally {
+                state = null; // GC assistance
+            }
         }
 
         // Gatherer.Sink contract below:
@@ -200,8 +207,13 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
         @Override
         public boolean push(R r) {
             var p = proceed;
-            if (p)
-                sink.accept(r);
+            if (p) {
+                try {
+                    sink.accept(r);
+                } catch (Exception ex) {
+                    throw CheckedExceptions.wrap(ex);
+                }
+            }
             return !cancellationRequested(p);
         }
     }
@@ -221,12 +233,12 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
     private static final int GREEDY_FLAGS =
             DEFAULT_FLAGS;
 
-    final Gatherer<T, A, R> gatherer;
+    final Gatherer<T, A, R, X> gatherer;
 
     /*
      * This constructor is used for initial .gather() invocations
      */
-    private GathererOp(ReferencePipeline<?, T> upstream, Gatherer<T, A, R> gatherer) {
+    private GathererOp(ReferencePipeline<?, ?, T, X_IN, ?> upstream, Gatherer<T, A, R, X> gatherer) {
         /* TODO this is a prime spot for pre-super calls to make sure that
          * we only need to call `integrator()` once.
          */
@@ -238,9 +250,9 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
      * This constructor is used when fusing subsequent .gather() invocations
      */
     @SuppressWarnings("unchecked")
-    private GathererOp(Gatherer<T, A, R> gatherer, GathererOp<?, ?, T> upstream) {
-        super((AbstractPipeline<?, T, ?>) upstream.upstream(),
-              upstream,
+    private GathererOp(Gatherer<T, A, R, X> gatherer, GathererOp<?, ?, ?, ?, T, ?> upstream) {
+        super((AbstractPipeline<?, ?, T, X_IN, ?, ?>) upstream.upstream(),
+              (AbstractPipeline<?, ?, T, X_IN, ?, ?>) upstream,
               opFlagsFor(gatherer.integrator()));
         this.gatherer = gatherer;
     }
@@ -249,8 +261,8 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
      * to be able to fuse `gather` followed by `collect`.
      */
     @SuppressWarnings("unchecked")
-    private AbstractPipeline<?, T, ?> upstream() {
-        return (AbstractPipeline<?, T, ?>) super.previousStage;
+    private AbstractPipeline<?, ?, T, X_IN, ?, ?> upstream() {
+        return (AbstractPipeline<?, ?, T, X_IN, ?, ?>) super.previousStage;
     }
 
     @Override
@@ -265,7 +277,8 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
     }
 
     @Override
-    Sink<T> opWrapSink(int flags, Sink<R> downstream) {
+    <X1 extends Exception>
+    Sink<T, ? extends X1|X> opWrapSink(int flags, Sink<R, X1> downstream) {
         return new GatherSink<>(gatherer, downstream);
     }
 
@@ -274,9 +287,9 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
      * other Stream operations (in parallel)
      */
     @Override
-    <I> Node<R> opEvaluateParallel(PipelineHelper<R> unused1,
-                                   Spliterator<I> spliterator,
-                                   IntFunction<R[]> unused2) {
+    <I, XX extends X_IN> Node<R> opEvaluateParallel(PipelineHelper<R, XX, ? extends X> unused1,
+                                   Spliterator<I, ? extends XX> spliterator,
+                                   IntFunction<R[]> unused2) throws X_OUT {
         return this.<NodeBuilder<R>, Node<R>>evaluate(
             upstream().wrapSpliterator(spliterator),
             true,
@@ -289,8 +302,8 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
     }
 
     @Override
-    <P_IN> Spliterator<R> opEvaluateParallelLazy(PipelineHelper<R> helper,
-                                                 Spliterator<P_IN> spliterator) {
+    <P_IN, XX extends X_IN> Spliterator<R, ? extends X_IN> opEvaluateParallelLazy(PipelineHelper<R, XX, ? extends X> helper,
+                                                 Spliterator<P_IN, ? extends XX> spliterator) throws X_OUT {
         /*
          * There's a very small subset of possible Gatherers which would be
          * expressible as Spliterators directly,
@@ -309,7 +322,7 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
      * Overriding collect-operations overcomes this limitation.
      */
     @Override
-    public <CR, CA> CR collect(Collector<? super R, CA, CR> c) {
+    public <CR, CA> CR collect(Collector<? super R, CA, CR> c) throws X_OUT {
         linkOrConsume(); // Important for structural integrity
         final var parallel = isParallel();
         final var u = upstream();
@@ -329,7 +342,7 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
     @Override
     public <RR> RR collect(Supplier<RR> supplier,
                            BiConsumer<RR, ? super R> accumulator,
-                           BiConsumer<RR, RR> combiner) {
+                           BiConsumer<RR, RR> combiner) throws X_OUT {
         linkOrConsume(); // Important for structural integrity
         final var parallel = isParallel();
         final var u = upstream();
@@ -352,13 +365,13 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
      * and implements both sequential, hybrid parallel-sequential, and
      * parallel evaluation
      */
-    private <CA, CR> CR evaluate(final Spliterator<T> spliterator,
+    private <CA, CR> CR evaluate(final Spliterator<T, ? extends X_IN> spliterator,
                                  final boolean parallel,
-                                 final Gatherer<T, A, R> gatherer,
+                                 final Gatherer<T, A, R, X> gatherer,
                                  final Supplier<CA> collectorSupplier,
                                  final BiConsumer<CA, ? super R> collectorAccumulator,
                                  final BinaryOperator<CA> collectorCombiner,
-                                 final Function<CA, CR> collectorFinisher) {
+                                 final Function<CA, CR> collectorFinisher) throws X_OUT {
 
         // There are two main sections here: sequential and parallel
 
@@ -385,7 +398,7 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
             }
 
             @ForceInline
-            Sequential evaluateUsing(Spliterator<T> spliterator) {
+            Sequential evaluateUsing(Spliterator<T, ? extends X_IN> spliterator) throws X_OUT {
                 if (greedy)
                     spliterator.forEachRemaining(this);
                 else
@@ -457,7 +470,7 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
             private final AtomicBoolean cancelled;
             private final Sequential localResult;
 
-            private Spliterator<T> spliterator;
+            private Spliterator<T, ? extends X_IN> spliterator;
             private Hybrid next;
 
             private static final VarHandle NEXT;
@@ -471,7 +484,7 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
                 }
             }
 
-            protected Hybrid(Spliterator<T> spliterator) {
+            protected Hybrid(Spliterator<T, ? extends X_IN> spliterator) {
                 super(null);
                 this.spliterator = spliterator;
                 this.targetSize =
@@ -481,7 +494,7 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
                 this.leftPredecessor = null;
             }
 
-            Hybrid(Hybrid parent, Spliterator<T> spliterator, Hybrid leftPredecessor) {
+            Hybrid(Hybrid parent, Spliterator<T, ? extends X_IN> spliterator, Hybrid leftPredecessor) {
                 super(parent);
                 this.spliterator = spliterator;
                 this.targetSize = parent.targetSize;
@@ -503,7 +516,7 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
             @Override
             public void compute() {
                 var task = this;
-                Spliterator<T> rightSplit = task.spliterator, leftSplit;
+                Spliterator<T, ? extends X_IN> rightSplit = task.spliterator, leftSplit;
                 long sizeThreshold = task.targetSize;
                 boolean forkRight = false;
                 while ((greedy || !cancelled.get())
@@ -577,10 +590,14 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
                  * the pre-processing of upstream data under short-circuiting.
                  */
                 if (greedy && task.getPendingCount() > 0) {
-                    // Upstream elements are buffered
-                    NodeBuilder<T> nb = new NodeBuilder<>();
-                    rightSplit.forEachRemaining(nb); // Run the upstream
-                    task.spliterator = nb.build().spliterator();
+                    try {
+                        // Upstream elements are buffered
+                        NodeBuilder<T> nb = new NodeBuilder<>();
+                        rightSplit.forEachRemaining(nb); // Run the upstream
+                        task.spliterator = nb.build().spliterator();
+                    } catch (Exception ex) {
+                        throw CheckedExceptions.wrap(ex);
+                    }
                 }
                 task.tryComplete();
             }
@@ -594,11 +611,15 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
                  * spliterator of size 1 which means that all else is overhead
                  * which needs minimization.
                  */
-                if (s != null
-                    && (greedy || !cancelled.get())
-                    && !localResult.evaluateUsing(s).proceed
-                    && !greedy)
-                    cancelled.set(true);
+                try {
+                    if (s != null
+                       && (greedy || !cancelled.get())
+                        && !localResult.evaluateUsing(s).proceed
+                        && !greedy)
+                        cancelled.set(true);
+                } catch (Exception ex) {
+                    throw CheckedExceptions.wrap(ex);
+                }
 
                 // The completion of this task *and* the dumping of elements
                 // "happens-before" completion of the associated left-most leaf task
@@ -617,20 +638,20 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
          */
         @SuppressWarnings("serial")
         final class Parallel extends CountedCompleter<Sequential> {
-            private Spliterator<T> spliterator;
+            private Spliterator<T, ? extends X_IN> spliterator;
             private Parallel leftChild; // Only non-null if rightChild is
             private Parallel rightChild; // Only non-null if leftChild is
             private Sequential localResult;
             private volatile boolean canceled;
             private long targetSize; // lazily initialized
 
-            private Parallel(Parallel parent, Spliterator<T> spliterator) {
+            private Parallel(Parallel parent, Spliterator<T, ? extends X_IN> spliterator) {
                 super(parent);
                 this.targetSize = parent.targetSize;
                 this.spliterator = spliterator;
             }
 
-            Parallel(Spliterator<T> spliterator) {
+            Parallel(Spliterator<T, ? extends X_IN> spliterator) {
                 super(null);
                 this.targetSize = 0L;
                 this.spliterator = spliterator;
@@ -653,7 +674,7 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
                 if (result != null) throw new IllegalStateException();
             }
 
-            private void doProcess() {
+            private void doProcess() throws X_OUT {
                 if (!(localResult = new Sequential()).evaluateUsing(spliterator).proceed
                     && !greedy)
                     cancelLaterTasks();
@@ -661,7 +682,7 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
 
             @Override
             public void compute() {
-                Spliterator<T> rs = spliterator, ls;
+                Spliterator<T, ? extends X_IN> rs = spliterator, ls;
                 long sizeEstimate = rs.estimateSize();
                 final long sizeThreshold = getTargetSize(sizeEstimate);
                 Parallel task = this;
@@ -684,8 +705,13 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
                     forkRight = !forkRight;
                     sizeEstimate = rs.estimateSize();
                 }
-                if (proceed)
-                    task.doProcess();
+
+                try {
+                    if (proceed)
+                        task.doProcess();
+                } catch (Exception ex) {
+                    throw CheckedExceptions.wrap(ex);
+                }
                 task.tryComplete();
             }
 
@@ -746,9 +772,13 @@ final class GathererOp<T, A, R> extends ReferencePipeline<T, R> {
             }
         }
 
-        if (combiner != Gatherer.defaultCombiner())
-            return new Parallel(spliterator).invoke().get();
-        else
-            return new Hybrid(spliterator).invoke().get();
+        try {
+            if (combiner != Gatherer.defaultCombiner())
+                return new Parallel(spliterator).invoke().get();
+            else
+                return new Hybrid(spliterator).invoke().get();
+        } catch (RuntimeException rex) {
+                throw CheckedExceptions.<X_OUT>unwrap(rex);
+        }
     }
 }

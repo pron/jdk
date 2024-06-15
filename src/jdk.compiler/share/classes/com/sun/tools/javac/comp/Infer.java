@@ -1313,6 +1313,7 @@ public class Infer {
      * Incorporation error: mismatch between two (or more) bounds of different kinds.
      */
     void reportBoundError(UndetVar uv, InferenceBound ib1, InferenceBound ib2) {
+        // Thread.dumpStack();
         throw error(diags.fragment(Fragments.IncompatibleBounds(
                 uv.qtype,
                 getBoundFragment(ib1, uv.getBounds(ib1)),

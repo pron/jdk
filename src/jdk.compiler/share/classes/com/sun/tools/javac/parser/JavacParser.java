@@ -971,6 +971,7 @@ public class JavacParser implements Parser {
         JCExpression t = firstType;
         int pos1 = pos;
         boolean union = false;
+        List<JCExpression> targets = List.of(t);
         if (token.kind == AMP) {
             while (token.kind == AMP) {
                 accept(AMP);

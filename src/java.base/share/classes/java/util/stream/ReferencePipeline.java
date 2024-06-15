@@ -107,7 +107,7 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
       * @param opFlags The operation flags for this operation, described in
       *        {@link StreamOpFlag}
       */
-     protected ReferencePipeline(AbstractPipeline<?, P_IN, ?> upupstream, AbstractPipeline<?, P_IN, ?> upstream, int opFlags) {
+     protected ReferencePipeline(AbstractPipeline<?, ?, P_IN, X_IN, ?, ?> upupstream, AbstractPipeline<?, ?, P_IN, X_IN, ?, ?> upstream, int opFlags) {
          super(upupstream, upstream, opFlags);
      }
 
@@ -721,7 +721,7 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
     }
 
     @Override
-    public final <R> Stream<R> gather(Gatherer<? super P_OUT, ?, R> gatherer) {
+    public final <R, X1 extends Exception> Stream<R, ? extends X_OUT|X1> gather(Gatherer<? super P_OUT, ?, R, X1> gatherer) {
         return GathererOp.of(this, gatherer);
     }
 
@@ -897,7 +897,7 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         }
 
         @Override
-        abstract <P_IN, XX extends X_OUT> Node<E_OUT> opEvaluateParallel(PipelineHelper<E_OUT, XX, ? extends X> helper,
+        abstract <P_IN, XX extends X_IN> Node<E_OUT> opEvaluateParallel(PipelineHelper<E_OUT, XX, ? extends X> helper,
                                                        Spliterator<P_IN, ? extends XX> spliterator,
                                                        IntFunction<E_OUT[]> generator) throws X_OUT;
     }

@@ -1116,12 +1116,13 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      *
      * @see Gatherers
      * @param <R> The element type of the new stream
+     * @param <X1> The exception type thrown by the gatherer
      * @param gatherer a gatherer
      * @return the new stream
      * @since 22
      */
     @PreviewFeature(feature = PreviewFeature.Feature.STREAM_GATHERERS)
-    default <R> Stream<R> gather(Gatherer<? super T, ?, R> gatherer) {
+    default <R, X1 extends Exception> Stream<R, ? extends X|X1> gather(Gatherer<? super T, ?, R, X1> gatherer) {
         return StreamSupport.stream(spliterator(), isParallel())
                             .gather(gatherer)
                             .onClose(this::close);

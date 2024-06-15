@@ -195,10 +195,12 @@ import java.util.function.Supplier;
  * @param <A> the potentially mutable state type of the gatherer operation
  *            (often hidden as an implementation detail)
  * @param <R> the type of output elements from the gatherer operation
+ * @param <X> the gatherer's thrown exception type
+ * 
  * @since 22
  */
 @PreviewFeature(feature = PreviewFeature.Feature.STREAM_GATHERERS)
-public interface Gatherer<T, A, R> {
+public interface Gatherer<T, A, R, X extends Exception> {
     /**
      * A function that produces an instance of the intermediate state used for
      * this gathering operation.
@@ -263,13 +265,15 @@ public interface Gatherer<T, A, R> {
      *
      * @param that the other gatherer
      * @param <RR> The type of output of that Gatherer
+     * @param <X2> the thrown exception type of that Gatherer
      * @throws NullPointerException if the argument is {@code null}
      * @return returns a composed Gatherer which connects the output of this
      *         Gatherer as input that Gatherer
      */
-    default <RR> Gatherer<T, ?, RR> andThen(Gatherer<? super R, ?, ? extends RR> that) {
+    @SuppressWarnings({"unchecked", "rawtypes"}) // TODO ????
+    default <RR, X2 extends Exception> Gatherer<T, ?, RR, ? extends X|X2> andThen(Gatherer<? super R, ?, ? extends RR, X2> that) {
         Objects.requireNonNull(that);
-        return Gatherers.Composite.of(this, that);
+        return (Gatherer<T, ?, RR, ? extends X|X2>)Gatherers.Composite.of((Gatherer)this, that); // TODO ????
     }
 
     /**
@@ -374,7 +378,7 @@ public interface Gatherer<T, A, R> {
      */
     static <T, A, R> Gatherer<T, A, R> ofSequential(
             Supplier<A> initializer,
-            Integrator<A, T, R> integrator) {
+            Integrator<A, T, R> integrator) { // XXXX
         return of(
                 initializer,
                 integrator,
@@ -468,7 +472,7 @@ public interface Gatherer<T, A, R> {
             Supplier<A> initializer,
             Integrator<A, T, R> integrator,
             BinaryOperator<A> combiner,
-            BiConsumer<A, Downstream<? super R>> finisher) {
+            BiConsumer<A, Downstream<? super R>> finisher) { // BiConsumer<A, Downstream<? super R, X1>, X1> finisher
         return new Gatherers.GathererImpl<>(
                 Objects.requireNonNull(initializer),
                 Objects.requireNonNull(integrator),
@@ -499,7 +503,7 @@ public interface Gatherer<T, A, R> {
          * @return {@code true} if more elements can be sent,
          *         and {@code false} if not.
          */
-        boolean push(T element);
+        boolean push(T element); // XXXX wrap checked exceptions
 
         /**
          * Checks whether the next stage is known to not want

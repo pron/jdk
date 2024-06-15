@@ -221,7 +221,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
      * @throws IllegalStateException if previousStage is already linked or
      * consumed
      */
-    protected AbstractPipeline(AbstractPipeline<?, E_IN, ?> previousPreviousStage, AbstractPipeline<?, E_IN, ?> previousStage, int opFlags) {
+    protected AbstractPipeline(AbstractPipeline<?, ?, E_IN, X_IN, ?, ?> previousPreviousStage, AbstractPipeline<?, ?, E_IN, X_IN, ?, ?> previousStage, int opFlags) {
         if (previousStage.linkedOrConsumed || !previousPreviousStage.linkedOrConsumed || previousPreviousStage.nextStage != previousStage || previousStage.previousStage != previousPreviousStage)
             throw new IllegalStateException(MSG_STREAM_LINKED);
 
@@ -767,7 +767,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
      * @param generator the array generator
      * @return a {@code Node} describing the result of the evaluation
      */
-    <P_IN, XX extends X_OUT> Node<E_OUT> opEvaluateParallel(PipelineHelper<E_OUT, XX, ? extends X> helper,
+    <P_IN, XX extends X_IN> Node<E_OUT> opEvaluateParallel(PipelineHelper<E_OUT, XX, ? extends X> helper,
                                           Spliterator<P_IN, ? extends XX> spliterator,
                                           IntFunction<E_OUT[]> generator) throws X_OUT {
         throw new UnsupportedOperationException("Parallel evaluation is not supported");
@@ -794,7 +794,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
      * @return a {@code Spliterator} describing the result of the evaluation
      */
     @SuppressWarnings("unchecked")
-    <P_IN, XX extends X_OUT> Spliterator<E_OUT, ? extends X_OUT> opEvaluateParallelLazy(PipelineHelper<E_OUT, XX, ? extends X> helper,
+    <P_IN, XX extends X_IN> Spliterator<E_OUT, ? extends X_OUT> opEvaluateParallelLazy(PipelineHelper<E_OUT, XX, ? extends X> helper,
                                                      Spliterator<P_IN, ? extends XX> spliterator) throws X_OUT {
         return opEvaluateParallel(helper, spliterator, Nodes.castingArray()).spliterator();
     }

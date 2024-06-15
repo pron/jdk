@@ -2513,7 +2513,7 @@ public class Types {
                 if (t.getMetadata().nonEmpty()) {
                     switch (s.getTag()) {
                         case CLASS:
-                            if (s instanceof UnionClassType ||
+                            if (s instanceof ThrowableUnionClassType ||
                                 s instanceof IntersectionClassType) {
                                 return s;
                             }

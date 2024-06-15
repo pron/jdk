@@ -33,12 +33,13 @@ package java.util.function;
  * whose functional method is {@link #apply(Object)}.
  *
  * @param <T> the type of the operand and result of the operator
+ * @param <X> the exception type
  *
  * @see Function
  * @since 1.8
  */
 @FunctionalInterface
-public interface UnaryOperator<T> extends Function<T, T> {
+public interface UnaryOperator<T, X extends Exception> extends Function<T, T, X> {
 
     /**
      * Returns a unary operator that always returns its input argument.

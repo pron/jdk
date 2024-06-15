@@ -5063,11 +5063,24 @@ public class Attr extends JCTree.Visitor {
 
         if (clazztype.hasTag(CLASS)) {
             List<Type> formals = clazztype.tsym.type.getTypeArguments();
-            if (actuals.isEmpty()) //diamond
+            if (actuals.isEmpty()) //diamond XXXXXXX -- consider Runnable
                 actuals = formals;
 
             boolean wildcard = env.info.isArgument || env.info.isTypeVar || (!env.baseClause && !env.info.isNewClass);
-            actuals = types.defaultThrowable(formals, actuals, wildcard);
+            var actuals1 = types.defaultThrowable(formals, actuals, wildcard);
+            // if (actuals.length() != formals.length()) {
+            //     if (actuals1.length() != formals.length()) {
+            //         System.out.println("-- " + log.currentSource().getFile().getName() + "@" + log.currentSource().getLineNumber(tree.getPreferredPosition()));
+
+            //         System.out.println("XXX: " + clazztype + " @" + Integer.toHexString(System.identityHashCode(clazztype)) + " :: " + formals + " -- " + actuals + " :: " + actuals1 + " == " + ((ClassType)clazztype).typarams_field);
+            //         System.out.println("YYY: " + formals.last() + " :: " + formals.last().getUpperBound() + " -- " + types.suffixThrowables(formals) + " :: " + types.isLastParamThrowable1(formals));
+            //         System.out.println("EEEE: " + clazztype.tsym.type + "  " + clazztype.tsym.type.getClass().getName() + " @" + Integer.toHexString(System.identityHashCode(clazztype.tsym.type)));
+            //         System.out.println("TTTT: " + tree);
+            //          System.out.println("MMMM: " + clazztype.asElement() + " ::: " + ((ClassSymbol)clazztype.asElement()).classfile);
+            //         Thread.dumpStack();
+            //     }
+            // }
+            actuals = actuals1;
 
             if (actuals.length() == formals.length()) {
                 List<Type> a = actuals;
