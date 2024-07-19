@@ -3106,8 +3106,12 @@ public class Attr extends JCTree.Visitor {
             attribExprs(tree.elems, localEnv, elemtype);
             owntype = new ArrayType(elemtype, syms.arrayClass);
         }
-        if (!types.isReifiable(elemtype))
-            log.error(tree.pos(), Errors.GenericArrayCreation);
+        if (!types.isReifiable(elemtype)) {
+            if (!types.isAllParamsThrowable(elemtype))
+                log.error(tree.pos(), Errors.GenericArrayCreation);
+            else
+                chk.warnUnchecked(tree.pos(), Warnings.UncheckedCastToType);
+        }
         result = check(tree, owntype, KindSelector.VAL, resultInfo);
     }
 
@@ -4371,7 +4375,17 @@ public class Attr extends JCTree.Visitor {
             chk.checkAccessFromSerializableElement(tree, env.info.isSerializableLambda);
         }
 
-        result = checkId(tree, env1.enclClass.sym.type, sym, env, resultInfo);
+        if (sym.kind == TYP
+                && sym.type.hasTag(CLASS)
+                && types.isAllParamsThrowable(sym.type)) {
+            boolean wildcard = env.info.isArgument || env.info.isTypeVar || (!env.baseClause && !env.info.isNewClass);
+            Type owntype = sym.type;
+            List<Type> formals = owntype.tsym.type.getTypeArguments();
+            var actuals = types.defaultThrowable(formals, List.nil(), wildcard);
+            owntype = typeApply(tree, tree, owntype, actuals);
+            result = check(tree, owntype, KindSelector.TYP, resultInfo);
+        } else
+            result = checkId(tree, env1.enclClass.sym.type, sym, env, resultInfo);
     }
 
     public void visitSelect(JCFieldAccess tree) {
@@ -5083,33 +5097,7 @@ public class Attr extends JCTree.Visitor {
             actuals = actuals1;
 
             if (actuals.length() == formals.length()) {
-                List<Type> a = actuals;
-                List<Type> f = formals;
-                while (a.nonEmpty()) {
-                    a.head = a.head.withTypeVar(f.head);
-                    a = a.tail;
-                    f = f.tail;
-                }
-                // Compute the proper generic outer
-                Type clazzOuter = clazztype.getEnclosingType();
-                if (clazzOuter.hasTag(CLASS)) {
-                    Type site;
-                    JCExpression clazz = TreeInfo.typeIn(tree.clazz);
-                    if (clazz.hasTag(IDENT)) {
-                        site = env.enclClass.sym.type;
-                    } else if (clazz.hasTag(SELECT)) {
-                        site = ((JCFieldAccess) clazz).selected.type;
-                    } else throw new AssertionError(""+tree);
-                    if (clazzOuter.hasTag(CLASS) && site != clazzOuter) {
-                        if (site.hasTag(CLASS))
-                            site = types.asOuterSuper(site, clazzOuter.tsym);
-                        if (site == null)
-                            site = types.erasure(clazzOuter);
-                        clazzOuter = site;
-                    }
-                }
-                owntype = new ClassType(clazzOuter, actuals, clazztype.tsym,
-                                        clazztype.getMetadata());
+                owntype = typeApply(tree, tree.clazz, clazztype, actuals);
             } else {
                 if (formals.length() != 0) {
                     log.error(tree.pos(),
@@ -5121,6 +5109,35 @@ public class Attr extends JCTree.Visitor {
             }
         }
         result = check(tree, owntype, KindSelector.TYP, resultInfo);
+    }
+
+    private Type typeApply(JCExpression tree, JCExpression clazztree, Type clazztype, List<Type> actuals) {
+        List<Type> a = actuals;
+        List<Type> f = clazztype.tsym.type.getTypeArguments();
+        while (a.nonEmpty()) {
+            a.head = a.head.withTypeVar(f.head);
+            a = a.tail;
+            f = f.tail;
+        }
+        // Compute the proper generic outer
+        Type clazzOuter = clazztype.getEnclosingType();
+        if (clazzOuter.hasTag(CLASS)) {
+            Type site;
+            JCExpression clazz = TreeInfo.typeIn(clazztree);
+            if (clazz.hasTag(IDENT)) {
+                site = env.enclClass.sym.type;
+            } else if (clazz.hasTag(SELECT)) {
+                site = ((JCFieldAccess) clazz).selected.type;
+            } else throw new AssertionError(""+tree);
+            if (clazzOuter.hasTag(CLASS) && site != clazzOuter) {
+                if (site.hasTag(CLASS))
+                    site = types.asOuterSuper(site, clazzOuter.tsym);
+                if (site == null)
+                    site = types.erasure(clazzOuter);
+                clazzOuter = site;
+            }
+        }
+        return new ClassType(clazzOuter, actuals, clazztype.tsym, clazztype.getMetadata());
     }
 
     public void visitTypeUnion(JCTypeUnion tree) {

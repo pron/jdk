@@ -3494,6 +3494,20 @@ public class Types {
         return isSameType(last, syms.throwableType) || isSameType(last, syms.exceptionType);
     }
 
+    public boolean isAllParamsThrowable(Type t) {
+        return isAllParamsThrowable(t.tsym.type.getTypeArguments());
+    }
+    public boolean isAllParamsThrowable(List<Type> formals) {
+        if (formals.isEmpty()) return false;
+        for (Type t : formals) {
+            Type b = topBound(t);
+            if (b == null) return false;
+            if (!isSameType(b, syms.throwableType) && !isSameType(b, syms.exceptionType))
+                return false;
+        }
+        return true;
+    }
+
     public boolean isThrowableUnionParam(TypeVar tvar) {
         Type ubound = topBound(tvar); // tvar.getUpperBound();
         return  ubound instanceof ThrowableUnionClassType
@@ -3556,7 +3570,7 @@ public class Types {
         return ts.prefix(ts.length() - suffix.length()).appendList(newSuffix);
     }
 
-    public List<Type> eraseThrown(List<Type> ts) {
+    public List<Type> eraseThrown(List<Type> ts) { // RON TODO: Use default exception type here
         return ts.map(t ->
                 t.hasTag(TYPEVAR) && isThrowableUnionParam((TypeVar)t)
                         ? syms.runtimeExceptionType
