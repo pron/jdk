@@ -5008,10 +5008,14 @@ public class JavacParser implements Parser {
                 return null;
             }
 
-            typarams.append(typeParameter());
+            JCTypeParameter param = typeParameter(false);
+            typarams.append(param);
+            boolean expectThrows = param.throwsParam;
             while (token.kind == COMMA) {
                 nextToken();
-                typarams.append(typeParameter());
+                param = typeParameter(expectThrows);
+                expectThrows |= param.throwsParam;
+                typarams.append(param);
             }
             accept(GT);
             return typarams.toList();
@@ -5022,14 +5026,25 @@ public class JavacParser implements Parser {
 
     /**
      *  {@literal
-     *  TypeParameter = [Annotations] TypeVariable [TypeParameterBound]
+     *  TypeParameter = [Annotations] [throws] TypeVariable [TypeParameterBound] [ThrowsDefault]
      *  TypeParameterBound = EXTENDS Type {"&" Type}
      *  TypeVariable = Ident
+     *  ThrowsDefault = "=" Type
      *  }
      */
-    JCTypeParameter typeParameter() {
+    JCTypeParameter typeParameter(boolean expectThrows) {
         int pos = token.pos;
         List<JCAnnotation> annos = typeAnnotationsOpt();
+
+        boolean throwsParam = false;
+        if (token.kind == THROWS) {
+            throwsParam = true;
+            nextToken();
+        } else if (expectThrows) {
+            setErrorEndPos(token.pos);
+            reportSyntaxError(S.prevToken().endPos, Errors.Expected(THROWS));
+        }
+
         Name name = typeName();
         ListBuffer<JCExpression> bounds = new ListBuffer<>();
         boolean union = false;
@@ -5049,7 +5064,16 @@ public class JavacParser implements Parser {
                 }
             }
         }
-        return toP(F.at(pos).TypeParameter(name, union, bounds.toList(), annos));
+
+        JCExpression throwsDefault = null;
+        if (throwsParam) {
+            if (token.kind == EQ) {
+                nextToken();
+                throwsDefault = parseType();
+            }
+        }
+
+        return toP(F.at(pos).TypeParameter(name, union, bounds.toList(), throwsParam, throwsDefault, annos));
     }
 
     /** FormalParameters = "(" [ FormalParameterList ] ")"

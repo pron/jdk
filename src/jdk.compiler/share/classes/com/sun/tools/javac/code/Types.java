@@ -44,14 +44,12 @@ import javax.tools.JavaFileObject;
 
 import com.sun.tools.javac.code.Attribute.RetentionPolicy;
 import com.sun.tools.javac.code.Lint.LintCategory;
-import com.sun.tools.javac.code.Source.Feature;
 import com.sun.tools.javac.code.Type.UndetVar.InferenceBound;
 import com.sun.tools.javac.code.TypeMetadata.Annotations;
 import com.sun.tools.javac.comp.AttrContext;
 import com.sun.tools.javac.comp.Check;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.Env;
-import com.sun.tools.javac.comp.LambdaToMethod;
 import com.sun.tools.javac.jvm.ClassFile;
 import com.sun.tools.javac.util.*;
 
@@ -3487,22 +3485,45 @@ public class Types {
             }
     // </editor-fold>
 
-    public boolean isLastParamThrowable(List<Type> formals) {
-        if (formals.isEmpty()) return false;
-        Type last = topBound(formals.last());
-        if (last == null) return false;
-        return isSameType(last, syms.throwableType) || isSameType(last, syms.exceptionType);
+    /// ZZZZ BEGIN;
+
+    private boolean isThrowsParam(Type t) {
+        TypeVar tv = (TypeVar)t;
+        if (tv.isThrowsParam())
+            return true;
+        ////
+        Type b = topBound(tv);
+        if (b == null) return false;
+        return isSameType(b, syms.throwableType) || isSameType(b, syms.exceptionType);
     }
 
-    public boolean isAllParamsThrowable(Type t) {
-        return isAllParamsThrowable(t.tsym.type.getTypeArguments());
+    private Type defaultThrows0(Type t) {
+        TypeVar tv = (TypeVar)t;
+        if (tv.isThrowsParam()) {
+            Assert.check(tv.getThrowsDefault() != null);
+            return tv.getThrowsDefault();
+        }
+        ///
+        Assert.check(isThrowsParam(t));
+        return syms.runtimeExceptionType;
     }
-    public boolean isAllParamsThrowable(List<Type> formals) {
+
+    public Type defaultUpperBoundForThrows() {
+        return syms.exceptionType;
+    }
+
+    public boolean isLastParamThrows(List<Type> formals) {
+        if (formals.isEmpty()) return false;
+        return isThrowsParam(formals.last());
+    }
+
+    public boolean isAllParamsThrows(Type t) {
+        return isAllParamsThrows(t.tsym.type.getTypeArguments());
+    }
+    public boolean isAllParamsThrows(List<Type> formals) {
         if (formals.isEmpty()) return false;
         for (Type t : formals) {
-            Type b = topBound(t);
-            if (b == null) return false;
-            if (!isSameType(b, syms.throwableType) && !isSameType(b, syms.exceptionType))
+            if (!isThrowsParam(t))
                 return false;
         }
         return true;
@@ -3526,13 +3547,12 @@ public class Types {
         return b;
     }
 
-    public List<Type> suffixThrowables(List<Type> ts) {
-        if (!isLastParamThrowable(ts)) return List.nil();
+    public List<Type> suffixThrowsParams(List<Type> ts) {
+        if (!isLastParamThrows(ts)) return List.nil();
         ts = ts.reverse();
         List<Type> res = List.nil();
         while (!ts.isEmpty()) {
-            Type ubound = topBound(ts.head);
-            if (!(isSameType(ubound, syms.throwableType) || isSameType(ubound, syms.exceptionType)))
+            if (!isThrowsParam(ts.head))
                 break;
             res = res.append(ts.head);
             ts = ts.tail;
@@ -3540,40 +3560,47 @@ public class Types {
         return res.reverse();
     }
 
-    public List<Type> defaultThrowable(List<Type> formals, List<Type> actuals, boolean wildcard) {
+    private Type defaultThrows(Type t, boolean wildcard) {
+        Type d = defaultThrows0(t);
+        if (wildcard)
+            d = new WildcardType(d, BoundKind.EXTENDS, syms.boundClass);
+        return d;
+    }
+
+    public List<Type> defaultThrowsParams(List<Type> formals, List<Type> actuals, boolean wildcard) {
         int delta = formals.length() - actuals.length();
-        if (delta > 0 && suffixThrowables(formals).length() >= delta) {
-            for (int i = 0; i < delta; i++) {
-                Type defaultType = syms.runtimeExceptionType;
-                if (wildcard)
-                    defaultType = new WildcardType(defaultType, BoundKind.EXTENDS, syms.boundClass);
-                actuals = actuals.append(defaultType);
+        if (delta > 0) {
+            List<Type> suffix = suffixThrowsParams(formals);
+            int numFilled = suffix.length() - delta;
+            for (int i = 0; i < numFilled; i++)
+                suffix = suffix.tail;
+            for (;!suffix.isEmpty(); suffix = suffix.tail) {
+                actuals = actuals.append(defaultThrows(suffix.head, wildcard));
             }
         }
+
         return actuals;
     }
 
-    public void completeDefaultThrowable(Type clazztype) {
+    public void completeDefaultThrowsParams(Type clazztype) {
         List<Type> formals = clazztype.tsym.type.getTypeArguments();
         List<Type> actuals = clazztype.getTypeArguments();
-        if (formals.length() == 1
-                && isLastParamThrowable(formals)
-                && actuals.isEmpty()) {
-            ((ClassType)clazztype).typarams_field = actuals.append(syms.runtimeExceptionType);
+        if (actuals.isEmpty() && isAllParamsThrows(formals)) {
+            ((ClassType)clazztype).typarams_field = defaultThrowsParams(formals, actuals, false);
             ((ClassType)clazztype).allparams_field = null; // reset
         }
     }
 
     private List<Type> eraseDefaultThrowable(List<Type> ts) {
-        var suffix = suffixThrowables(ts);
-        var newSuffix = suffix.map(t -> suffix.any(s -> s.equalsIgnoreMetadata(t)) ? syms.runtimeExceptionType : t);
+        var suffix = suffixThrowsParams(ts);
+        var newSuffix = suffix.map(t -> suffix.any(s -> s.equalsIgnoreMetadata(t)) ? defaultThrows(t, false) : t);
         return ts.prefix(ts.length() - suffix.length()).appendList(newSuffix);
     }
 
     public List<Type> eraseThrown(List<Type> ts) { // RON TODO: Use default exception type here
         return ts.map(t ->
-                t.hasTag(TYPEVAR) && isThrowableUnionParam((TypeVar)t)
-                        ? syms.runtimeExceptionType
+                t.hasTag(TYPEVAR) && isThrowsParam(t)
+                        ? defaultThrows(t, false)
                         : erasure(t));
     }
 
@@ -3581,13 +3608,9 @@ public class Types {
         // var suffix = suffixThrowables(ownerParams);
         erased.thrown = erased.thrown.mapTwo(orig.getThrownTypes(),
                 (ersd, org) ->
-                        org.hasTag(TYPEVAR) && isThrowableUnionParam((TypeVar)org) // suffix.any(s -> s.equalsIgnoreMetadata(org))
-                                ? syms.runtimeExceptionType
+                        org.hasTag(TYPEVAR) && isThrowsParam(org) // suffix.any(s -> s.equalsIgnoreMetadata(org))
+                                ? defaultThrows(org, false)
                                 : ersd);
-
-//        @SuppressWarnings("unchecked")
-//        var x = (List<Type>)erased.thrown.filter(t -> t == syms.runtimeExceptionType);
-//        erased.thrown = x;
         return erased;
     }
 
@@ -3781,7 +3804,8 @@ public class Types {
         ListBuffer<Type> newTvars = new ListBuffer<>();
         // create new type variables without bounds
         for (Type t : tvars) {
-            newTvars.append(new TypeVar(t.tsym, null, syms.botType,
+            TypeVar tv = (TypeVar) t;
+            newTvars.append(new TypeVar(t.tsym, null, syms.botType, tv.getThrowsDefault(),
                                         t.getMetadata()));
         }
         // the new bounds should use the new type variables in place
@@ -3814,7 +3838,7 @@ public class Types {
             return t;
         else {
             // create new type variable without bounds
-            TypeVar tv = new TypeVar(t.tsym, null, syms.botType,
+            TypeVar tv = new TypeVar(t.tsym, null, syms.botType, t.getThrowsDefault(),
                                      t.getMetadata());
             // the new bound should use the new type variable in place
             // of the old
@@ -3863,7 +3887,7 @@ public class Types {
         private static final TypeMapping<Void> newInstanceFun = new TypeMapping<Void>() {
             @Override
             public TypeVar visitTypeVar(TypeVar t, Void _unused) {
-                return new TypeVar(t.tsym, t.getUpperBound(), t.getLowerBound(), t.getMetadata());
+                return new TypeVar(t.tsym, t.getUpperBound(), t.getLowerBound(), t.getThrowsDefault(), t.getMetadata());
             }
         };
     // </editor-fold>
@@ -5592,6 +5616,8 @@ public class Types {
             append('<');
             for (List<Type> ts = typarams; ts.nonEmpty(); ts = ts.tail) {
                 Type.TypeVar tvar = (Type.TypeVar) ts.head;
+                if (tvar.isThrowsParam())
+                    append('!');
                 append(tvar.tsym.name);
                 List<Type> bounds = types.getBounds(tvar);
                 if (bounds.length() == 1 && bounds.head instanceof ThrowableUnionClassType tu) {
@@ -5608,6 +5634,11 @@ public class Types {
                         append(':');
                         assembleSig(l.head);
                     }
+                }
+                if (tvar.isThrowsParam()) {
+                    Assert.check(tvar.getThrowsDefault() != null);
+                    append('=');
+                    assembleSig(tvar.getThrowsDefault());
                 }
             }
             append('>');

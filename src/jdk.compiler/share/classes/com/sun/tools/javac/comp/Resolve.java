@@ -581,7 +581,7 @@ public class Resolve {
             // which is fine, see JLS 15.12.2.1
         } else if (mt.hasTag(FORALL) && typeargtypes.nonEmpty()) {
             ForAll pmt = (ForAll) mt;
-            typeargtypes = types.defaultThrowable(pmt.tvars, typeargtypes, false);
+            typeargtypes = types.defaultThrowsParams(pmt.tvars, typeargtypes, false);
             if (typeargtypes.length() != pmt.tvars.length())
                  // not enough args
                 throw new InapplicableMethodException(diags.fragment(Fragments.WrongNumberTypeArgs(Integer.toString(pmt.tvars.length()))));

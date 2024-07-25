@@ -1698,6 +1698,8 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
          */
         public Type lower;
 
+        private Type throwsDefault;
+
         @SuppressWarnings("this-escape")
         public TypeVar(Name name, Symbol owner, Type lower) {
             super(null, List.nil());
@@ -1707,17 +1709,18 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             this.lower = lower;
         }
 
-        public TypeVar(TypeSymbol tsym, Type bound, Type lower) {
-            this(tsym, bound, lower, List.nil());
+        public TypeVar(TypeSymbol tsym, Type bound, Type lower, Type throwsDefault) {
+            this(tsym, bound, lower, throwsDefault, List.nil());
         }
 
         @SuppressWarnings("this-escape")
-        public TypeVar(TypeSymbol tsym, Type bound, Type lower,
+        public TypeVar(TypeSymbol tsym, Type bound, Type lower, Type throwsDefault,
                        List<TypeMetadata> metadata) {
             super(tsym, metadata);
             Assert.checkNonNull(lower);
             this.setUpperBound(bound);
             this.lower = lower;
+            this.setThrowsDefault(throwsDefault);
         }
 
         static boolean calledBy(String x) {
@@ -1729,7 +1732,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
 
         @Override
         protected TypeVar cloneWithMetadata(List<TypeMetadata> md) {
-            return new TypeVar(tsym, getUpperBound(), lower, md) {
+            return new TypeVar(tsym, getUpperBound(), lower, throwsDefault, md) {
                 @Override
                 public Type baseType() { return TypeVar.this.baseType(); }
 
@@ -1754,6 +1757,16 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
         public Type getUpperBound() { return _bound; }
 
         public void setUpperBound(Type bound) { this._bound = bound; }
+
+        @Override @DefinedBy(Api.LANGUAGE_MODEL)
+        public boolean isThrowsParam() { return throwsDefault != null; }
+
+        @Override @DefinedBy(Api.LANGUAGE_MODEL)
+        public Type getThrowsDefault() { return throwsDefault; }
+
+        public void setThrowsDefault(Type throwsDefault) {
+            this.throwsDefault = throwsDefault;
+        }
 
         int rank_field = -1;
 
@@ -1813,7 +1826,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
                             Type lower,
                             WildcardType wildcard,
                             List<TypeMetadata> metadata) {
-            super(tsym, bound, lower, metadata);
+            super(tsym, bound, lower, null, metadata);
             this.wildcard = wildcard;
         }
 

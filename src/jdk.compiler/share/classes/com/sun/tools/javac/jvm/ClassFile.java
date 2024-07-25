@@ -52,7 +52,7 @@ import com.sun.tools.javac.util.Name;
  *     typevar    ::= 'T' name ';'
  *     typeargs   ::= '<' type { type } '>'
  *     typeparams ::= '<' typeparam { typeparam } '>'
- *     typeparam  ::= name ':' type
+ *     typeparam  ::= ['!'] name ':' type ['=' type
  *  }</pre>
  *  <p>This class defines constants used in class files as well
  *  as routines to convert between internal ``.'' and external ``/''

@@ -76,4 +76,16 @@ public interface TypeVariable extends ReferenceType {
      * @jls 18.1.3. Bounds
      */
     TypeMirror getLowerBound();
+
+    /**
+     * TBD
+     * @return TBD
+     */
+    boolean isThrowsParam();
+
+    /**
+     * TBD
+     * @return TBD
+     */
+    TypeMirror getThrowsDefault();
 }

@@ -798,14 +798,29 @@ public class Attr extends JCTree.Visitor {
             TypeVar a = (TypeVar)tvar.type;
             a.tsym.flags_field |= UNATTRIBUTED;
             a.setUpperBound(Type.noType);
-            if (!tvar.bounds.isEmpty()) {
+            if (!tvar.bounds.isEmpty() || tvar.throwsParam) {
                 boolean oldIsTypeVar = env.info.isTypeVar;
                 env.info.isTypeVar = true;
                 try {
-                    List<Type> bounds = List.of(attribType(tvar.bounds.head, env));
-                    for (JCExpression bound : tvar.bounds.tail)
-                        bounds = bounds.prepend(attribType(bound, env));
-                    types.setBounds(a, bounds.reverse(), tvar.union);
+                    if (!tvar.bounds.isEmpty()) {
+                        List<Type> bounds = List.of(attribType(tvar.bounds.head, env));
+                        for (JCExpression bound : tvar.bounds.tail)
+                            bounds = bounds.prepend(attribType(bound, env));
+                        types.setBounds(a, bounds.reverse(), tvar.union);
+                        if (tvar.throwsParam) // bounds must be Throwable
+                            chk.checkType(tvar.bounds.head, a.getUpperBound(), syms.throwableType);
+                    } else {
+                        Assert.check(tvar.throwsParam);
+                        a.setUpperBound(types.defaultUpperBoundForThrows());
+                    }
+
+                    if (tvar.throwsParam) {
+                        a.setThrowsDefault(tvar.throwsDefault != null
+                                ? attribType(tvar.throwsDefault, env)
+                                : syms.runtimeExceptionType);
+                        // default must conform to bounds
+                        chk.checkType(tvar.throwsDefault, a.getThrowsDefault(), a.getUpperBound());
+                    }
                 } finally {
                     env.info.isTypeVar = oldIsTypeVar;
                 }
@@ -2773,7 +2788,7 @@ public class Attr extends JCTree.Visitor {
         }
 
         clazztype = chk.checkDiamond(tree, clazztype);
-        types.completeDefaultThrowable(clazztype);
+        types.completeDefaultThrowsParams(clazztype);
         chk.validate(clazz, localEnv);
         if (tree.encl != null) {
             // We have to work in this case to store
@@ -3107,7 +3122,7 @@ public class Attr extends JCTree.Visitor {
             owntype = new ArrayType(elemtype, syms.arrayClass);
         }
         if (!types.isReifiable(elemtype)) {
-            if (!types.isAllParamsThrowable(elemtype))
+            if (!types.isAllParamsThrows(elemtype))
                 log.error(tree.pos(), Errors.GenericArrayCreation);
             else
                 chk.warnUnchecked(tree.pos(), Warnings.UncheckedCastToType);
@@ -4377,11 +4392,11 @@ public class Attr extends JCTree.Visitor {
 
         if (sym.kind == TYP
                 && sym.type.hasTag(CLASS)
-                && types.isAllParamsThrowable(sym.type)) {
+                && types.isAllParamsThrows(sym.type)) {
             boolean wildcard = env.info.isArgument || env.info.isTypeVar || (!env.baseClause && !env.info.isNewClass);
             Type owntype = sym.type;
             List<Type> formals = owntype.tsym.type.getTypeArguments();
-            var actuals = types.defaultThrowable(formals, List.nil(), wildcard);
+            var actuals = types.defaultThrowsParams(formals, List.nil(), wildcard);
             owntype = typeApply(tree, tree, owntype, actuals);
             result = check(tree, owntype, KindSelector.TYP, resultInfo);
         } else
@@ -5081,7 +5096,7 @@ public class Attr extends JCTree.Visitor {
                 actuals = formals;
 
             boolean wildcard = env.info.isArgument || env.info.isTypeVar || (!env.baseClause && !env.info.isNewClass);
-            var actuals1 = types.defaultThrowable(formals, actuals, wildcard);
+            var actuals1 = types.defaultThrowsParams(formals, actuals, wildcard);
             // if (actuals.length() != formals.length()) {
             //     if (actuals1.length() != formals.length()) {
             //         System.out.println("-- " + log.currentSource().getFile().getName() + "@" + log.currentSource().getLineNumber(tree.getPreferredPosition()));
@@ -5249,6 +5264,8 @@ public class Attr extends JCTree.Visitor {
         }
 
         if (bounds.length() == 0) {
+            if (tree instanceof JCTypeParameter pv && pv.throwsParam)
+                return types.defaultUpperBoundForThrows();
             return syms.objectType;
         } else if (bounds.length() == 1) {
             return bounds.head.type;

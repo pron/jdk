@@ -735,6 +735,12 @@ public class ClassReader {
     /** Convert (implicit) signature to type parameter.
      */
     Type sigToTypeParam() {
+        boolean throwsParam = false;
+        if (signature[sigp] == '!') {
+            throwsParam = true;
+            sigp++;
+        }
+
         int start = sigp;
         while (signature[sigp] != ':') sigp++;
         Name name = readName(signature, start, sigp - start);
@@ -765,6 +771,11 @@ public class ClassReader {
             else
                 types.setBounds(tvar, bounds.reverse(), allInterfaces, false);
         }
+        if (throwsParam) {
+            if (signature[sigp] != '=')
+                throw badClassFile("throws.param.default.expected"); // TODO
+            sigp++;
+            tvar.setThrowsDefault(sigToType());}
         return tvar;
     }
 

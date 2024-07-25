@@ -2934,12 +2934,17 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         /** bounds */
         public List<JCExpression> bounds;
         public final boolean union; // intersection if false
+        public final boolean throwsParam;
+        public final JCExpression throwsDefault;
+
         /** type annotations on type parameter */
         public List<JCAnnotation> annotations;
-        protected JCTypeParameter(Name name, boolean union, List<JCExpression> bounds, List<JCAnnotation> annotations) {
+        protected JCTypeParameter(Name name, boolean union, List<JCExpression> bounds, boolean throwsParam, JCExpression throwsDefault, List<JCAnnotation> annotations) {
             this.name = name;
             this.union = union;
             this.bounds = bounds;
+            this.throwsParam = throwsParam;
+            this.throwsDefault = throwsDefault;
             this.annotations = annotations;
         }
         @Override
