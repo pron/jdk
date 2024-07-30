@@ -51,6 +51,7 @@ import com.sun.tools.javac.comp.Check;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.Env;
 import com.sun.tools.javac.jvm.ClassFile;
+import com.sun.tools.javac.resources.CompilerProperties.Warnings;
 import com.sun.tools.javac.util.*;
 
 import static com.sun.tools.javac.code.BoundKind.*;
@@ -1894,7 +1895,12 @@ public class Types {
                                 && !disjointTypes(aLow.allparams(), lowSub.allparams())) {
                                 if (upcast ? giveWarning(a, b) :
                                     giveWarning(b, a))
-                                    warnStack.head.warn(LintCategory.UNCHECKED);
+                                    if (!upcast && !warnStack.isEmpty() && warnStack.head != noWarnings
+                                            && differOnlyByThrows(b ,a)) {
+                                        if (warnStack.head.pos() != null)
+                                            chk.warnUnchecked(warnStack.head.pos(), Warnings.UncheckedCastToType);
+                                    } else
+                                        warnStack.head.warn(LintCategory.UNCHECKED);
                                 return true;
                             }
                         }
@@ -2140,6 +2146,10 @@ public class Types {
                         return true;
 
                     for (Type param : t.allparams()) {
+                        if (param instanceof WildcardType w && w.bound != null && w.bound.isThrowsParam()
+                            && isSameType(w.getExtendsBound(), w.bound.getThrowsDefault())
+                            && isSameType(w.getExtendsBound(), w.bound.getUpperBound()))
+                                continue;
                         if (!param.isUnbound())
                             return false;
                     }
@@ -3484,8 +3494,6 @@ public class Types {
                 }
             }
     // </editor-fold>
-
-    /// ZZZZ BEGIN;
 
     private boolean isThrowsParam(Type t) {
         TypeVar tv = (TypeVar)t;
@@ -4938,6 +4946,34 @@ public class Types {
             }
         }
         return false;
+    }
+
+    private boolean differOnlyByThrows(Type from, Type to) {
+        List<Type> bounds = to.isCompound() ?
+                directSupertypes(to) : List.of(to);
+        for (Type b : bounds) {
+            Type subFrom = asSub(from, b.tsym);
+            if (b.isParameterized() && subFrom != null
+                    && differOnlyByThrows(b.allparams(), subFrom.allparams())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean differOnlyByThrows(List<Type> ts, List<Type> ss) {
+        while (ts.nonEmpty() && ss.nonEmpty()) {
+            if (!ts.head.hasTag(WILDCARD) || !ss.head.hasTag(WILDCARD))
+                return false;
+            WildcardType a = (WildcardType)ts.head;
+            WildcardType b = (WildcardType)ss.head;
+            if (!(containsType(a, b)
+                || (a.bound.isThrowsParam() && isSubtype(a.getExtendsBound(), b.bound.getUpperBound()))))
+                break;
+            ts = ts.tail;
+            ss = ss.tail;
+        }
+        return ts.isEmpty() && ss.isEmpty();
     }
 
     private List<Type> superClosure(Type t, Type s) {

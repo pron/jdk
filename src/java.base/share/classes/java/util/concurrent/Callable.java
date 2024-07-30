@@ -53,14 +53,15 @@ package java.util.concurrent;
  * @since 1.5
  * @author Doug Lea
  * @param <V> the result type of method {@code call}
+ * @param <X> the exception type thrown by method {@code call}
  */
 @FunctionalInterface
-public interface Callable<V> {
+public interface Callable<V, throws X = Exception> {
     /**
      * Computes a result, or throws an exception if unable to do so.
      *
      * @return computed result
-     * @throws Exception if unable to compute a result
+     * @throws X if unable to compute a result
      */
-    V call() throws Exception;
+    V call() throws X;
 }
