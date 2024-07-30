@@ -406,12 +406,13 @@ public final class ScopedValue<T> {
          *
          * @param op the operation to run
          * @param <R> the type of the result of the operation
+         * @param <X> the exception type
          * @return the result
          * @throws StructureViolationException if a structure violation is detected
-         * @throws Exception if {@code op} completes with an exception
+         * @throws X if {@code op} completes with an exception
          * @see ScopedValue#callWhere(ScopedValue, Object, Callable)
          */
-        public <R> R call(Callable<? extends R> op) throws Exception {
+        public <R, throws X> R call(Callable<? extends R, ? extends X> op) throws X {
             Objects.requireNonNull(op);
             Cache.invalidate(bitmask);
             var prevSnapshot = scopedValueBindings();
@@ -436,28 +437,30 @@ public final class ScopedValue<T> {
          *
          * @param op the operation to run
          * @param <R> the type of the result of the operation
+         * @param <X> the type of the thrown exception
          * @return the result
          * @throws StructureViolationException if a structure violation is detected
+         * @throws X TBD
          * @see ScopedValue#getWhere(ScopedValue, Object, Supplier)
          */
-        public <R> R get(Supplier<? extends R> op) {
+        public <R, throws X> R get(Supplier<? extends R, ? extends X> op) throws X {
             Objects.requireNonNull(op);
             Cache.invalidate(bitmask);
             var prevSnapshot = scopedValueBindings();
             var newSnapshot = new Snapshot(this, prevSnapshot);
-            return runWith(newSnapshot, new CallableAdapter<R>(op));
+            return runWith(newSnapshot, new CallableAdapter<>(op));
         }
 
         // A lightweight adapter from Supplier to Callable. This is
         // used here to create the Callable which is passed to
         // Carrier#call() in this thread because it needs neither
         // runtime bytecode generation nor any release fencing.
-        private static final class CallableAdapter<V> implements Callable<V> {
-            private /*non-final*/ Supplier<? extends V> s;
-            CallableAdapter(Supplier<? extends V> s) {
+        private static final class CallableAdapter<V, throws X> implements Callable<V, X> {
+            private /*non-final*/ Supplier<? extends V, ? extends X> s;
+            CallableAdapter(Supplier<? extends V, ? extends X> s) {
                 this.s = s;
             }
-            public V call() {
+            public V call() throws X{
                 return s.get();
             }
         }
@@ -471,7 +474,7 @@ public final class ScopedValue<T> {
          */
         @Hidden
         @ForceInline
-        private <R> R runWith(Snapshot newSnapshot, Callable<R> op) {
+        private <R, throws X> R runWith(Snapshot newSnapshot, Callable<R, X> op) throws X {
             try {
                 Thread.setScopedValueBindings(newSnapshot);
                 Thread.ensureMaterializedForStackWalk(newSnapshot);
@@ -613,13 +616,15 @@ public final class ScopedValue<T> {
      * @param value the value, can be {@code null}
      * @param <T> the type of the value
      * @param <R> the result type
+     * @param <X> the exception type
      * @param op the operation to call
      * @return the result
+     * @throws X TBD
      * @throws StructureViolationException if a structure violation is detected
      */
-    public static <T, R> R getWhere(ScopedValue<T> key,
+    public static <T, R, throws X> R getWhere(ScopedValue<T> key,
                                     T value,
-                                    Supplier<? extends R> op) {
+                                    Supplier<? extends R, ? extends X> op) throws X {
         return where(key, value).get(op);
     }
 
