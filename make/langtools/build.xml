@@ -273,7 +273,8 @@
         <javac source="${javac.build.source}"
                target="${javac.build.target}"
                srcdir="${make.idea.dir}/template/src"
-               destdir=".idea/classes"/>
+               destdir=".idea/classes"
+               includeantruntime="false"/>
     </target>
 
     <!--
