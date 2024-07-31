@@ -1942,8 +1942,8 @@ final class Nodes {
 
         @SuppressWarnings("serial")
         static final class OfInt<P_IN>
-                extends SizedCollectorTask<P_IN, Integer, Sink.OfInt<RuntimeException>, OfInt<P_IN>>
-                implements Sink.OfInt<RuntimeException> {
+                extends SizedCollectorTask<P_IN, Integer, Sink.OfInt, OfInt<P_IN>>
+                implements Sink.OfInt {
             private final int[] array;
 
             OfInt(Spliterator<P_IN, ?> spliterator, PipelineHelper<Integer> helper, int[] array) {
@@ -1974,8 +1974,8 @@ final class Nodes {
 
         @SuppressWarnings("serial")
         static final class OfLong<P_IN>
-                extends SizedCollectorTask<P_IN, Long, Sink.OfLong<RuntimeException>, OfLong<P_IN>>
-                implements Sink.OfLong<RuntimeException> {
+                extends SizedCollectorTask<P_IN, Long, Sink.OfLong, OfLong<P_IN>>
+                implements Sink.OfLong {
             private final long[] array;
 
             OfLong(Spliterator<P_IN, ?> spliterator, PipelineHelper<Long> helper, long[] array) {
@@ -2006,8 +2006,8 @@ final class Nodes {
 
         @SuppressWarnings("serial")
         static final class OfDouble<P_IN>
-                extends SizedCollectorTask<P_IN, Double, Sink.OfDouble<RuntimeException>, OfDouble<P_IN>>
-                implements Sink.OfDouble<RuntimeException> {
+                extends SizedCollectorTask<P_IN, Double, Sink.OfDouble, OfDouble<P_IN>>
+                implements Sink.OfDouble {
             private final double[] array;
 
             OfDouble(Spliterator<P_IN, ?> spliterator, PipelineHelper<Double> helper, double[] array) {

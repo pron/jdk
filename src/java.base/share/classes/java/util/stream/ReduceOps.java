@@ -286,7 +286,7 @@ final class ReduceOps {
     makeInt(int identity, IntBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Integer, Integer, ReducingSink>, Sink.OfInt<RuntimeException> {
+                implements AccumulatingSink<Integer, Integer, ReducingSink>, Sink.OfInt {
             private int state;
 
             @Override
@@ -328,7 +328,7 @@ final class ReduceOps {
     makeInt(IntBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Integer, OptionalInt, ReducingSink>, Sink.OfInt<RuntimeException> {
+                implements AccumulatingSink<Integer, OptionalInt, ReducingSink>, Sink.OfInt {
             private boolean empty;
             private int state;
 
@@ -386,7 +386,7 @@ final class ReduceOps {
         Objects.requireNonNull(accumulator);
         Objects.requireNonNull(combiner);
         class ReducingSink extends Box<R>
-                implements AccumulatingSink<Integer, R, ReducingSink>, Sink.OfInt<RuntimeException> {
+                implements AccumulatingSink<Integer, R, ReducingSink>, Sink.OfInt {
             @Override
             public void begin(long size) {
                 state = supplier.get();
@@ -462,7 +462,7 @@ final class ReduceOps {
     makeLong(long identity, LongBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Long, Long, ReducingSink>, Sink.OfLong<RuntimeException> {
+                implements AccumulatingSink<Long, Long, ReducingSink>, Sink.OfLong {
             private long state;
 
             @Override
@@ -504,7 +504,7 @@ final class ReduceOps {
     makeLong(LongBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Long, OptionalLong, ReducingSink>, Sink.OfLong<RuntimeException> {
+                implements AccumulatingSink<Long, OptionalLong, ReducingSink>, Sink.OfLong {
             private boolean empty;
             private long state;
 
@@ -562,7 +562,7 @@ final class ReduceOps {
         Objects.requireNonNull(accumulator);
         Objects.requireNonNull(combiner);
         class ReducingSink extends Box<R>
-                implements AccumulatingSink<Long, R, ReducingSink>, Sink.OfLong<RuntimeException> {
+                implements AccumulatingSink<Long, R, ReducingSink>, Sink.OfLong {
             @Override
             public void begin(long size) {
                 state = supplier.get();
@@ -638,7 +638,7 @@ final class ReduceOps {
     makeDouble(double identity, DoubleBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Double, Double, ReducingSink>, Sink.OfDouble<RuntimeException> {
+                implements AccumulatingSink<Double, Double, ReducingSink>, Sink.OfDouble {
             private double state;
 
             @Override
@@ -680,7 +680,7 @@ final class ReduceOps {
     makeDouble(DoubleBinaryOperator operator) {
         Objects.requireNonNull(operator);
         class ReducingSink
-                implements AccumulatingSink<Double, OptionalDouble, ReducingSink>, Sink.OfDouble<RuntimeException> {
+                implements AccumulatingSink<Double, OptionalDouble, ReducingSink>, Sink.OfDouble {
             private boolean empty;
             private double state;
 
@@ -738,7 +738,7 @@ final class ReduceOps {
         Objects.requireNonNull(accumulator);
         Objects.requireNonNull(combiner);
         class ReducingSink extends Box<R>
-                implements AccumulatingSink<Double, R, ReducingSink>, Sink.OfDouble<RuntimeException> {
+                implements AccumulatingSink<Double, R, ReducingSink>, Sink.OfDouble {
             @Override
             public void begin(long size) {
                 state = supplier.get();
@@ -832,21 +832,21 @@ final class ReduceOps {
             }
         }
 
-        static final class OfInt extends CountingSink<Integer> implements Sink.OfInt<RuntimeException> {
+        static final class OfInt extends CountingSink<Integer> implements Sink.OfInt {
             @Override
             public void accept(int t) {
                 count++;
             }
         }
 
-        static final class OfLong extends CountingSink<Long> implements Sink.OfLong<RuntimeException> {
+        static final class OfLong extends CountingSink<Long> implements Sink.OfLong {
             @Override
             public void accept(long t) {
                 count++;
             }
         }
 
-        static final class OfDouble extends CountingSink<Double> implements Sink.OfDouble<RuntimeException> {
+        static final class OfDouble extends CountingSink<Double> implements Sink.OfDouble {
             @Override
             public void accept(double t) {
                 count++;

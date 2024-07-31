@@ -557,15 +557,15 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
     }
 
     @Override
-    final <P_IN, XIN extends Exception, XOUT extends Exception, S extends Sink<E_OUT, ? extends XOUT>>
-    S wrapAndCopyInto(S sink, Spliterator<P_IN, XIN> spliterator) throws XIN, XOUT, X {
+    final <P_IN, XIN extends Exception, S extends Sink<E_OUT>>
+    S wrapAndCopyInto(S sink, Spliterator<P_IN, XIN> spliterator) throws XIN, X {
         copyInto(wrapSink(Objects.requireNonNull(sink)), spliterator);
         return sink;
     }
 
     @Override
-    final <P_IN, XIN extends Exception, XOUT extends Exception>
-    void copyInto(Sink<P_IN, XOUT> wrappedSink, Spliterator<P_IN, XIN> spliterator) throws XIN, XOUT {
+    final <P_IN, XIN extends Exception>
+    void copyInto(Sink<P_IN> wrappedSink, Spliterator<P_IN, XIN> spliterator) throws XIN {
         Objects.requireNonNull(wrappedSink);
 
         try {
@@ -583,8 +583,8 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
 
     @Override
     @SuppressWarnings("unchecked")
-    final <P_IN, XIN extends Exception, XOUT extends Exception>
-    boolean copyIntoWithCancel(Sink<P_IN, XOUT> wrappedSink, Spliterator<P_IN, XIN> spliterator) throws XIN, XOUT {
+    final <P_IN, XIN extends Exception>
+    boolean copyIntoWithCancel(Sink<P_IN> wrappedSink, Spliterator<P_IN, XIN> spliterator) throws XIN {
         @SuppressWarnings({"rawtypes","unchecked"})
         AbstractPipeline p = AbstractPipeline.this;
         while (p.depth > 0) {
@@ -612,8 +612,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
 
     @Override
     @SuppressWarnings("unchecked")
-    final <P_IN, X1 extends Exception, X2 extends X1|X>
-    Sink<P_IN, ? extends X2> wrapSink(Sink<E_OUT, ? extends X1> sink) {
+    final <P_IN> Sink<P_IN> wrapSink(Sink<E_OUT> sink) {
         Objects.requireNonNull(sink);
 
         for ( @SuppressWarnings("rawtypes") AbstractPipeline p=AbstractPipeline.this; p.depth > 0; p=p.previousStage) {
@@ -763,8 +762,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
      *         each element, and passes the results (if any) to the provided
      *         {@code Sink}.
      */
-    abstract <X1 extends Exception>
-    Sink<E_IN, ? extends X1|X> opWrapSink(int flags, Sink<E_OUT, X1> sink);
+    abstract Sink<E_IN> opWrapSink(int flags, Sink<E_OUT> sink);
 
     /**
      * Performs a parallel evaluation of the operation using the specified

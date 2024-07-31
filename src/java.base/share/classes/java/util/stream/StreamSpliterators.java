@@ -87,7 +87,7 @@ class StreamSpliterators {
          * Sink chain for the downstream stages of the pipeline, ultimately
          * leading to the buffer. Used during partial traversal.
          */
-        Sink<P_IN, ? extends X> bufferSink;
+        Sink<P_IN> bufferSink;
 
         /**
          * A function that advances one element of the spliterator, pushing
@@ -354,7 +354,7 @@ class StreamSpliterators {
         void initPartialTraversalState() {
             SpinedBuffer.OfInt b = new SpinedBuffer.OfInt();
             buffer = b;
-            bufferSink = ph.wrapSink((Sink.OfInt<RuntimeException>) b::accept);
+            bufferSink = ph.wrapSink((Sink.OfInt) b::accept);
             pusher = () -> spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
         }
 
@@ -378,7 +378,7 @@ class StreamSpliterators {
                 Objects.requireNonNull(consumer);
                 init();
 
-                ph.wrapAndCopyInto((Sink.OfInt<RuntimeException>) consumer::accept, spliterator);
+                ph.wrapAndCopyInto((Sink.OfInt) consumer::accept, spliterator);
                 finished = true;
             }
             else {
@@ -412,7 +412,7 @@ class StreamSpliterators {
         void initPartialTraversalState() {
             SpinedBuffer.OfLong b = new SpinedBuffer.OfLong();
             buffer = b;
-            bufferSink = ph.wrapSink((Sink.OfLong<RuntimeException>) b::accept);
+            bufferSink = ph.wrapSink((Sink.OfLong) b::accept);
             pusher = () -> spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
         }
 
@@ -436,7 +436,7 @@ class StreamSpliterators {
                 Objects.requireNonNull(consumer);
                 init();
 
-                ph.wrapAndCopyInto((Sink.OfLong<RuntimeException>) consumer::accept, spliterator);
+                ph.wrapAndCopyInto((Sink.OfLong) consumer::accept, spliterator);
                 finished = true;
             }
             else {
@@ -470,7 +470,7 @@ class StreamSpliterators {
         void initPartialTraversalState() {
             SpinedBuffer.OfDouble b = new SpinedBuffer.OfDouble();
             buffer = b;
-            bufferSink = ph.wrapSink((Sink.OfDouble<RuntimeException>) b::accept);
+            bufferSink = ph.wrapSink((Sink.OfDouble) b::accept);
             pusher = () -> spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
         }
 
@@ -494,7 +494,7 @@ class StreamSpliterators {
                 Objects.requireNonNull(consumer);
                 init();
 
-                ph.wrapAndCopyInto((Sink.OfDouble<RuntimeException>) consumer::accept, spliterator);
+                ph.wrapAndCopyInto((Sink.OfDouble) consumer::accept, spliterator);
                 finished = true;
             }
             else {

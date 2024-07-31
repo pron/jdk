@@ -168,7 +168,7 @@ final class FindOps {
      * @param <T> The type of input element
      * @param <O> The result type, typically an optional type
      */
-    private abstract static class FindSink<T, O, X extends Exception> implements TerminalSink<T, O, X> {
+    private abstract static class FindSink<T, O> implements TerminalSink<T, O> {
         boolean hasValue;
         T value;
 
@@ -205,7 +205,7 @@ final class FindOps {
 
         /** Specialization of {@code FindSink} for int streams */
         static final class OfInt extends FindSink<Integer, OptionalInt>
-                implements Sink.OfInt<RuntimeException> {
+                implements Sink.OfInt {
             @Override
             public void accept(int value) {
                 // Boxing is OK here, since few values will actually flow into the sink
@@ -227,7 +227,7 @@ final class FindOps {
 
         /** Specialization of {@code FindSink} for long streams */
         static final class OfLong extends FindSink<Long, OptionalLong>
-                implements Sink.OfLong<RuntimeException> {
+                implements Sink.OfLong {
             @Override
             public void accept(long value) {
                 // Boxing is OK here, since few values will actually flow into the sink
@@ -249,7 +249,7 @@ final class FindOps {
 
         /** Specialization of {@code FindSink} for double streams */
         static final class OfDouble extends FindSink<Double, OptionalDouble>
-                implements Sink.OfDouble<RuntimeException> {
+                implements Sink.OfDouble {
             @Override
             public void accept(double value) {
                 // Boxing is OK here, since few values will actually flow into the sink

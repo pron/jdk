@@ -131,7 +131,7 @@ final class ForEachOps {
      * @param <T> the output type of the stream pipeline
      */
     abstract static class ForEachOp<T>
-            implements TerminalOp<T, Void>, TerminalSink<T, Void, RuntimeException> {
+            implements TerminalOp<T, Void>, TerminalSink<T, Void> {
         private final boolean ordered;
 
         protected ForEachOp(boolean ordered) {
@@ -187,7 +187,7 @@ final class ForEachOps {
 
         /** Implementation class for {@code IntStream} */
         static final class OfInt extends ForEachOp<Integer>
-                implements Sink.OfInt<RuntimeException> {
+                implements Sink.OfInt {
             final IntConsumer consumer;
 
             OfInt(IntConsumer consumer, boolean ordered) {
@@ -208,7 +208,7 @@ final class ForEachOps {
 
         /** Implementation class for {@code LongStream} */
         static final class OfLong extends ForEachOp<Long>
-                implements Sink.OfLong<RuntimeException> {
+                implements Sink.OfLong {
             final LongConsumer consumer;
 
             OfLong(LongConsumer consumer, boolean ordered) {
@@ -229,7 +229,7 @@ final class ForEachOps {
 
         /** Implementation class for {@code DoubleStream} */
         static final class OfDouble extends ForEachOp<Double>
-                implements Sink.OfDouble<RuntimeException> {
+                implements Sink.OfDouble {
             final DoubleConsumer consumer;
 
             OfDouble(DoubleConsumer consumer, boolean ordered) {
@@ -253,13 +253,13 @@ final class ForEachOps {
     @SuppressWarnings("serial")
     static final class ForEachTask<S, T, X_OUT extends Exception> extends CountedCompleter<Void> {
         private Spliterator<S, ?> spliterator;
-        private final Sink<S, ?> sink;
+        private final Sink<S> sink;
         private final PipelineHelper<T, X_OUT, ?> helper;
         private long targetSize;
 
         ForEachTask(PipelineHelper<T, X_OUT, ?> helper,
                     Spliterator<S, ?> spliterator,
-                    Sink<S, ?> sink) {
+                    Sink<S> sink) {
             super(null);
             this.sink = sink;
             this.helper = helper;
@@ -283,7 +283,7 @@ final class ForEachOps {
                 targetSize = sizeThreshold = AbstractTask.suggestTargetSize(sizeEstimate);
             boolean isShortCircuit = StreamOpFlag.SHORT_CIRCUIT.isKnown(helper.getStreamAndOpFlags());
             boolean forkRight = false;
-            Sink<S, ?> taskSink = sink;
+            Sink<S> taskSink = sink;
             ForEachTask<S, T, X_OUT> task = this;
             try {
                 while (!isShortCircuit || !taskSink.cancellationRequested()) {
@@ -369,7 +369,7 @@ final class ForEachOps {
         private final PipelineHelper<T, X_OUT, ?> helper;
         private Spliterator<S, ?> spliterator;
         private final long targetSize;
-        private final Sink<T, ?> action;
+        private final Sink<T> action;
         private final ForEachOrderedTask<S, T, X_OUT> leftPredecessor;
         private Node<T> node;
 
@@ -386,7 +386,7 @@ final class ForEachOps {
 
         protected ForEachOrderedTask(PipelineHelper<T, X_OUT, ?> helper,
                                      Spliterator<S, ?> spliterator,
-                                     Sink<T, ?> action) {
+                                     Sink<T> action) {
             super(null);
             this.helper = helper;
             this.spliterator = spliterator;

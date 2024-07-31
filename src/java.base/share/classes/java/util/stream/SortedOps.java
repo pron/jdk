@@ -98,7 +98,7 @@ final class SortedOps {
     /**
      * Specialized subtype for sorting reference streams
      */
-    private static final class OfRef<T, X extends Exception> extends ReferencePipeline.StatefulOp<T, X, T, X> {
+    private static final class OfRef<T, X extends Exception> extends ReferencePipeline.StatefulOp<T, X, T, X, RuntimeException> {
         /**
          * Comparator used for sorting
          */
@@ -132,8 +132,7 @@ final class SortedOps {
         }
 
         @Override
-        public <X3 extends Exception>
-        Sink<T, ? extends X3> opWrapSink(int flags, Sink<T, X3> sink) {
+        public Sink<T> opWrapSink(int flags, Sink<T> sink) {
             Objects.requireNonNull(sink);
 
             // If the input is already naturally sorted and this operation
@@ -174,16 +173,15 @@ final class SortedOps {
         }
 
         @Override
-        public <X3 extends Exception>
-        Sink<Integer, ? extends X3> opWrapSink(int flags, Sink<Integer, X3> sink) {
+        public Sink<Integer> opWrapSink(int flags, Sink<Integer> sink) {
             Objects.requireNonNull(sink);
 
             if (StreamOpFlag.SORTED.isKnown(flags))
                 return sink;
             else if (StreamOpFlag.SIZED.isKnown(flags))
-                return new SizedIntSortingSink<>(sink);
+                return new SizedIntSortingSink(sink);
             else
-                return new IntSortingSink<>(sink);
+                return new IntSortingSink(sink);
         }
 
         @Override
@@ -214,16 +212,15 @@ final class SortedOps {
         }
 
         @Override
-        public <X3 extends Exception>
-        Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+        public Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
             Objects.requireNonNull(sink);
 
             if (StreamOpFlag.SORTED.isKnown(flags))
                 return sink;
             else if (StreamOpFlag.SIZED.isKnown(flags))
-                return new SizedLongSortingSink<>(sink);
+                return new SizedLongSortingSink(sink);
             else
-                return new LongSortingSink<>(sink);
+                return new LongSortingSink(sink);
         }
 
         @Override
@@ -254,16 +251,15 @@ final class SortedOps {
         }
 
         @Override
-        public <X3 extends Exception>
-        Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+        public Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
             Objects.requireNonNull(sink);
 
             if (StreamOpFlag.SORTED.isKnown(flags))
                 return sink;
             else if (StreamOpFlag.SIZED.isKnown(flags))
-                return new SizedDoubleSortingSink<>(sink);
+                return new SizedDoubleSortingSink(sink);
             else
-                return new DoubleSortingSink<>(sink);
+                return new DoubleSortingSink(sink);
         }
 
         @Override
@@ -307,13 +303,13 @@ final class SortedOps {
      * occur, in general (not restricted to just sorting), for short-circuiting
      * parallel pipelines.
      */
-    private abstract static class AbstractRefSortingSink<T, X extends Exception> extends Sink.ChainedReference<T, X, T, X> {
+    private abstract static class AbstractRefSortingSink<T> extends Sink.ChainedReference<T, T> {
         protected final Comparator<? super T> comparator;
         // @@@ could be a lazy final value, if/when support is added
         // true if cancellationRequested() has been called
         protected boolean cancellationRequestedCalled;
 
-        AbstractRefSortingSink(Sink<? super T, ? extends X> downstream, Comparator<? super T> comparator) {
+        AbstractRefSortingSink(Sink<? super T> downstream, Comparator<? super T> comparator) {
             super(downstream);
             this.comparator = comparator;
         }
@@ -338,11 +334,11 @@ final class SortedOps {
     /**
      * {@link Sink} for implementing sort on SIZED reference streams.
      */
-    private static final class SizedRefSortingSink<T, X extends Exception> extends AbstractRefSortingSink<T, X> {
+    private static final class SizedRefSortingSink<T> extends AbstractRefSortingSink<T> {
         private T[] array;
         private int offset;
 
-        SizedRefSortingSink(Sink<? super T, ? extends X> sink, Comparator<? super T> comparator) {
+        SizedRefSortingSink(Sink<? super T> sink, Comparator<? super T> comparator) {
             super(sink, comparator);
         }
 
@@ -355,7 +351,7 @@ final class SortedOps {
         }
 
         @Override
-        public void end() throws X {
+        public void end() {
             Arrays.sort(array, 0, offset, comparator);
             downstream.begin(offset);
             if (!cancellationRequestedCalled) {
@@ -379,10 +375,10 @@ final class SortedOps {
     /**
      * {@link Sink} for implementing sort on reference streams.
      */
-    private static final class RefSortingSink<T, X extends Exception> extends AbstractRefSortingSink<T, X> {
+    private static final class RefSortingSink<T> extends AbstractRefSortingSink<T> {
         private ArrayList<T> list;
 
-        RefSortingSink(Sink<? super T, ? extends X> sink, Comparator<? super T> comparator) {
+        RefSortingSink(Sink<? super T> sink, Comparator<? super T> comparator) {
             super(sink, comparator);
         }
 
@@ -394,13 +390,11 @@ final class SortedOps {
         }
 
         @Override
-        public void end() throws X {
+        public void end() {
             list.sort(comparator);
             downstream.begin(list.size());
             if (!cancellationRequestedCalled) {
-                try {
-                    list.forEach(CheckedExceptions.wrap((Consumer<T, ?>)downstream::accept));
-                } catch (RuntimeException rex) { throw CheckedExceptions.<X>unwrap(rex); }
+                list.forEach(CheckedExceptions.wrap((Consumer<T, ?>)downstream::accept));
             }
             else {
                 for (T t : list) {
@@ -421,11 +415,11 @@ final class SortedOps {
     /**
      * Abstract {@link Sink} for implementing sort on int streams.
      */
-    private abstract static class AbstractIntSortingSink<X_OUT extends Exception> extends Sink.ChainedInt<Integer, X_OUT> {
+    private abstract static class AbstractIntSortingSink extends Sink.ChainedInt<Integer> {
         // true if cancellationRequested() has been called
         protected boolean cancellationRequestedCalled;
 
-        AbstractIntSortingSink(Sink<? super Integer, ? extends X_OUT> downstream) {
+        AbstractIntSortingSink(Sink<? super Integer> downstream) {
             super(downstream);
         }
 
@@ -439,11 +433,11 @@ final class SortedOps {
     /**
      * {@link Sink} for implementing sort on SIZED int streams.
      */
-    private static final class SizedIntSortingSink<X_OUT extends Exception> extends AbstractIntSortingSink<X_OUT> {
+    private static final class SizedIntSortingSink extends AbstractIntSortingSink {
         private int[] array;
         private int offset;
 
-        SizedIntSortingSink(Sink<? super Integer, ? extends X_OUT> downstream) {
+        SizedIntSortingSink(Sink<? super Integer> downstream) {
             super(downstream);
         }
 
@@ -455,7 +449,7 @@ final class SortedOps {
         }
 
         @Override
-        public void end() throws X_OUT {
+        public void end() {
             Arrays.sort(array, 0, offset);
             downstream.begin(offset);
             if (!cancellationRequestedCalled) {
@@ -479,10 +473,10 @@ final class SortedOps {
     /**
      * {@link Sink} for implementing sort on int streams.
      */
-    private static final class IntSortingSink<X_OUT extends Exception> extends AbstractIntSortingSink<X_OUT> {
+    private static final class IntSortingSink extends AbstractIntSortingSink {
         private SpinedBuffer.OfInt b;
 
-        IntSortingSink(Sink<? super Integer, ? extends X_OUT> sink) {
+        IntSortingSink(Sink<? super Integer> sink) {
             super(sink);
         }
 
@@ -494,7 +488,7 @@ final class SortedOps {
         }
 
         @Override
-        public void end() throws X_OUT {
+        public void end() {
             int[] ints = b.asPrimitiveArray();
             Arrays.sort(ints);
             downstream.begin(ints.length);
@@ -520,11 +514,11 @@ final class SortedOps {
     /**
      * Abstract {@link Sink} for implementing sort on long streams.
      */
-    private abstract static class AbstractLongSortingSink<X_OUT extends Exception> extends Sink.ChainedLong<Long, X_OUT> {
+    private abstract static class AbstractLongSortingSink extends Sink.ChainedLong<Long> {
         // true if cancellationRequested() has been called
         protected boolean cancellationRequestedCalled;
 
-        AbstractLongSortingSink(Sink<? super Long, ? extends X_OUT> downstream) {
+        AbstractLongSortingSink(Sink<? super Long> downstream) {
             super(downstream);
         }
 
@@ -538,11 +532,11 @@ final class SortedOps {
     /**
      * {@link Sink} for implementing sort on SIZED long streams.
      */
-    private static final class SizedLongSortingSink<X_OUT extends Exception> extends AbstractLongSortingSink<X_OUT> {
+    private static final class SizedLongSortingSink extends AbstractLongSortingSink {
         private long[] array;
         private int offset;
 
-        SizedLongSortingSink(Sink<? super Long, ? extends X_OUT> downstream) {
+        SizedLongSortingSink(Sink<? super Long> downstream) {
             super(downstream);
         }
 
@@ -554,7 +548,7 @@ final class SortedOps {
         }
 
         @Override
-        public void end() throws X_OUT {
+        public void end() {
             Arrays.sort(array, 0, offset);
             downstream.begin(offset);
             if (!cancellationRequestedCalled) {
@@ -578,10 +572,10 @@ final class SortedOps {
     /**
      * {@link Sink} for implementing sort on long streams.
      */
-    private static final class LongSortingSink<X_OUT extends Exception> extends AbstractLongSortingSink<X_OUT> {
+    private static final class LongSortingSink extends AbstractLongSortingSink {
         private SpinedBuffer.OfLong b;
 
-        LongSortingSink(Sink<? super Long, ? extends X_OUT> sink) {
+        LongSortingSink(Sink<? super Long> sink) {
             super(sink);
         }
 
@@ -593,7 +587,7 @@ final class SortedOps {
         }
 
         @Override
-        public void end() throws X_OUT {
+        public void end() {
             long[] longs = b.asPrimitiveArray();
             Arrays.sort(longs);
             downstream.begin(longs.length);
@@ -619,11 +613,11 @@ final class SortedOps {
     /**
      * Abstract {@link Sink} for implementing sort on long streams.
      */
-    private abstract static class AbstractDoubleSortingSink<X_OUT extends Exception> extends Sink.ChainedDouble<Double, X_OUT> {
+    private abstract static class AbstractDoubleSortingSink extends Sink.ChainedDouble<Double> {
         // true if cancellationRequested() has been called
         protected boolean cancellationRequestedCalled;
 
-        AbstractDoubleSortingSink(Sink<? super Double, ? extends X_OUT> downstream) {
+        AbstractDoubleSortingSink(Sink<? super Double> downstream) {
             super(downstream);
         }
 
@@ -637,11 +631,11 @@ final class SortedOps {
     /**
      * {@link Sink} for implementing sort on SIZED double streams.
      */
-    private static final class SizedDoubleSortingSink<X_OUT extends Exception> extends AbstractDoubleSortingSink<X_OUT> {
+    private static final class SizedDoubleSortingSink extends AbstractDoubleSortingSink {
         private double[] array;
         private int offset;
 
-        SizedDoubleSortingSink(Sink<? super Double, ? extends X_OUT> downstream) {
+        SizedDoubleSortingSink(Sink<? super Double> downstream) {
             super(downstream);
         }
 
@@ -653,7 +647,7 @@ final class SortedOps {
         }
 
         @Override
-        public void end() throws X_OUT {
+        public void end() {
             Arrays.sort(array, 0, offset);
             downstream.begin(offset);
             if (!cancellationRequestedCalled) {
@@ -677,10 +671,10 @@ final class SortedOps {
     /**
      * {@link Sink} for implementing sort on double streams.
      */
-    private static final class DoubleSortingSink<X_OUT extends Exception> extends AbstractDoubleSortingSink<X_OUT> {
+    private static final class DoubleSortingSink extends AbstractDoubleSortingSink {
         private SpinedBuffer.OfDouble b;
 
-        DoubleSortingSink(Sink<? super Double, ? extends X_OUT> sink) {
+        DoubleSortingSink(Sink<? super Double> sink) {
             super(sink);
         }
 
@@ -692,7 +686,7 @@ final class SortedOps {
         }
 
         @Override
-        public void end() throws X_OUT {
+        public void end() {
             double[] doubles = b.asPrimitiveArray();
             Arrays.sort(doubles);
             downstream.begin(doubles.length);

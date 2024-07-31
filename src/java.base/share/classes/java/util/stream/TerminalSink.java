@@ -35,4 +35,4 @@ import java.util.function.Supplier;
  *
  * @since 1.8
  */
-interface TerminalSink<T, R, X extends Exception> extends Sink<T, X>, Supplier<R> { }
+interface TerminalSink<T, R> extends Sink<T>, Supplier<R> { }

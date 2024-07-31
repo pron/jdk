@@ -114,7 +114,7 @@ import java.util.function.LongConsumer;
  * @param <T> type of elements for value streams
  * @since 1.8
  */
-interface Sink<T, X extends Exception> extends Consumer<T, X> {
+interface Sink<T> extends Consumer<T, RuntimeException> {
     /**
      * Resets the sink state to receive a fresh data set.  This must be called
      * before sending any data to the sink.  After calling {@link #end()},
@@ -135,7 +135,7 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
      * <p>Prior to this call, the sink must be in the active state, and after
      * this call it is returned to the initial state.
      */
-    default void end() throws X {}
+    default void end() {}
 
     /**
      * Indicates that this {@code Sink} does not wish to receive any more data.
@@ -187,19 +187,15 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
      * {@code accept(int)}.
      */
     @SuppressWarnings("overloads")
-    interface OfInt<X extends Exception> extends Sink<Integer, X>, IntConsumer {
+    interface OfInt extends Sink<Integer>, IntConsumer {
         @Override
         void accept(int value);
 
         @Override
-        default void accept(Integer i) throws X {
+        default void accept(Integer i) {
             if (Tripwire.ENABLED)
                 Tripwire.trip(getClass(), "{0} calling Sink.OfInt.accept(Integer)");
-            try {
-                accept(i.intValue());
-            } catch (RuntimeException ex) {
-                throw CheckedExceptions.<X>unwrap(ex);
-            }
+            accept(i.intValue());
         }
     }
 
@@ -209,19 +205,15 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
      * {@code accept(long)}.
      */
     @SuppressWarnings("overloads")
-    interface OfLong<X extends Exception> extends Sink<Long, X>, LongConsumer {
+    interface OfLong extends Sink<Long>, LongConsumer {
         @Override
         void accept(long value);
 
         @Override
-        default void accept(Long i) throws X {
+        default void accept(Long i) {
             if (Tripwire.ENABLED)
                 Tripwire.trip(getClass(), "{0} calling Sink.OfLong.accept(Long)");
-            try {
-                accept(i.longValue());
-            } catch (RuntimeException ex) {
-                throw CheckedExceptions.<X>unwrap(ex);
-            }
+            accept(i.longValue());
         }
     }
 
@@ -231,19 +223,15 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
      * {@code accept(double)}.
      */
     @SuppressWarnings("overloads")
-    interface OfDouble<X extends Exception> extends Sink<Double, X>, DoubleConsumer {
+    interface OfDouble extends Sink<Double>, DoubleConsumer {
         @Override
         void accept(double value);
 
         @Override
-        default void accept(Double i) throws X {
+        default void accept(Double i) {
             if (Tripwire.ENABLED)
                 Tripwire.trip(getClass(), "{0} calling Sink.OfDouble.accept(Double)");
-            try {
-                accept(i.doubleValue());
-            } catch (RuntimeException ex) {
-                throw CheckedExceptions.<X>unwrap(ex);
-            }
+            accept(i.doubleValue());
         }
     }
 
@@ -256,10 +244,10 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
      * implementation of the {@code accept()} method must call the correct
      * {@code accept()} method on the downstream {@code Sink}.
      */
-    abstract static class ChainedReference<T, X extends Exception, E_OUT, X_OUT extends X> implements Sink<T, X> {
-        protected final Sink<? super E_OUT, ? extends X_OUT> downstream;
+    abstract static class ChainedReference<T, E_OUT> implements Sink<T> {
+        protected final Sink<? super E_OUT> downstream;
 
-        public ChainedReference(Sink<? super E_OUT, ? extends X_OUT> downstream) {
+        public ChainedReference(Sink<? super E_OUT> downstream) {
             this.downstream = Objects.requireNonNull(downstream);
         }
 
@@ -269,7 +257,7 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
         }
 
         @Override
-        public void end() throws X {
+        public void end() {
             downstream.end();
         }
 
@@ -288,10 +276,10 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
      * The implementation of the {@code accept()} method must call the correct
      * {@code accept()} method on the downstream {@code Sink}.
      */
-    abstract static class ChainedInt<E_OUT, X_OUT extends Exception> implements Sink.OfInt<X_OUT> {
-        protected final Sink<? super E_OUT, ? extends X_OUT> downstream;
+    abstract static class ChainedInt<E_OUT> implements Sink.OfInt {
+        protected final Sink<? super E_OUT> downstream;
 
-        public ChainedInt(Sink<? super E_OUT, ? extends X_OUT> downstream) {
+        public ChainedInt(Sink<? super E_OUT> downstream) {
             this.downstream = Objects.requireNonNull(downstream);
         }
 
@@ -301,7 +289,7 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
         }
 
         @Override
-        public void end() throws X_OUT {
+        public void end() {
             downstream.end();
         }
 
@@ -320,10 +308,10 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
      * The implementation of the {@code accept()} method must call the correct
      * {@code accept()} method on the downstream {@code Sink}.
      */
-    abstract static class ChainedLong<E_OUT, X_OUT extends Exception> implements Sink.OfLong<X_OUT> {
-        protected final Sink<? super E_OUT, ? extends X_OUT> downstream;
+    abstract static class ChainedLong<E_OUT> implements Sink.OfLong {
+        protected final Sink<? super E_OUT> downstream;
 
-        public ChainedLong(Sink<? super E_OUT, ? extends X_OUT> downstream) {
+        public ChainedLong(Sink<? super E_OUT> downstream) {
             this.downstream = Objects.requireNonNull(downstream);
         }
 
@@ -333,7 +321,7 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
         }
 
         @Override
-        public void end() throws X_OUT {
+        public void end() {
             downstream.end();
         }
 
@@ -352,10 +340,10 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
      * The implementation of the {@code accept()} method must call the correct
      * {@code accept()} method on the downstream {@code Sink}.
      */
-    abstract static class ChainedDouble<E_OUT, X_OUT extends Exception> implements Sink.OfDouble<X_OUT> {
-        protected final Sink<? super E_OUT, ? extends X_OUT> downstream;
+    abstract static class ChainedDouble<E_OUT> implements Sink.OfDouble {
+        protected final Sink<? super E_OUT> downstream;
 
-        public ChainedDouble(Sink<? super E_OUT, ? extends X_OUT> downstream) {
+        public ChainedDouble(Sink<? super E_OUT> downstream) {
             this.downstream = Objects.requireNonNull(downstream);
         }
 
@@ -365,7 +353,7 @@ interface Sink<T, X extends Exception> extends Consumer<T, X> {
         }
 
         @Override
-        public void end() throws X_OUT {
+        public void end() {
             downstream.end();
         }
 

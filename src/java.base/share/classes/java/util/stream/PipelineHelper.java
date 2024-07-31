@@ -105,8 +105,8 @@ abstract class PipelineHelper<P_OUT, X_OUT extends Exception, X extends Exceptio
      * @param sink the {@code Sink} to receive the results
      * @param spliterator the spliterator describing the source input to process
      */
-    abstract <P_IN, X_IN extends Exception, XOUT extends Exception, S extends Sink<P_OUT, ? extends XOUT>>
-    S wrapAndCopyInto(S sink, Spliterator<P_IN, X_IN> spliterator) throws X_IN, XOUT, X;
+    abstract <P_IN, X_IN extends Exception, S extends Sink<P_OUT>>
+    S wrapAndCopyInto(S sink, Spliterator<P_IN, X_IN> spliterator) throws X_IN, X;
 
     /**
      * Pushes elements obtained from the {@code Spliterator} into the provided
@@ -123,8 +123,8 @@ abstract class PipelineHelper<P_OUT, X_OUT extends Exception, X extends Exceptio
      * @param wrappedSink the destination {@code Sink}
      * @param spliterator the source {@code Spliterator}
      */
-    abstract <P_IN, X_IN extends Exception, XOUT extends Exception>
-    void copyInto(Sink<P_IN, XOUT> wrappedSink, Spliterator<P_IN, X_IN> spliterator) throws X_IN, XOUT;
+    abstract <P_IN, X_IN extends Exception>
+    void copyInto(Sink<P_IN> wrappedSink, Spliterator<P_IN, X_IN> spliterator) throws X_IN;
 
     /**
      * Pushes elements obtained from the {@code Spliterator} into the provided
@@ -141,8 +141,8 @@ abstract class PipelineHelper<P_OUT, X_OUT extends Exception, X extends Exceptio
      * @param spliterator the source {@code Spliterator}
      * @return true if the cancellation was requested
      */
-    abstract <P_IN, X_IN extends Exception, XOUT extends Exception>
-    boolean copyIntoWithCancel(Sink<P_IN, XOUT> wrappedSink, Spliterator<P_IN, X_IN> spliterator) throws X_IN, XOUT;
+    abstract <P_IN, X_IN extends Exception>
+    boolean copyIntoWithCancel(Sink<P_IN> wrappedSink, Spliterator<P_IN, X_IN> spliterator) throws X_IN;
 
     /**
      * Takes a {@code Sink} that accepts elements of the output type of the
@@ -155,7 +155,7 @@ abstract class PipelineHelper<P_OUT, X_OUT extends Exception, X extends Exceptio
      * @return a {@code Sink} that implements the pipeline stages and sends
      *         results to the provided {@code Sink}
      */
-    abstract<P_IN, X1 extends Exception, X2 extends X1|X> Sink<P_IN, ? extends X2> wrapSink(Sink<P_OUT, ? extends X1> sink);
+    abstract<P_IN> Sink<P_IN> wrapSink(Sink<P_OUT> sink);
 
     /**
      *

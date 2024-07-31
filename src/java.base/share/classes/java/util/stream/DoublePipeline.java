@@ -172,8 +172,7 @@ abstract class DoublePipeline<E_IN>
     private <U> Stream<U> mapToObj(DoubleFunction<? extends U> mapper, int opFlags) {
         return new ReferencePipeline.StatelessOp<Double, RuntimeException, U, RuntimeException>(this, StreamShape.DOUBLE_VALUE, opFlags) {
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<U, X3> sink) {
+            Sink<Double> opWrapSink(int flags, Sink<U> sink) {
                 return new Sink.ChainedDouble<>(sink) {
                     @Override
                     public void accept(double t) {
@@ -213,8 +212,7 @@ abstract class DoublePipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.DOUBLE_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
                 return new Sink.ChainedDouble<>(sink) {
                     @Override
                     public void accept(double t) {
@@ -237,9 +235,8 @@ abstract class DoublePipeline<E_IN>
         return new IntPipeline.StatelessOp<>(this, StreamShape.DOUBLE_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Integer, X3> sink) {
-                return new Sink.ChainedDouble<Integer, X3>(sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Integer> sink) {
+                return new Sink.ChainedDouble<Integer>(sink) {
                     @Override
                     public void accept(double t) {
                         downstream.accept(mapper.applyAsInt(t));
@@ -255,9 +252,8 @@ abstract class DoublePipeline<E_IN>
         return new LongPipeline.StatelessOp<>(this, StreamShape.DOUBLE_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
-                return new Sink.ChainedDouble<Long, X3>(sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Long> sink) {
+                return new Sink.ChainedDouble<Long>(sink) {
                     @Override
                     public void accept(double t) {
                         downstream.accept(mapper.applyAsLong(t));
@@ -273,15 +269,14 @@ abstract class DoublePipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.DOUBLE_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
                 final DoubleConsumer fastPath =
                         isShortCircuitingPipeline()
                                 ? null
                                 : (sink instanceof DoubleConsumer dc)
                                 ? dc
                                 : sink::accept;
-                final class FlatMap implements Sink.OfDouble<RuntimeException>, DoublePredicate {
+                final class FlatMap implements Sink.OfDouble, DoublePredicate {
                     boolean cancel;
 
                     @Override public void begin(long size) { sink.begin(-1); }
@@ -328,8 +323,7 @@ abstract class DoublePipeline<E_IN>
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
 
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
                 return new Sink.ChainedDouble<>(sink) {
 
                     @Override
@@ -353,8 +347,7 @@ abstract class DoublePipeline<E_IN>
             return this;
         return new StatelessOp<>(this, StreamShape.DOUBLE_VALUE, StreamOpFlag.NOT_ORDERED) {
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
                 return sink;
             }
         };
@@ -366,8 +359,7 @@ abstract class DoublePipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.DOUBLE_VALUE,
                 StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
                 return new Sink.ChainedDouble<>(sink) {
                     @Override
                     public void begin(long size) {
@@ -390,8 +382,7 @@ abstract class DoublePipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.DOUBLE_VALUE,
                 0) {
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
                 return new Sink.ChainedDouble<>(sink) {
                     @Override
                     public void accept(double t) {
@@ -634,8 +625,7 @@ abstract class DoublePipeline<E_IN>
         }
 
         @Override
-        final <X3 extends Exception>
-        Sink<E_IN, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+        final Sink<E_IN> opWrapSink(int flags, Sink<Double> sink) {
             throw new UnsupportedOperationException();
         }
 

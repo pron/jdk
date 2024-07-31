@@ -182,9 +182,8 @@ final class SliceOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<T, ? extends X3> opWrapSink(int flags, Sink<T, X3> sink) {
-                return new Sink.ChainedReference<T, X3, T, X3>(sink) {
+            Sink<T> opWrapSink(int flags, Sink<T> sink) {
+                return new Sink.ChainedReference<T, T>(sink) {
                     long n = skip;
                     long m = normalizedLimit;
 
@@ -194,7 +193,7 @@ final class SliceOps {
                     }
 
                     @Override
-                    public void accept(T t) throws X3 {
+                    public void accept(T t) {
                         if (n == 0) {
                             if (m > 0) {
                                 m--;
@@ -298,8 +297,7 @@ final class SliceOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<Integer, ? extends X3> opWrapSink(int flags, Sink<Integer, X3> sink) {
+            Sink<Integer> opWrapSink(int flags, Sink<Integer> sink) {
                 return new Sink.ChainedInt<>(sink) {
                     long n = skip;
                     long m = normalizedLimit;
@@ -414,8 +412,7 @@ final class SliceOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
                 return new Sink.ChainedLong<>(sink) {
                     long n = skip;
                     long m = normalizedLimit;
@@ -530,8 +527,7 @@ final class SliceOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
                 return new Sink.ChainedDouble<>(sink) {
                     long n = skip;
                     long m = normalizedLimit;
@@ -620,7 +616,7 @@ final class SliceOps {
                                    ? op.exactOutputSizeIfKnown(spliterator)
                                    : -1;
                 final Node.Builder<P_OUT> nb = op.makeNodeBuilder(sizeIfKnown, generator);
-                Sink<P_OUT, ?> opSink = op.opWrapSink(helper.getStreamAndOpFlags(), nb);
+                Sink<P_OUT> opSink = op.opWrapSink(helper.getStreamAndOpFlags(), nb);
                 helper.copyIntoWithCancel(helper.wrapSink(opSink), spliterator);
                 // There is no need to truncate since the op performs the
                 // skipping and limiting of elements
@@ -629,7 +625,7 @@ final class SliceOps {
             else {
                 final Node.Builder<P_OUT> nb = op.makeNodeBuilder(-1, generator);
                 if (targetOffset == 0) { // limit only
-                    Sink<P_OUT, ?> opSink = op.opWrapSink(helper.getStreamAndOpFlags(), nb);
+                    Sink<P_OUT> opSink = op.opWrapSink(helper.getStreamAndOpFlags(), nb);
                     helper.copyIntoWithCancel(helper.wrapSink(opSink), spliterator);
                 }
                 else {

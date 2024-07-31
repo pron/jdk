@@ -109,7 +109,7 @@ final class MatchOps {
                                                        MatchKind matchKind) {
         Objects.requireNonNull(predicate);
         Objects.requireNonNull(matchKind);
-        class MatchSink extends BooleanTerminalSink<Integer> implements Sink.OfInt<RuntimeException> {
+        class MatchSink extends BooleanTerminalSink<Integer> implements Sink.OfInt {
             MatchSink() {
                 super(matchKind);
             }
@@ -138,7 +138,7 @@ final class MatchOps {
                                                      MatchKind matchKind) {
         Objects.requireNonNull(predicate);
         Objects.requireNonNull(matchKind);
-        class MatchSink extends BooleanTerminalSink<Long> implements Sink.OfLong<RuntimeException> {
+        class MatchSink extends BooleanTerminalSink<Long> implements Sink.OfLong {
 
             MatchSink() {
                 super(matchKind);
@@ -168,7 +168,7 @@ final class MatchOps {
                                                          MatchKind matchKind) {
         Objects.requireNonNull(predicate);
         Objects.requireNonNull(matchKind);
-        class MatchSink extends BooleanTerminalSink<Double> implements Sink.OfDouble<RuntimeException> {
+        class MatchSink extends BooleanTerminalSink<Double> implements Sink.OfDouble {
 
             MatchSink() {
                 super(matchKind);

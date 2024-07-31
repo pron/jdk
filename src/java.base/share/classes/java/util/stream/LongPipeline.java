@@ -173,9 +173,8 @@ abstract class LongPipeline<E_IN>
     private <U> Stream<U> mapToObj(LongFunction<? extends U> mapper, int opFlags) {
         return new ReferencePipeline.StatelessOp<Long, RuntimeException, U, RuntimeException>(this, StreamShape.LONG_VALUE, opFlags) {
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<U, X3> sink) {
-                return new Sink.ChainedLong<U, X3>(sink) {
+            Sink<Long> opWrapSink(int flags, Sink<U> sink) {
+                return new Sink.ChainedLong<U>(sink) {
                     @Override
                     public void accept(long t) {
                         try {
@@ -207,9 +206,8 @@ abstract class LongPipeline<E_IN>
     public final DoubleStream asDoubleStream() {
         return new DoublePipeline.StatelessOp<>(this, StreamShape.LONG_VALUE, StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
-                return new Sink.ChainedLong<Double, X3>(sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Double> sink) {
+                return new Sink.ChainedLong<Double>(sink) {
                     @Override
                     public void accept(long t) {
                         downstream.accept((double) t);
@@ -230,9 +228,8 @@ abstract class LongPipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
-                return new Sink.ChainedLong<Long, X3>(sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
+                return new Sink.ChainedLong<Long>(sink) {
                     @Override
                     public void accept(long t) {
                         downstream.accept(mapper.applyAsLong(t));
@@ -254,9 +251,8 @@ abstract class LongPipeline<E_IN>
         return new IntPipeline.StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Integer, X3> sink) {
-                return new Sink.ChainedLong<Integer, X3>(sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Integer> sink) {
+                return new Sink.ChainedLong<Integer>(sink) {
                     @Override
                     public void accept(long t) {
                         downstream.accept(mapper.applyAsInt(t));
@@ -272,8 +268,7 @@ abstract class LongPipeline<E_IN>
         return new DoublePipeline.StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Double> sink) {
                 return new Sink.ChainedLong<>(sink) {
                     @Override
                     public void accept(long t) {
@@ -290,15 +285,14 @@ abstract class LongPipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
                 final LongConsumer fastPath =
                         isShortCircuitingPipeline()
                                 ? null
                                 : (sink instanceof LongConsumer lc)
                                 ? lc
                                 : sink::accept;
-                final class FlatMap implements Sink.OfLong<RuntimeException>, LongPredicate {
+                final class FlatMap implements Sink.OfLong, LongPredicate {
                     boolean cancel;
 
                     @Override public void begin(long size) { sink.begin(-1); }
@@ -344,8 +338,7 @@ abstract class LongPipeline<E_IN>
         return new LongPipeline.StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
                 return new Sink.ChainedLong<>(sink) {
 
                     @Override
@@ -369,8 +362,7 @@ abstract class LongPipeline<E_IN>
             return this;
         return new StatelessOp<>(this, StreamShape.LONG_VALUE, StreamOpFlag.NOT_ORDERED) {
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
                 return sink;
             }
         };
@@ -382,8 +374,7 @@ abstract class LongPipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
                 return new Sink.ChainedLong<>(sink) {
                     @Override
                     public void begin(long size) {
@@ -406,8 +397,7 @@ abstract class LongPipeline<E_IN>
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 0) {
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
                 return new Sink.ChainedLong<>(sink) {
                     @Override
                     public void accept(long t) {
@@ -611,8 +601,7 @@ abstract class LongPipeline<E_IN>
         }
 
         @Override
-        final <X3 extends Exception>
-        Sink<E_IN, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+        final Sink<E_IN> opWrapSink(int flags, Sink<Long> sink) {
             throw new UnsupportedOperationException();
         }
 

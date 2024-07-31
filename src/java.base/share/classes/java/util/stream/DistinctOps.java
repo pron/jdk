@@ -116,14 +116,13 @@ final class DistinctOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<T, ? extends X3> opWrapSink(int flags, Sink<T, X3> sink) {
+            Sink<T> opWrapSink(int flags, Sink<T> sink) {
                 Objects.requireNonNull(sink);
 
                 if (StreamOpFlag.DISTINCT.isKnown(flags)) {
                     return sink;
                 } else if (StreamOpFlag.SORTED.isKnown(flags)) {
-                    return new Sink.ChainedReference<T, X3, T, X3>(sink) {
+                    return new Sink.ChainedReference<T, T>(sink) {
                         boolean seenNull;
                         T lastSeen;
 
@@ -135,14 +134,14 @@ final class DistinctOps {
                         }
 
                         @Override
-                        public void end() throws X3 {
+                        public void end() {
                             seenNull = false;
                             lastSeen = null;
                             downstream.end();
                         }
 
                         @Override
-                        public void accept(T t) throws X3 {
+                        public void accept(T t) {
                             if (t == null) {
                                 if (!seenNull) {
                                     seenNull = true;
@@ -154,7 +153,7 @@ final class DistinctOps {
                         }
                     };
                 } else {
-                    return new Sink.ChainedReference<T, X3, T, X3>(sink) {
+                    return new Sink.ChainedReference<T, T>(sink) {
                         Set<T> seen;
 
                         @Override
@@ -164,13 +163,13 @@ final class DistinctOps {
                         }
 
                         @Override
-                        public void end() throws X3 {
+                        public void end() {
                             seen = null;
                             downstream.end();
                         }
 
                         @Override
-                        public void accept(T t) throws X3 {
+                        public void accept(T t) {
                             if (seen.add(t)) {
                                 downstream.accept(t);
                             }

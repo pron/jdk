@@ -130,15 +130,15 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
     }
 
 
-    static final class GatherSink<T, X extends Exception, A, R, X_OUT extends X> implements Sink<T, X>, Gatherer.Downstream<R> {
-        private final Sink<R, ?> sink;
+    static final class GatherSink<T, X extends Exception, A, R, X_OUT extends X> implements Sink<T>, Gatherer.Downstream<R> {
+        private final Sink<R> sink;
         private final Gatherer<T, A, R, X> gatherer;
         private final Integrator<A, T, R> integrator; // Optimization: reuse
         private A state;
         private boolean proceed = true;
         private boolean downstreamProceed = true;
 
-        GatherSink(Gatherer<T, A, R, X> gatherer, Sink<R, ?> sink) {
+        GatherSink(Gatherer<T, A, R, X> gatherer, Sink<R> sink) {
             this.gatherer = gatherer;
             this.sink = sink;
             this.integrator = gatherer.integrator();
@@ -177,7 +177,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
         }
 
         @Override
-        public void end() throws X_OUT {
+        public void end() {
             final var finisher = gatherer.finisher();
             if (finisher != Gatherer.<A, R>defaultFinisher()) // Optimization
                 finisher.accept(state, this);
@@ -270,8 +270,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
     }
 
     @Override
-    <X1 extends Exception>
-    Sink<T, ? extends X1|X> opWrapSink(int flags, Sink<R, X1> downstream) {
+    Sink<T> opWrapSink(int flags, Sink<R> downstream) {
         return new GatherSink<>(gatherer, downstream);
     }
 

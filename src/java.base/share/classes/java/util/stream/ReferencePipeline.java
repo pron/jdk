@@ -172,8 +172,7 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
             return this;
         return new StatelessOp<P_OUT, X_OUT, P_OUT, X_OUT>(this, StreamShape.REFERENCE, StreamOpFlag.NOT_ORDERED) {
             @Override
-            <X1 extends Exception>
-            Sink<P_OUT, ? extends X1> opWrapSink(int flags, Sink<P_OUT, X1> sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<P_OUT> sink) {
                 return sink;
             }
         };
@@ -190,18 +189,19 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
             // because inference works on the constructor, and chooses the lower result (it probably solves ChainedReference's
             // X to its lower bound of X_OUT, given that ChainedReference<T, X extends Exception, E_OUT, X_OUT extends X>
             @Override
-            <X4 extends X3|X1, X3 extends Exception>
-            Sink<P_OUT, ? extends X4> opWrapSink(int flags, Sink<P_OUT, X3> sink) {
-                return new Sink.ChainedReference<P_OUT, X4, P_OUT, X3>(sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<P_OUT> sink) {
+                return new Sink.ChainedReference<P_OUT, P_OUT>(sink) {
                     @Override
                     public void begin(long size) {
                         downstream.begin(-1);
                     }
 
                     @Override
-                    public void accept(P_OUT u) throws X3, X1 {
-                        if (predicate.test(u))
-                            downstream.accept(u);
+                    public void accept(P_OUT u) {
+                        try {
+                            if (predicate.test(u))
+                                downstream.accept(u);
+                        } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
                     }
                 };
             }
@@ -215,12 +215,13 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new StatelessOp<>(this, StreamShape.REFERENCE,
                                      StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X4 extends X3|X1, X3 extends Exception>
-            Sink<P_OUT, ? extends X4> opWrapSink(int flags, Sink<R, X3> sink) {
-                return new Sink.ChainedReference<P_OUT, X4, R, X3>(sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<R> sink) {
+                return new Sink.ChainedReference<P_OUT, R>(sink) {
                     @Override
-                    public void accept(P_OUT u) throws X1, X3 {
-                        downstream.accept(mapper.apply(u));
+                    public void accept(P_OUT u) {
+                        try {
+                            downstream.accept(mapper.apply(u));
+                        } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
                     }
                 };
             }
@@ -238,11 +239,10 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new IntPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                               StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X1 extends Exception>
-            Sink<P_OUT, ? extends X1> opWrapSink(int flags, Sink<Integer, X1> sink) {
-                return new Sink.ChainedReference<P_OUT, X1, Integer, X1>(sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<Integer> sink) {
+                return new Sink.ChainedReference<P_OUT, Integer>(sink) {
                     @Override
-                    public void accept(P_OUT u) throws X1 {
+                    public void accept(P_OUT u) {
                         downstream.accept(mapper.applyAsInt(u));
                     }
                 };
@@ -256,9 +256,8 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new LongPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                       StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X1 extends Exception>
-            Sink<P_OUT, ? extends X1> opWrapSink(int flags, Sink<Long, X1> sink) {
-                return new Sink.ChainedReference<P_OUT, X1, Long, X1>(sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<Long> sink) {
+                return new Sink.ChainedReference<P_OUT, Long>(sink) {
                     @Override
                     public void accept(P_OUT u) {
                         downstream.accept(mapper.applyAsLong(u));
@@ -274,9 +273,8 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new DoublePipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                         StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
-            <X1 extends Exception>
-            Sink<P_OUT, ? extends X1> opWrapSink(int flags, Sink<Double, X1> sink) {
-                return new Sink.ChainedReference<P_OUT, X1, Double, X1>(sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<Double> sink) {
+                return new Sink.ChainedReference<P_OUT, Double>(sink) {
                     @Override
                     public void accept(P_OUT u) {
                         downstream.accept(mapper.applyAsDouble(u));
@@ -293,17 +291,16 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new StatelessOp<>(this, StreamShape.REFERENCE,
                                      StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X4 extends X3|X2|X1, X3 extends Exception>
-            Sink<P_OUT, ? extends X4> opWrapSink(int flags, Sink<R, X3> sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<R> sink) {
                 boolean shorts = isShortCircuitingPipeline();
-                final class FlatMap implements Sink<P_OUT, X4>, Predicate<R> {
+                final class FlatMap implements Sink<P_OUT>, Predicate<R> {
                     boolean cancel;
 
                     @Override public void begin(long size) { sink.begin(-1); }
-                    @Override public void end() throws X4 { sink.end(); }
+                    @Override public void end() { sink.end(); }
 
                     @Override
-                    public void accept(P_OUT e) throws X3, X1, X2 {
+                    public void accept(P_OUT e) {
                         try (Stream<? extends R, ? extends X2> result = mapper.apply(e)) {
                             if (result != null) {
                                 if (shorts)
@@ -311,7 +308,7 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
                                 else 
                                     result.sequential().forEach(sink);
                             }
-                        } catch (RuntimeException rex) { throw CheckedExceptions.<X3>unwrap(rex); }
+                        } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
                     }
 
                     @Override
@@ -342,19 +339,18 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new IntPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                               StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<P_OUT, ? extends X3> opWrapSink(int flags, Sink<Integer, X3> sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<Integer> sink) {
                 IntConsumer fastPath =
                     isShortCircuitingPipeline()
                         ? null
                         : (sink instanceof IntConsumer ic)
                             ? ic
                             : sink::accept;
-                final class FlatMap implements Sink<P_OUT, X3>, IntPredicate {
+                final class FlatMap implements Sink<P_OUT>, IntPredicate {
                     boolean cancel;
 
                     @Override public void begin(long size) { sink.begin(-1); }
-                    @Override public void end() throws X3 { sink.end(); }
+                    @Override public void end() { sink.end(); }
 
                     @Override
                     public void accept(P_OUT e) {
@@ -394,19 +390,18 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new DoublePipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                                      StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<P_OUT, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<Double> sink) {
                 DoubleConsumer fastPath =
                     isShortCircuitingPipeline()
                         ? null
                         : (sink instanceof DoubleConsumer dc)
                             ? dc
                             : sink::accept;
-                final class FlatMap implements Sink<P_OUT, X3>, DoublePredicate {
+                final class FlatMap implements Sink<P_OUT>, DoublePredicate {
                     boolean cancel;
 
                     @Override public void begin(long size) { sink.begin(-1); }
-                    @Override public void end() throws X3 { sink.end(); }
+                    @Override public void end() { sink.end(); }
 
                     @Override
                     public void accept(P_OUT e) {
@@ -447,19 +442,18 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new LongPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                                    StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<P_OUT, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<Long> sink) {
                 LongConsumer fastPath =
                     isShortCircuitingPipeline()
                         ? null
                         : (sink instanceof LongConsumer lc)
                             ? lc
                             : sink::accept;
-                final class FlatMap implements Sink<P_OUT, X3>, LongPredicate {
+                final class FlatMap implements Sink<P_OUT>, LongPredicate {
                     boolean cancel;
 
                     @Override public void begin(long size) { sink.begin(-1); }
-                    @Override public void end() throws X3 { sink.end(); }
+                    @Override public void end() { sink.end(); }
 
                     @Override
                     public void accept(P_OUT e) {
@@ -503,9 +497,8 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new StatelessOp<P_OUT, X_OUT, R, X_OUT>(this, StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<P_OUT, ? extends X3> opWrapSink(int flags, Sink<R, X3> sink) {
-                return new Sink.ChainedReference<P_OUT, X3, R, X3>(sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<R> sink) {
+                return new Sink.ChainedReference<P_OUT, R>(sink) {
 
                     @Override
                     public void begin(long size) {
@@ -528,9 +521,8 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new IntPipeline.StatelessOp<>(eraseException(), StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<P_OUT, ? extends X3> opWrapSink(int flags, Sink<Integer, X3> sink) {
-                return new Sink.ChainedReference<P_OUT, X3, Integer, X3>(sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<Integer> sink) {
+                return new Sink.ChainedReference<P_OUT, Integer>(sink) {
 
                     @Override
                     public void begin(long size) {
@@ -553,9 +545,8 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new LongPipeline.StatelessOp<>(eraseException(), StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<P_OUT, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
-                return new Sink.ChainedReference<P_OUT, X3, Long, X3>(sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<Long> sink) {
+                return new Sink.ChainedReference<P_OUT, Long>(sink) {
 
                     @Override
                     public void begin(long size) {
@@ -579,9 +570,8 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new DoublePipeline.StatelessOp<>(eraseException(), StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
-            <X3 extends Exception>
-            Sink<P_OUT, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
-                return new Sink.ChainedReference<P_OUT, X3, Double, X3>(sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<Double> sink) {
+                return new Sink.ChainedReference<P_OUT, Double>(sink) {
 
                     @Override
                     public void begin(long size) {
@@ -604,11 +594,10 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         return new StatelessOp<P_OUT, X_OUT, P_OUT, X_OUT>(this, StreamShape.REFERENCE,
                                      0) {
             @Override
-            <X3 extends Exception>
-            Sink<P_OUT, ? extends X3> opWrapSink(int flags, Sink<P_OUT, X3> sink) {
-                return new Sink.ChainedReference<P_OUT, X3, P_OUT, X3>(sink) {
+            Sink<P_OUT> opWrapSink(int flags, Sink<P_OUT> sink) {
+                return new Sink.ChainedReference<P_OUT, P_OUT>(sink) {
                     @Override
-                    public void accept(P_OUT u) throws X3 {
+                    public void accept(P_OUT u) {
                         action.accept(u);
                         downstream.accept(u);
                     }
@@ -833,8 +822,7 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         }
 
         @Override
-        final <X3 extends Exception>
-        Sink<E_IN, ? extends X3|X_OUT> opWrapSink(int flags, Sink<E_OUT, X3> sink) {
+        Sink<E_IN> opWrapSink(int flags, Sink<E_OUT> sink) {
             throw new UnsupportedOperationException();
         }
 

@@ -83,8 +83,7 @@ final class WhileOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<T, ? extends X3> opWrapSink(int flags, Sink<T, X3> sink) {
+            Sink<T> opWrapSink(int flags, Sink<T> sink) {
                 return new Sink.ChainedReference<>(sink) {
                     boolean take = true;
 
@@ -94,7 +93,7 @@ final class WhileOps {
                     }
 
                     @Override
-                    public void accept(T t) throws X3 {
+                    public void accept(T t) {
                         if (take && (take = predicate.test(t))) {
                             downstream.accept(t);
                         }
@@ -140,8 +139,7 @@ final class WhileOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<Integer, ? extends X3> opWrapSink(int flags, Sink<Integer, X3> sink) {
+            Sink<Integer> opWrapSink(int flags, Sink<Integer> sink) {
                 return new Sink.ChainedInt<>(sink) {
                     boolean take = true;
 
@@ -197,8 +195,7 @@ final class WhileOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
                 return new Sink.ChainedLong<>(sink) {
                     boolean take = true;
 
@@ -254,8 +251,7 @@ final class WhileOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
                 return new Sink.ChainedDouble<>(sink) {
                     boolean take = true;
 
@@ -304,8 +300,7 @@ final class WhileOps {
          * are actually dropped and not passed to the sink.
          * @return a dropWhile sink
          */
-        <X1 extends Exception>
-        DropWhileSink<T, ? extends X1> opWrapSink(Sink<T, X1> sink, boolean retainAndCountDroppedElements);
+        DropWhileSink<T> opWrapSink(Sink<T> sink, boolean retainAndCountDroppedElements);
     }
 
     /**
@@ -313,7 +308,7 @@ final class WhileOps {
      *
      * @param <T> the type of both input and output elements
      */
-    interface DropWhileSink<T, X extends Exception> extends Sink<T, X> {
+    interface DropWhileSink<T> extends Sink<T> {
         /**
          * @return the could of elements that would have been dropped and
          * instead were passed downstream.
@@ -359,14 +354,12 @@ final class WhileOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<T, ? extends X3> opWrapSink(int flags, Sink<T, X3> sink) {
+            Sink<T> opWrapSink(int flags, Sink<T> sink) {
                 return opWrapSink(sink, false);
             }
 
-            public <X3 extends Exception>
-            DropWhileSink<T, ? extends X3> opWrapSink(Sink<T, X3> sink, boolean retainAndCountDroppedElements) {
-                class OpSink extends Sink.ChainedReference<T, X3, T, X3> implements DropWhileSink<T, X3> {
+            public DropWhileSink<T> opWrapSink(Sink<T> sink, boolean retainAndCountDroppedElements) {
+                class OpSink extends Sink.ChainedReference<T, T> implements DropWhileSink<T> {
                     long dropCount;
                     boolean take;
 
@@ -375,7 +368,7 @@ final class WhileOps {
                     }
 
                     @Override
-                    public void accept(T t) throws X3 {
+                    public void accept(T t) {
                         boolean takeElement = take || (take = !predicate.test(t));
 
                         // If ordered and element is dropped increment index
@@ -436,14 +429,12 @@ final class WhileOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<Integer, ? extends X3> opWrapSink(int flags, Sink<Integer, X3> sink) {
+            Sink<Integer> opWrapSink(int flags, Sink<Integer> sink) {
                 return opWrapSink(sink, false);
             }
 
-            public <X3 extends Exception>
-            DropWhileSink<Integer, ? extends X3> opWrapSink(Sink<Integer, X3> sink, boolean retainAndCountDroppedElements) {
-                class OpSink extends Sink.ChainedInt<Integer, X3> implements DropWhileSink<Integer, X3> {
+            public DropWhileSink<Integer> opWrapSink(Sink<Integer> sink, boolean retainAndCountDroppedElements) {
+                class OpSink extends Sink.ChainedInt<Integer> implements DropWhileSink<Integer> {
                     long dropCount;
                     boolean take;
 
@@ -513,14 +504,12 @@ final class WhileOps {
             }
 
             @Override
-            <X3 extends Exception>
-            Sink<Long, ? extends X3> opWrapSink(int flags, Sink<Long, X3> sink) {
+            Sink<Long> opWrapSink(int flags, Sink<Long> sink) {
                 return opWrapSink(sink, false);
             }
 
-            public <X3 extends Exception>
-            DropWhileSink<Long, ? extends X3> opWrapSink(Sink<Long, X3> sink, boolean retainAndCountDroppedElements) {
-                class OpSink extends Sink.ChainedLong<Long, X3> implements DropWhileSink<Long, X3> {
+            public DropWhileSink<Long> opWrapSink(Sink<Long> sink, boolean retainAndCountDroppedElements) {
+                class OpSink extends Sink.ChainedLong<Long> implements DropWhileSink<Long> {
                     long dropCount;
                     boolean take;
 
@@ -590,14 +579,12 @@ final class WhileOps {
             }
 
             @Override
-            public <X3 extends Exception>
-            Sink<Double, ? extends X3> opWrapSink(int flags, Sink<Double, X3> sink) {
+            Sink<Double> opWrapSink(int flags, Sink<Double> sink) {
                 return opWrapSink(sink, false);
             }
 
-            public <X3 extends Exception>
-            DropWhileSink<Double, ? extends X3> opWrapSink(Sink<Double, X3> sink, boolean retainAndCountDroppedElements) {
-                class OpSink extends Sink.ChainedDouble<Double, X3> implements DropWhileSink<Double, X3> {
+            public DropWhileSink<Double> opWrapSink(Sink<Double> sink, boolean retainAndCountDroppedElements) {
+                class OpSink extends Sink.ChainedDouble<Double> implements DropWhileSink<Double> {
                     long dropCount;
                     boolean take;
 
@@ -1212,7 +1199,7 @@ final class WhileOps {
         @Override
         protected final Node<P_OUT> doLeaf() throws Exception {
             Node.Builder<P_OUT> builder = helper.makeNodeBuilder(-1, generator);
-            Sink<P_OUT, ?> s = op.opWrapSink(helper.getStreamAndOpFlags(), builder);
+            Sink<P_OUT> s = op.opWrapSink(helper.getStreamAndOpFlags(), builder);
 
             if (shortCircuited = helper.copyIntoWithCancel(helper.wrapSink(s), spliterator)) {
                 // Cancel later nodes if the predicate returned false
@@ -1348,7 +1335,7 @@ final class WhileOps {
             DropWhileOp<P_OUT> dropOp = (DropWhileOp<P_OUT>) op;
             // If this leaf is the root then there is no merging on completion
             // and there is no need to retain dropped elements
-            DropWhileSink<P_OUT, ?> s = dropOp.opWrapSink(builder, isOrdered && isChild);
+            DropWhileSink<P_OUT> s = dropOp.opWrapSink(builder, isOrdered && isChild);
             helper.wrapAndCopyInto(s, spliterator);
 
             Node<P_OUT> node = builder.build();
