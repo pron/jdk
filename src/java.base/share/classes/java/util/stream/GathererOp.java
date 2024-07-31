@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,23 +28,15 @@ import jdk.internal.vm.annotation.ForceInline;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.Optional;
 import java.util.Spliterator;
 import java.util.concurrent.CountedCompleter;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.function.ToDoubleFunction;
-import java.util.function.ToIntFunction;
-import java.util.function.ToLongFunction;
 import java.util.stream.Gatherer.Integrator;
 
 /**
@@ -144,6 +136,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
         private final Integrator<A, T, R> integrator; // Optimization: reuse
         private A state;
         private boolean proceed = true;
+        private boolean downstreamProceed = true;
 
         GatherSink(Gatherer<T, A, R, X> gatherer, Sink<R, ?> sink) {
             this.gatherer = gatherer;
@@ -175,12 +168,12 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
 
         @Override
         public boolean cancellationRequested() {
-            return cancellationRequested(proceed);
+            return cancellationRequested(proceed && downstreamProceed);
         }
 
         private boolean cancellationRequested(boolean knownProceed) {
             // Highly performance sensitive
-            return !(knownProceed && (!sink.cancellationRequested() || (proceed = false)));
+            return !(knownProceed && (!sink.cancellationRequested() || (downstreamProceed = false)));
         }
 
         @Override
@@ -201,12 +194,12 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
 
         @Override
         public boolean isRejecting() {
-            return !proceed;
+            return !downstreamProceed;
         }
 
         @Override
         public boolean push(R r) {
-            var p = proceed;
+            var p = downstreamProceed;
             if (p) {
                 try {
                     sink.accept(r);

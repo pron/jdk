@@ -63,6 +63,8 @@ import static com.sun.tools.javac.code.Symbol.*;
 import static com.sun.tools.javac.code.Type.*;
 import static com.sun.tools.javac.code.TypeTag.*;
 import static com.sun.tools.javac.jvm.ClassFile.externalize;
+import static com.sun.tools.javac.main.Option.DOE;
+
 import com.sun.tools.javac.resources.CompilerProperties.Fragments;
 
 /**
@@ -100,6 +102,7 @@ public class Types {
     final Name capturedName;
 
     public final Warner noWarnings;
+    public final boolean dumpStacktraceOnError;
 
     // <editor-fold defaultstate="collapsed" desc="Instantiating">
     public static Types instance(Context context) {
@@ -121,6 +124,8 @@ public class Types {
         messages = JavacMessages.instance(context);
         diags = JCDiagnostic.Factory.instance(context);
         noWarnings = new Warner(null);
+        Options options = Options.instance(context);
+        dumpStacktraceOnError = options.isSet("dev") || options.isSet(DOE);
     }
     // </editor-fold>
 
@@ -635,12 +640,13 @@ public class Types {
      * wraps a diagnostic that can be used to generate more details error
      * messages.
      */
-    public static class FunctionDescriptorLookupError extends RuntimeException {
+    public static class FunctionDescriptorLookupError extends CompilerInternalException {
         private static final long serialVersionUID = 0;
 
         transient JCDiagnostic diagnostic;
 
-        FunctionDescriptorLookupError() {
+        FunctionDescriptorLookupError(boolean dumpStackTraceOnError) {
+            super(dumpStackTraceOnError);
             this.diagnostic = null;
         }
 
@@ -651,12 +657,6 @@ public class Types {
 
         public JCDiagnostic getDiagnostic() {
             return diagnostic;
-        }
-
-        @Override
-        public Throwable fillInStackTrace() {
-            // This is an internal exception; the stack trace is irrelevant.
-            return this;
         }
     }
 
@@ -810,7 +810,7 @@ public class Types {
         }
 
         FunctionDescriptorLookupError failure(JCDiagnostic diag) {
-            return new FunctionDescriptorLookupError().setMessage(diag);
+            return new FunctionDescriptorLookupError(Types.this.dumpStacktraceOnError).setMessage(diag);
         }
     }
 
@@ -5154,6 +5154,10 @@ public class Types {
 
         boolean high;
         boolean rewriteTypeVars;
+        // map to avoid visiting same type argument twice, like in Foo<T>.Bar<T>
+        Map<Type, Type> argMap = new HashMap<>();
+        // cycle detection within an argument, see JDK-8324809
+        Set<Type> seen = new HashSet<>();
 
         Rewriter(boolean high, boolean rewriteTypeVars) {
             this.high = high;
@@ -5165,7 +5169,10 @@ public class Types {
             ListBuffer<Type> rewritten = new ListBuffer<>();
             boolean changed = false;
             for (Type arg : t.allparams()) {
-                Type bound = visit(arg);
+                Type bound = argMap.get(arg);
+                if (bound == null) {
+                    argMap.put(arg, bound = visit(arg));
+                }
                 if (arg != bound) {
                     changed = true;
                 }
@@ -5194,13 +5201,17 @@ public class Types {
 
         @Override
         public Type visitTypeVar(TypeVar t, Void s) {
-            if (rewriteTypeVars) {
-                Type bound = t.getUpperBound().contains(t) ?
-                        erasure(t.getUpperBound()) :
-                        visit(t.getUpperBound());
-                return rewriteAsWildcardType(bound, t, EXTENDS);
+            if (seen.add(t)) {
+                if (rewriteTypeVars) {
+                    Type bound = t.getUpperBound().contains(t) ?
+                            erasure(t.getUpperBound()) :
+                            visit(t.getUpperBound());
+                    return rewriteAsWildcardType(bound, t, EXTENDS);
+                } else {
+                    return t;
+                }
             } else {
-                return t;
+                return rewriteTypeVars ? makeExtendsWildcard(syms.objectType, t) : t;
             }
         }
 
@@ -5444,6 +5455,52 @@ public class Types {
     }
     // </editor-fold>
 
+    // <editor-fold defaultstate="collapsed" desc="Unconditionality">
+    /** Check unconditionality between any combination of reference or primitive types.
+     *
+     *  Rules:
+     *    an identity conversion
+     *    a widening reference conversion
+     *    a widening primitive conversion (delegates to `checkUnconditionallyExactPrimitives`)
+     *    a boxing conversion
+     *    a boxing conversion followed by a widening reference conversion
+     *
+     *  @param source     Source primitive or reference type
+     *  @param target     Target primitive or reference type
+     */
+    public boolean isUnconditionallyExact(Type source, Type target) {
+        if (isSameType(source, target)) {
+            return true;
+        }
+
+        return target.isPrimitive()
+                ? isUnconditionallyExactPrimitives(source, target)
+                : isSubtype(boxedTypeOrType(erasure(source)), target);
+    }
+
+    /** Check unconditionality between primitive types.
+     *
+     *  - widening from one integral type to another,
+     *  - widening from one floating point type to another,
+     *  - widening from byte, short, or char to a floating point type,
+     *  - widening from int to double.
+     *
+     *  @param selectorType     Type of selector
+     *  @param targetType       Target type
+     */
+    public boolean isUnconditionallyExactPrimitives(Type selectorType, Type targetType) {
+        if (isSameType(selectorType, targetType)) {
+            return true;
+        }
+
+        return (selectorType.isPrimitive() && targetType.isPrimitive()) &&
+                ((selectorType.hasTag(BYTE) && !targetType.hasTag(CHAR)) ||
+                 (selectorType.hasTag(SHORT) && (selectorType.getTag().isStrictSubRangeOf(targetType.getTag()))) ||
+                 (selectorType.hasTag(CHAR)  && (selectorType.getTag().isStrictSubRangeOf(targetType.getTag())))  ||
+                 (selectorType.hasTag(INT)   && (targetType.hasTag(DOUBLE) || targetType.hasTag(LONG))) ||
+                 (selectorType.hasTag(FLOAT) && (selectorType.getTag().isStrictSubRangeOf(targetType.getTag()))));
+    }
+    // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="Annotation support">
 
@@ -5470,41 +5527,30 @@ public class Types {
 
     // <editor-fold defaultstate="collapsed" desc="Signature Generation">
 
-    public abstract static class SignatureGenerator {
+    public abstract class SignatureGenerator {
 
-        public static class InvalidSignatureException extends RuntimeException {
+        public class InvalidSignatureException extends CompilerInternalException {
             private static final long serialVersionUID = 0;
 
             private final transient Type type;
 
-            InvalidSignatureException(Type type) {
+            InvalidSignatureException(Type type, boolean dumpStackTraceOnError) {
+                super(dumpStackTraceOnError);
                 this.type = type;
             }
 
             public Type type() {
                 return type;
             }
-
-            @Override
-            public Throwable fillInStackTrace() {
-                // This is an internal exception; the stack trace is irrelevant.
-                return this;
-            }
         }
-
-        private final Types types;
 
         protected abstract void append(char ch);
         protected abstract void append(byte[] ba);
         protected abstract void append(Name name);
         protected void classReference(ClassSymbol c) { /* by default: no-op */ }
 
-        protected SignatureGenerator(Types types) {
-            this.types = types;
-        }
-
         protected void reportIllegalSignature(Type t) {
-            throw new InvalidSignatureException(t);
+            throw new InvalidSignatureException(t, Types.this.dumpStacktraceOnError);
         }
 
         /**
@@ -5629,9 +5675,9 @@ public class Types {
             if (outer.allparams().nonEmpty()) {
                 boolean rawOuter =
                         c.owner.kind == MTH || // either a local class
-                        c.name == types.names.empty; // or anonymous
+                        c.name == Types.this.names.empty; // or anonymous
                 assembleClassSig(rawOuter
-                        ? types.erasure(outer)
+                        ? Types.this.erasure(outer)
                         : outer);
                 append(rawOuter ? '$' : '.');
                 Assert.check(c.flatname.startsWith(c.owner.enclClass().flatname));
@@ -5655,7 +5701,7 @@ public class Types {
                 if (tvar.isThrowsParam())
                     append('!');
                 append(tvar.tsym.name);
-                List<Type> bounds = types.getBounds(tvar);
+                List<Type> bounds = Types.this.getBounds(tvar);
                 if (bounds.length() == 1 && bounds.head instanceof ThrowableUnionClassType tu) {
                     append(':');
                     for (List<Type> l = tu.alternatives(); l.nonEmpty(); l = l.tail) {
