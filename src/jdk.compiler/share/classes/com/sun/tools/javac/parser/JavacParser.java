@@ -5148,7 +5148,7 @@ public class JavacParser implements Parser {
         if (token.kind == THROWS) {
             throwsParam = true;
             nextToken();
-        } else if (expectThrows) {
+        } else if (false && expectThrows) { // for now, don't require throws X to be in the suffix only
             setErrorEndPos(token.pos);
             reportSyntaxError(S.prevToken().endPos, Errors.Expected(THROWS));
         }
