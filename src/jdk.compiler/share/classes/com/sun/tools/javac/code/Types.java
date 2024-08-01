@@ -572,7 +572,7 @@ public class Types {
                     if (res.contains(l.head) && !t.contains(l.head))
                         openVars.append(l.head);
                 if (openVars.nonEmpty()) {
-                    if (t.isRaw()) {
+                    if (t.isRaw(Types.this)) {
                         // The subtype of a raw type is raw
                         res = erasure(res);
                     } else {
@@ -1031,9 +1031,9 @@ public class Types {
                 return true;
             } else if (t.hasTag(TYPEVAR)) {
                 return isSubtypeUncheckedInternal(t.getUpperBound(), s, false, warn);
-            } else if (!s.isRaw()) {
+            } else if (!s.isRaw(Types.this)) {
                 Type t2 = asSuper(t, s.tsym);
-                if (t2 != null && t2.isRaw()) {
+                if (t2 != null && t2.isRaw(Types.this)) {
                     if (isReifiable(s)) {
                         warn.silentWarn(LintCategory.UNCHECKED);
                     } else {
@@ -1857,9 +1857,9 @@ public class Types {
                             if (!isReifiable(s))
                                 warnStack.head.warn(LintCategory.UNCHECKED);
                             return true;
-                        } else if (s.isRaw()) {
+                        } else if (s.isRaw(Types.this)) {
                             return true;
-                        } else if (t.isRaw()) {
+                        } else if (t.isRaw(Types.this)) {
                             if (!isUnbounded(s))
                                 warnStack.head.warn(LintCategory.UNCHECKED);
                             return true;
@@ -2786,7 +2786,7 @@ public class Types {
                     if (t.supertype_field == null) {
                         List<Type> actuals = classBound(t).allparams();
                         List<Type> formals = t.tsym.type.allparams();
-                        if (t.hasErasedSupertypes()) {
+                        if (t.hasErasedSupertypes(Types.this)) {
                             t.supertype_field = erasureRecursive(supertype);
                         } else if (formals.nonEmpty()) {
                             t.supertype_field = subst(supertype, formals, actuals);
@@ -2867,7 +2867,7 @@ public class Types {
                         Assert.check(t != t.tsym.type, t);
                         List<Type> actuals = t.allparams();
                         List<Type> formals = t.tsym.type.allparams();
-                        if (t.hasErasedSupertypes()) {
+                        if (t.hasErasedSupertypes(Types.this)) {
                             t.interfaces_field = erasureRecursive(interfaces);
                         } else if (formals.nonEmpty()) {
                             t.interfaces_field = subst(interfaces, formals, actuals);
@@ -2934,7 +2934,7 @@ public class Types {
         if (t.isErroneous())
             return false;
         return
-            t.isRaw() ||
+            t.isRaw(Types.this) ||
             supertype(t) != Type.noType && isDerivedRaw(supertype(t)) ||
             isDerivedRaw(interfaces(t));
     }
@@ -4227,7 +4227,7 @@ public class Types {
                 Type merge = merge(cl1.head,cl2.head);
                 return intersect(cl1.tail, cl2.tail).prepend(merge);
             }
-            if (cl1.head.isRaw() || cl2.head.isRaw())
+            if (cl1.head.isRaw(Types.this) || cl2.head.isRaw(Types.this))
                 return intersect(cl1.tail, cl2.tail).prepend(erasure(cl1.head));
         }
         return intersect(cl1.tail, cl2.tail);
@@ -4798,7 +4798,7 @@ public class Types {
             }
         }
         ClassType cls = (ClassType)t;
-        if (cls.isRaw() || !cls.isParameterized())
+        if (cls.isRaw(Types.this) || !cls.isParameterized())
             return cls;
 
         ClassType G = (ClassType)cls.asElement().asType();

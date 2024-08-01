@@ -1481,7 +1481,7 @@ public class Check {
 
                 // Check that this type is either fully parameterized, or
                 // not parameterized at all.
-                if (tree.type.getEnclosingType().isRaw())
+                if (tree.type.getEnclosingType().isRaw(types))
                     log.error(tree.pos(), Errors.ImproperlyFormedTypeInnerRawParam);
                 if (tree.clazz.hasTag(SELECT))
                     visitSelectInternal((JCFieldAccess)tree.clazz);
@@ -1577,7 +1577,7 @@ public class Check {
             tree.type.hasTag(CLASS) &&
             !TreeInfo.isDiamond(tree) &&
             !withinAnonConstr(env) &&
-            tree.type.isRaw()) {
+            tree.type.isRaw(types)) {
             log.warning(LintCategory.RAW,
                     tree.pos(), Warnings.RawClassUse(tree.type, tree.type.tsym.type));
         }

@@ -284,7 +284,7 @@ public class ArgumentAttr extends JCTree.Visitor {
         } else if (res.type != null && res.type.hasTag(FORALL) ||
                 (res.flags() & Flags.VARARGS) != 0 ||
                 (TreeInfo.isStaticSelector(exprTree, tree.name.table.names) &&
-                exprTree.type.isRaw() && !exprTree.type.hasTag(ARRAY))) {
+                exprTree.type.isRaw(attr.types) && !exprTree.type.hasTag(ARRAY))) {
             tree.setOverloadKind(JCMemberReference.OverloadKind.OVERLOADED);
         } else {
             tree.setOverloadKind(JCMemberReference.OverloadKind.UNOVERLOADED);

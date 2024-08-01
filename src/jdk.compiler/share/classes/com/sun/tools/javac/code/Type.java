@@ -638,7 +638,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
      *  Type validation will ensure that the only raw types
      *  in a program are types that miss all their type variables.
      */
-    public boolean isRaw() {
+    public boolean isRaw(Types types) {
         return false;
     }
 
@@ -1138,8 +1138,8 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             return typarams_field;
         }
 
-        public boolean hasErasedSupertypes() {
-            return isRaw();
+        public boolean hasErasedSupertypes(Types types) {
+            return isRaw(types);
         }
 
         @DefinedBy(Api.LANGUAGE_MODEL)
@@ -1188,11 +1188,12 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
          *  After validation, this is equivalent to:
          *  {@code allparams.isEmpty() && tsym.type.allparams.nonEmpty(); }
          */
-        public boolean isRaw() {
+        public boolean isRaw(Types types) {
             return
                 this != tsym.type && // necessary, but not sufficient condition
                 tsym.type.allparams().nonEmpty() &&
-                allparams().isEmpty();
+                allparams().isEmpty() &&
+                !types.isAllParamsThrows(this);
         }
 
         public boolean contains(Type elem) {
@@ -1230,7 +1231,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
         }
 
         @Override
-        public boolean hasErasedSupertypes() {
+        public boolean hasErasedSupertypes(Types types) {
             return true;
         }
     }
@@ -1483,8 +1484,8 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             return true;
         }
 
-        public boolean isRaw() {
-            return elemtype.isRaw();
+        public boolean isRaw(Types types) {
+            return elemtype.isRaw(types);
         }
 
         public ArrayType makeVarargs() {

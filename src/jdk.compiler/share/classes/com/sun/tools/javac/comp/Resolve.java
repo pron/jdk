@@ -3659,7 +3659,7 @@ public class Resolve {
         UnboundMethodReferenceLookupHelper(JCMemberReference referenceTree, Name name, Type site,
                 List<Type> argtypes, List<Type> typeargtypes, MethodResolutionPhase maxPhase) {
             super(referenceTree, name, site, argtypes.tail, typeargtypes, maxPhase);
-            if (site.isRaw() && !argtypes.head.hasTag(NONE)) {
+            if (site.isRaw(types) && !argtypes.head.hasTag(NONE)) {
                 Type asSuperSite = types.asSuper(argtypes.head, site.tsym);
                 this.site = types.skipTypeVars(asSuperSite, true);
             }
@@ -3718,9 +3718,9 @@ public class Resolve {
         ConstructorReferenceLookupHelper(JCMemberReference referenceTree, Type site, List<Type> argtypes,
                 List<Type> typeargtypes, MethodResolutionPhase maxPhase) {
             super(referenceTree, names.init, site, argtypes, typeargtypes, maxPhase);
-            if (site.isRaw()) {
+            if (site.isRaw(types)) {
                 this.site = new ClassType(site.getEnclosingType(),
-                        !(site.tsym.isInner() && site.getEnclosingType().isRaw()) ?
+                        !(site.tsym.isInner() && site.getEnclosingType().isRaw(types)) ?
                                 site.tsym.type.getTypeArguments() : List.nil(), site.tsym, site.getMetadata());
                 needsInference = true;
             }

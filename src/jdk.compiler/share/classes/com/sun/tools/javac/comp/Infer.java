@@ -461,7 +461,7 @@ public class Infer {
         if (to.isParameterized()) {
             for (Type t : from.getBounds(InferenceBound.EQ, InferenceBound.LOWER)) {
                 Type sup = types.asSuper(t, to.tsym);
-                if (sup != null && sup.isRaw()) {
+                if (sup != null && sup.isRaw(types)) {
                     return true;
                 }
             }

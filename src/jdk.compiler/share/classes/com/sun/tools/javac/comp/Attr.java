@@ -3649,7 +3649,7 @@ public class Attr extends JCTree.Visitor {
             if (that.getMode() == JCMemberReference.ReferenceMode.NEW) {
                 exprType = chk.checkConstructorRefType(that.expr, exprType);
                 if (!exprType.isErroneous() &&
-                    exprType.isRaw() &&
+                    exprType.isRaw(types) &&
                     that.typeargs != null) {
                     log.error(that.expr.pos(),
                               Errors.InvalidMref(Kinds.kindName(that.getMode()),
@@ -3778,7 +3778,7 @@ public class Attr extends JCTree.Visitor {
                 if (that.getMode() == ReferenceMode.INVOKE &&
                         TreeInfo.isStaticSelector(that.expr, names) &&
                         that.kind.isUnbound() &&
-                        lookupHelper.site.isRaw()) {
+                        lookupHelper.site.isRaw(types)) {
                     chk.checkRaw(that.expr, localEnv);
                 }
 
@@ -3861,7 +3861,7 @@ public class Attr extends JCTree.Visitor {
         Type resType;
         switch (tree.getMode()) {
             case NEW:
-                if (!tree.expr.type.isRaw()) {
+                if (!tree.expr.type.isRaw(types)) {
                     resType = tree.expr.type;
                     break;
                 }
@@ -4297,7 +4297,7 @@ public class Attr extends JCTree.Visitor {
             site = tree.type = types.createErrorType(tree.record.type);
         } else {
             Type type = attribType(tree.deconstructor, env);
-            if (type.isRaw() && type.tsym.getTypeParameters().nonEmpty()) {
+            if (type.isRaw(types) && type.tsym.getTypeParameters().nonEmpty()) {
                 Type inferred = infer.instantiatePatternType(resultInfo.pt, type.tsym);
                 if (inferred == null) {
                     log.error(tree.pos(), Errors.PatternTypeCannotInfer);
@@ -4432,12 +4432,7 @@ public class Attr extends JCTree.Visitor {
         if (sym.kind == TYP
                 && sym.type.hasTag(CLASS)
                 && types.isAllParamsThrows(sym.type)) {
-            boolean wildcard = env.info.isArgument || env.info.isTypeVar || (!env.baseClause && !env.info.isNewClass);
-            Type owntype = sym.type;
-            List<Type> formals = owntype.tsym.type.getTypeArguments();
-            var actuals = types.defaultThrowsParams(formals, List.nil(), wildcard);
-            owntype = typeApply(tree, tree, owntype, actuals);
-            result = check(tree, owntype, KindSelector.TYP, resultInfo);
+            result = check(tree, allThrowsType(tree, sym), KindSelector.TYP, resultInfo);
         } else
             result = checkId(tree, env1.enclClass.sym.type, sym, env, resultInfo);
     }
@@ -4563,7 +4558,7 @@ public class Attr extends JCTree.Visitor {
             // Check that super-qualified symbols are not abstract (JLS)
             rs.checkNonAbstract(tree.pos(), sym);
 
-            if (site.isRaw()) {
+            if (site.isRaw(types)) {
                 // Determine argument types for site.
                 Type site1 = types.asSuper(env.enclClass.sym.type, site.tsym);
                 if (site1 != null) site = site1;
@@ -4575,7 +4570,13 @@ public class Attr extends JCTree.Visitor {
         }
 
         env.info.selectSuper = selectSuperPrev;
-        result = checkId(tree, site, sym, env, resultInfo);
+
+        if (sym.kind == TYP
+                && sym.type.hasTag(CLASS)
+                && types.isAllParamsThrows(sym.type)) {
+            result = check(tree, allThrowsType(tree, sym), KindSelector.TYP, resultInfo);
+        } else
+            result = checkId(tree, site, sym, env, resultInfo);
     }
     //where
         /** Determine symbol referenced by a Select expression,
@@ -4653,6 +4654,15 @@ public class Attr extends JCTree.Visitor {
             }
         }
 
+        private Type allThrowsType(JCExpression tree, Symbol sym) {
+            boolean wildcard = env.info.isArgument || env.info.isTypeVar || (!env.baseClause && !env.info.isNewClass);
+            Type owntype = sym.type;
+            List<Type> formals = owntype.tsym.type.getTypeArguments();
+            var actuals = types.defaultThrowsParams(formals, List.nil(), wildcard);
+            owntype = typeApply(tree, tree, owntype, actuals);
+            return owntype;
+        }
+
         /** Determine type of identifier or select expression and check that
          *  (1) the referenced symbol is not deprecated
          *  (2) the symbol's type is safe (@see checkSafe)
@@ -4713,7 +4723,7 @@ public class Attr extends JCTree.Visitor {
                 if (owntype.hasTag(CLASS)) {
                     chk.checkForBadAuxiliaryClassAccess(tree.pos(), env, (ClassSymbol)sym);
                     Type ownOuter = owntype.getEnclosingType();
-
+                    
                     // (a) If the symbol's type is parameterized, erase it
                     // because no type parameters were given.
                     // We recover generic outer type later in visitTypeApply.
@@ -4764,7 +4774,7 @@ public class Attr extends JCTree.Visitor {
                     (site.hasTag(CLASS) || site.hasTag(TYPEVAR))) {
                     Type s = types.asOuterSuper(site, v.owner);
                     if (s != null &&
-                        s.isRaw() &&
+                        s.isRaw(types) &&
                         !types.isSameType(v.type, v.erasure(types))) {
                         chk.warnUnchecked(tree.pos(), Warnings.UncheckedAssignToVar(v, s));
                     }
@@ -4961,7 +4971,7 @@ public class Attr extends JCTree.Visitor {
         if ((sym.flags() & STATIC) == 0 &&
             (site.hasTag(CLASS) || site.hasTag(TYPEVAR))) {
             Type s = types.asOuterSuper(site, sym.owner);
-            if (s != null && s.isRaw() &&
+            if (s != null && s.isRaw(types) &&
                 !types.isSameTypes(sym.type.getParameterTypes(),
                                    sym.erasure(types).getParameterTypes())) {
                 chk.warnUnchecked(env.tree.pos(), Warnings.UncheckedCallMbrOfRawType(sym, s));
