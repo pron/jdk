@@ -4430,6 +4430,7 @@ public class Attr extends JCTree.Visitor {
         }
 
         if (sym.kind == TYP
+                && !env.info.isSelectQualifier
                 && sym.type.hasTag(CLASS)
                 && types.isAllParamsThrows(sym.type)) {
             result = check(tree, allThrowsType(tree, sym), KindSelector.TYP, resultInfo);
@@ -4454,7 +4455,15 @@ public class Attr extends JCTree.Visitor {
         }
 
         // Attribute the qualifier expression, and determine its symbol (if any).
-        Type site = attribTree(tree.selected, env, new ResultInfo(skind, Type.noType));
+        Type site;
+        boolean oldIsSelectQualifier = env.info.isSelectQualifier;
+        env.info.isSelectQualifier = true;
+        try {
+            site = attribTree(tree.selected, env, new ResultInfo(skind, Type.noType));
+        } finally {
+            env.info.isSelectQualifier = oldIsSelectQualifier;
+        }
+
         if (!pkind().contains(KindSelector.TYP_PCK))
             site = capture(site); // Capture field access
 
@@ -4572,6 +4581,7 @@ public class Attr extends JCTree.Visitor {
         env.info.selectSuper = selectSuperPrev;
 
         if (sym.kind == TYP
+                && !env.info.isSelectQualifier
                 && sym.type.hasTag(CLASS)
                 && types.isAllParamsThrows(sym.type)) {
             result = check(tree, allThrowsType(tree, sym), KindSelector.TYP, resultInfo);

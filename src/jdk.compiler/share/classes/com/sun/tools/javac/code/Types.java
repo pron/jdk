@@ -2146,7 +2146,7 @@ public class Types {
                         return true;
 
                     for (Type param : t.allparams()) {
-                        if (param instanceof WildcardType w && w.bound != null && w.bound.isThrowsParam()
+                        if (param instanceof WildcardType w && w.bound != null && w.bound.isThrowsParam() && w.getExtendsBound() != null
                             && isSameType(w.getExtendsBound(), w.bound.getThrowsDefault())
                             && isSameType(w.getExtendsBound(), w.bound.getUpperBound()))
                                 continue;

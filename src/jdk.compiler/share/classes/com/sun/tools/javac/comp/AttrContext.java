@@ -126,6 +126,7 @@ public class AttrContext {
      */
     JCTree preferredTreeForDiagnostics;
 
+    boolean isSelectQualifier = false;
     boolean isArgument = false;
     boolean isTypeVar = false;
 
@@ -152,6 +153,7 @@ public class AttrContext {
         info.preferredTreeForDiagnostics = preferredTreeForDiagnostics;
         info.visitingServiceImplementation = visitingServiceImplementation;
         info.allowProtectedAccess = allowProtectedAccess;
+        info.isSelectQualifier = isSelectQualifier;
         info.isArgument = isArgument;
         info.isTypeVar = isTypeVar;
         return info;
