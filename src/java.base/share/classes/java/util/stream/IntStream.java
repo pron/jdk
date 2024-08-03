@@ -66,11 +66,13 @@ import java.util.function.Supplier;
  * specification of streams, stream operations, stream pipelines, and
  * parallelism.
  *
+ * @param <X> TBD
+ *
  * @since 1.8
  * @see Stream
  * @see <a href="package-summary.html">java.util.stream</a>
  */
-public interface IntStream extends BaseStream<Integer, RuntimeException, IntStream> {
+public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match
@@ -114,7 +116,7 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *               function to apply to each element
      * @return the new stream
      */
-    <U> Stream<U> mapToObj(IntFunction<? extends U> mapper);
+    <U> Stream<U, X> mapToObj(IntFunction<? extends U> mapper);
 
     /**
      * Returns a {@code LongStream} consisting of the results of applying the
@@ -209,7 +211,7 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *
      * @return the new stream
      */
-    IntStream distinct();
+    IntStream<X> distinct();
 
     /**
      * Returns a stream consisting of the elements of this stream in sorted
@@ -220,7 +222,7 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *
      * @return the new stream
      */
-    IntStream sorted();
+    IntStream<X> sorted();
 
     /**
      * Returns a stream consisting of the elements of this stream, additionally
@@ -283,7 +285,7 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      * @return the new stream
      * @throws IllegalArgumentException if {@code maxSize} is negative
      */
-    IntStream limit(long maxSize);
+    IntStream<X> limit(long maxSize);
 
     /**
      * Returns a stream consisting of the remaining elements of this stream
@@ -312,7 +314,7 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      * @return the new stream
      * @throws IllegalArgumentException if {@code n} is negative
      */
-    IntStream skip(long n);
+    IntStream<X> skip(long n);
 
     /**
      * Returns, if this stream is ordered, a stream consisting of the longest
@@ -370,12 +372,12 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      * @return the new stream
      * @since 9
      */
-    default IntStream takeWhile(IntPredicate predicate) {
+    default IntStream<? extends X> takeWhile(IntPredicate predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
         return StreamSupport.intStream(
-                new WhileOps.UnorderedWhileSpliterator.OfInt.Taking(spliterator(), true, predicate),
+                new WhileOps.UnorderedWhileSpliterator.OfInt.Taking<>(spliterator(), true, predicate),
                 isParallel()).onClose(this::close);
     }
 
@@ -436,12 +438,12 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      * @return the new stream
      * @since 9
      */
-    default IntStream dropWhile(IntPredicate predicate) {
+    default IntStream<? extends X> dropWhile(IntPredicate predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
         return StreamSupport.intStream(
-                new WhileOps.UnorderedWhileSpliterator.OfInt.Dropping(spliterator(), true, predicate),
+                new WhileOps.UnorderedWhileSpliterator.OfInt.Dropping<>(spliterator(), true, predicate),
                 isParallel()).onClose(this::close);
     }
 
@@ -460,8 +462,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *
      * @param action a <a href="package-summary.html#NonInterference">
      *               non-interfering</a> action to perform on the elements
+     * @throws X TBD
      */
-    void forEach(IntConsumer action);
+    void forEach(IntConsumer action) throws X;
 
     /**
      * Performs an action for each element of this stream, guaranteeing that
@@ -473,9 +476,10 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *
      * @param action a <a href="package-summary.html#NonInterference">
      *               non-interfering</a> action to perform on the elements
+     * @throws X TBD
      * @see #forEach(IntConsumer)
      */
-    void forEachOrdered(IntConsumer action);
+    void forEachOrdered(IntConsumer action) throws X;
 
     /**
      * Returns an array containing the elements of this stream.
@@ -484,8 +488,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      * operation</a>.
      *
      * @return an array containing the elements of this stream
+     * @throws X TBD
      */
-    int[] toArray();
+    int[] toArray() throws X;
 
     /**
      * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
@@ -536,12 +541,13 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *           <a href="package-summary.html#Statelessness">stateless</a>
      *           function for combining two values
      * @return the result of the reduction
+     * @throws X TBD
      * @see #sum()
      * @see #min()
      * @see #max()
      * @see #average()
      */
-    int reduce(int identity, IntBinaryOperator op);
+    int reduce(int identity, IntBinaryOperator op) throws X;
 
     /**
      * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
@@ -576,9 +582,10 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *           <a href="package-summary.html#Statelessness">stateless</a>
      *           function for combining two values
      * @return the result of the reduction
+     * @throws X TBD
      * @see #reduce(int, IntBinaryOperator)
      */
-    OptionalInt reduce(IntBinaryOperator op);
+    OptionalInt reduce(IntBinaryOperator op) throws X;
 
     /**
      * Performs a <a href="package-summary.html#MutableReduction">mutable
@@ -618,11 +625,12 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *                    the elements from the second result container into the
      *                    first result container.
      * @return the result of the reduction
+     * @throws X TBD
      * @see Stream#collect(Supplier, BiConsumer, BiConsumer)
      */
     <R> R collect(Supplier<R> supplier,
                   ObjIntConsumer<R> accumulator,
-                  BiConsumer<R, R> combiner);
+                  BiConsumer<R, R> combiner) throws X;
 
     /**
      * Returns the sum of elements in this stream.  This is a special case
@@ -636,8 +644,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      * operation</a>.
      *
      * @return the sum of elements in this stream
+     * @throws X TBD
      */
-    int sum();
+    int sum() throws X;
 
     /**
      * Returns an {@code OptionalInt} describing the minimum element of this
@@ -652,8 +661,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *
      * @return an {@code OptionalInt} containing the minimum element of this
      * stream, or an empty {@code OptionalInt} if the stream is empty
+     * @throws X TBD
      */
-    OptionalInt min();
+    OptionalInt min() throws X;
 
     /**
      * Returns an {@code OptionalInt} describing the maximum element of this
@@ -669,8 +679,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *
      * @return an {@code OptionalInt} containing the maximum element of this
      * stream, or an empty {@code OptionalInt} if the stream is empty
+     * @throws X TBD
      */
-    OptionalInt max();
+    OptionalInt max() throws X;
 
     /**
      * Returns the count of elements in this stream.  This is a special case of
@@ -701,8 +712,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      * execute the pipeline and, as a side-effect, print out the elements.
      *
      * @return the count of elements in this stream
+     * @throws X TBD
      */
-    long count();
+    long count() throws X;
 
     /**
      * Returns an {@code OptionalDouble} describing the arithmetic mean of elements of
@@ -715,8 +727,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *
      * @return an {@code OptionalDouble} containing the average element of this
      * stream, or an empty optional if the stream is empty
+     * @throws X TBD
      */
-    OptionalDouble average();
+    OptionalDouble average() throws X;
 
     /**
      * Returns an {@code IntSummaryStatistics} describing various
@@ -728,8 +741,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *
      * @return an {@code IntSummaryStatistics} describing various summary data
      * about the elements of this stream
+     * @throws X TBD
      */
-    IntSummaryStatistics summaryStatistics();
+    IntSummaryStatistics summaryStatistics() throws X;
 
     /**
      * Returns whether any elements of this stream match the provided
@@ -748,9 +762,10 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *                  <a href="package-summary.html#Statelessness">stateless</a>
      *                  predicate to apply to elements of this stream
      * @return {@code true} if any elements of the stream match the provided
+     * @throws X TBD
      * predicate, otherwise {@code false}
      */
-    boolean anyMatch(IntPredicate predicate);
+    boolean anyMatch(IntPredicate predicate) throws X;
 
     /**
      * Returns whether all elements of this stream match the provided predicate.
@@ -771,9 +786,10 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *                  <a href="package-summary.html#Statelessness">stateless</a>
      *                  predicate to apply to elements of this stream
      * @return {@code true} if either all elements of the stream match the
+     * @throws X TBD
      * provided predicate or the stream is empty, otherwise {@code false}
      */
-    boolean allMatch(IntPredicate predicate);
+    boolean allMatch(IntPredicate predicate) throws X;
 
     /**
      * Returns whether no elements of this stream match the provided predicate.
@@ -795,8 +811,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *                  predicate to apply to elements of this stream
      * @return {@code true} if either no elements of the stream match the
      * provided predicate or the stream is empty, otherwise {@code false}
+     * @throws X TBD
      */
-    boolean noneMatch(IntPredicate predicate);
+    boolean noneMatch(IntPredicate predicate) throws X;
 
     /**
      * Returns an {@link OptionalInt} describing the first element of this
@@ -808,8 +825,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      *
      * @return an {@code OptionalInt} describing the first element of this stream,
      * or an empty {@code OptionalInt} if the stream is empty
+     * @throws X TBD
      */
-    OptionalInt findFirst();
+    OptionalInt findFirst() throws X;
 
     /**
      * Returns an {@link OptionalInt} describing some element of the stream, or
@@ -827,8 +845,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      * @return an {@code OptionalInt} describing some element of this stream, or
      * an empty {@code OptionalInt} if the stream is empty
      * @see #findFirst()
+     * @throws X TBD
      */
-    OptionalInt findAny();
+    OptionalInt findAny() throws X;
 
     /**
      * Returns a {@code LongStream} consisting of the elements of this stream,
@@ -864,19 +883,19 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
      * @return a {@code Stream} consistent of the elements of this stream,
      * each boxed to an {@code Integer}
      */
-    Stream<Integer> boxed();
+    Stream<Integer, X> boxed();
 
     @Override
-    IntStream sequential();
+    IntStream<X> sequential();
 
     @Override
-    IntStream parallel();
+    IntStream<X> parallel();
 
     @Override
     PrimitiveIterator.OfInt iterator();
 
     @Override
-    Spliterator.OfInt spliterator();
+    Spliterator.OfInt<? extends X> spliterator();
 
     // Static factories
 
@@ -1148,8 +1167,9 @@ public interface IntStream extends BaseStream<Integer, RuntimeException, IntStre
         Objects.requireNonNull(a);
         Objects.requireNonNull(b);
 
+        @SuppressWarnings("unchecked")
         Spliterator.OfInt split = new Streams.ConcatSpliterator.OfInt(
-                a.spliterator(), b.spliterator());
+            (Spliterator.OfInt<RuntimeException>)a.spliterator(), (Spliterator.OfInt<RuntimeException>)b.spliterator()); // TBD covariance
         IntStream stream = StreamSupport.intStream(split, a.isParallel() || b.isParallel());
         return stream.onClose(Streams.composedClose(a, b));
     }

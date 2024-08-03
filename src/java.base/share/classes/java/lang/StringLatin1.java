@@ -894,7 +894,7 @@ final class StringLatin1 {
         }
 
         @Override
-        public OfInt trySplit() {
+        public OfInt<RuntimeException> trySplit() { // TBD covariance
             int lo = index, mid = (lo + fence) >>> 1;
             return (lo >= mid)
                    ? null

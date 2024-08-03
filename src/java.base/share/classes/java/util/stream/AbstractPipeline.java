@@ -810,4 +810,9 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
                                                      Spliterator<P_IN, ? extends XX> spliterator) throws X_OUT {
         return opEvaluateParallel(helper, spliterator, Nodes.castingArray()).spliterator();
     }
+
+    @SuppressWarnings("unchecked")
+    protected AbstractPipeline<?,?,E_OUT,RuntimeException,?,?> eraseException() {
+        return (AbstractPipeline<?,?,E_OUT,RuntimeException,?,?>)this; // TODO RON
+    }
 }

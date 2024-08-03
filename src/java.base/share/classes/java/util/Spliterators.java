@@ -69,7 +69,7 @@ public final class Spliterators {
      *
      * @return An empty spliterator
      */
-    public static Spliterator.OfInt emptyIntSpliterator() {
+    public static Spliterator.OfInt<? extends RuntimeException> emptyIntSpliterator() {
         return EmptySpliterator.OfInt.EMPTY_INT_SPLITERATOR;
     }
 
@@ -715,7 +715,7 @@ public final class Spliterators {
      * @return An iterator
      * @throws NullPointerException if the given spliterator is {@code null}
      */
-    public static PrimitiveIterator.OfInt iterator(Spliterator.OfInt spliterator) {
+    public static PrimitiveIterator.OfInt iterator(Spliterator.OfInt<?> spliterator) {
         Objects.requireNonNull(spliterator);
         class Adapter implements PrimitiveIterator.OfInt, IntConsumer {
             boolean valueReady = false;
@@ -729,8 +729,11 @@ public final class Spliterators {
 
             @Override
             public boolean hasNext() {
-                if (!valueReady)
-                    spliterator.tryAdvance(this);
+                if (!valueReady) {
+                    try {
+                        spliterator.tryAdvance(this);
+                    } catch (Exception ex) { throw new RuntimeException("wrapped", ex); } // TODO
+                }
                 return valueReady;
             }
 
@@ -751,7 +754,9 @@ public final class Spliterators {
                     valueReady = false;
                     action.accept(nextElement);
                 }
-                spliterator.forEachRemaining(action);
+                try {
+                    spliterator.forEachRemaining(action);
+                } catch (Exception ex) { throw new RuntimeException("wrapped", ex); } // TODO
             }
         }
 
@@ -906,7 +911,7 @@ public final class Spliterators {
 
         @SuppressWarnings("overloads")
         private static final class OfInt
-                extends EmptySpliterator<Integer, Spliterator.OfInt, IntConsumer>
+                extends EmptySpliterator<Integer, Spliterator.OfInt<RuntimeException>, IntConsumer> // TBD covariance
                 implements Spliterator.OfInt {
             static final Spliterator.OfInt EMPTY_INT_SPLITERATOR =
                     new EmptySpliterator.OfInt();
@@ -1108,7 +1113,7 @@ public final class Spliterators {
         }
 
         @Override
-        public OfInt trySplit() {
+        public OfInt<RuntimeException> trySplit() { // TBD covariance
             int lo = index, mid = (lo + fence) >>> 1;
             if (lo >= mid) return null;
             if (estimatedSize == -1) {
@@ -1550,7 +1555,7 @@ public final class Spliterators {
          * This implementation permits limited parallelism.
          */
         @Override
-        public Spliterator.OfInt trySplit() {
+        public Spliterator.OfInt<RuntimeException> trySplit() { // TBD covariance
             HoldingIntConsumer holder = new HoldingIntConsumer();
             long s = est;
             if (s > 1 && tryAdvance(holder)) {
@@ -2025,7 +2030,7 @@ public final class Spliterators {
         }
 
         @Override
-        public OfInt trySplit() {
+        public OfInt<RuntimeException> trySplit() { // TBD covariance
             PrimitiveIterator.OfInt i = it;
             long s = est;
             if (s > 1 && i.hasNext()) {

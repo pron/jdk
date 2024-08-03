@@ -312,10 +312,6 @@ final class Nodes {
      * @param generator the array generator
      * @return a {@link Node} describing the output elements
      */
-//    final <P_IN, XIN extends X_OUT> Node<P_OUT> evaluateToNode(PipelineHelper<P_OUT, X_OUT> helper,
-//                                                               Spliterator<P_IN, XIN> spliterator,
-//                                                               boolean flattenTree,
-//                                                               IntFunction<P_OUT[]> generator) {
     public static <P_IN, P_OUT> Node<P_OUT> collect(PipelineHelper<P_OUT, ?, ?> helper,
                                                     Spliterator<P_IN, ?> spliterator,
                                                     boolean flattenTree,
@@ -354,15 +350,15 @@ final class Nodes {
      *                    describing an array before returning
      * @return a {@link Node.OfInt} describing the output elements
      */
-    public static <P_IN> Node.OfInt collectInt(PipelineHelper<Integer> helper,
-                                               Spliterator<P_IN, ? extends RuntimeException> spliterator,
+    public static <P_IN> Node.OfInt collectInt(PipelineHelper<Integer, ?, ?> helper,
+                                               Spliterator<P_IN, ?> spliterator,
                                                boolean flattenTree) {
         long size = helper.exactOutputSizeIfKnown(spliterator);
         if (size >= 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
             if (size >= MAX_ARRAY_SIZE)
                 throw new IllegalArgumentException(BAD_SIZE);
             int[] array = new int[(int) size];
-            new SizedCollectorTask.OfInt<>(spliterator, helper, array).invoke();
+            new SizedCollectorTask.OfInt<P_IN>(spliterator, helper, array).invoke();
             return node(array);
         }
         else {
@@ -593,8 +589,9 @@ final class Nodes {
             OfInt() { } // Avoid creation of special accessor
 
             @Override
-            public Spliterator.OfInt spliterator() {
-                return Spliterators.emptyIntSpliterator();
+            @SuppressWarnings("unchecked")
+            public Spliterator.OfInt<RuntimeException> spliterator() { // TODO covariance
+                return (Spliterator.OfInt<RuntimeException>)Spliterators.emptyIntSpliterator();
             }
 
             @Override
@@ -844,7 +841,7 @@ final class Nodes {
         }
 
         private abstract static class OfPrimitive<E, T_CONS, T_ARR,
-                                                  T_SPLITR extends Spliterator.OfPrimitive<E, T_CONS, T_SPLITR>,
+                                                  T_SPLITR extends Spliterator.OfPrimitive<E, RuntimeException, T_CONS, T_SPLITR>,
                                                   T_NODE extends Node.OfPrimitive<E, T_CONS, T_ARR, T_SPLITR, T_NODE>>
                 extends AbstractConcNode<E, T_NODE>
                 implements Node.OfPrimitive<E, T_CONS, T_ARR, T_SPLITR, T_NODE> {
@@ -888,7 +885,7 @@ final class Nodes {
 
         @SuppressWarnings("overloads")
         static final class OfInt
-                extends ConcNode.OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt, Node.OfInt>
+                extends ConcNode.OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt<RuntimeException>, Node.OfInt>
                 implements Node.OfInt {
 
             OfInt(Node.OfInt left, Node.OfInt right) {
@@ -896,8 +893,9 @@ final class Nodes {
             }
 
             @Override
-            public Spliterator.OfInt spliterator() {
-                return new InternalNodeSpliterator.OfInt(this);
+            @SuppressWarnings("unchecked")
+            public Spliterator.OfInt<RuntimeException> spliterator() {
+                return (Spliterator.OfInt<RuntimeException>)new InternalNodeSpliterator.OfInt(this);
             }
         }
 
@@ -1116,10 +1114,10 @@ final class Nodes {
         }
 
         private abstract static class OfPrimitive<T, T_CONS, T_ARR,
-                                                  T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>,
+                                                  T_SPLITR extends Spliterator.OfPrimitive<T, RuntimeException, T_CONS, T_SPLITR>,
                                                   N extends Node.OfPrimitive<T, T_CONS, T_ARR, T_SPLITR, N>>
                 extends InternalNodeSpliterator<T, T_SPLITR, N>
-                implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR> {
+                implements Spliterator.OfPrimitive<T, RuntimeException, T_CONS, T_SPLITR> {
 
             OfPrimitive(N cur) {
                 super(cur);
@@ -1171,7 +1169,7 @@ final class Nodes {
 
         @SuppressWarnings("overloads")
         private static final class OfInt
-                extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt, Node.OfInt>
+                extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt<RuntimeException>, Node.OfInt> // TODO covariance
                 implements Spliterator.OfInt {
 
             OfInt(Node.OfInt cur) {
@@ -1340,8 +1338,9 @@ final class Nodes {
         // Node
 
         @Override
-        public Spliterator.OfInt spliterator() {
-            return Arrays.spliterator(array, 0, curSize);
+        @SuppressWarnings("unchecked")
+        public Spliterator.OfInt<RuntimeException> spliterator() { // TODO covariance
+            return (Spliterator.OfInt<RuntimeException>)Arrays.spliterator(array, 0, curSize);
         }
 
         @Override
@@ -1655,9 +1654,10 @@ final class Nodes {
         IntSpinedNodeBuilder() {} // Avoid creation of special accessor
 
         @Override
-        public Spliterator.OfInt spliterator() {
+        @SuppressWarnings("unchecked")
+        public Spliterator.OfInt<RuntimeException> spliterator() { // TODO covariance
             assert !building : "during building";
-            return super.spliterator();
+            return (Spliterator.OfInt<RuntimeException>)super.spliterator();
         }
 
         @Override
@@ -1946,7 +1946,7 @@ final class Nodes {
                 implements Sink.OfInt {
             private final int[] array;
 
-            OfInt(Spliterator<P_IN, ?> spliterator, PipelineHelper<Integer> helper, int[] array) {
+            OfInt(Spliterator<P_IN, ?> spliterator, PipelineHelper<Integer, ?, ?> helper, int[] array) {
                 super(spliterator, helper, array.length);
                 this.array = array;
             }
@@ -2111,7 +2111,7 @@ final class Nodes {
 
         @SuppressWarnings("serial")
         private static class OfPrimitive<T, T_CONS, T_ARR,
-                                         T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>,
+                                         T_SPLITR extends Spliterator.OfPrimitive<T, RuntimeException, T_CONS, T_SPLITR>,
                                          T_NODE extends Node.OfPrimitive<T, T_CONS, T_ARR, T_SPLITR, T_NODE>>
                 extends ToArrayTask<T, T_NODE, OfPrimitive<T, T_CONS, T_ARR, T_SPLITR, T_NODE>> {
             private final T_ARR array;
@@ -2139,7 +2139,7 @@ final class Nodes {
 
         @SuppressWarnings("serial")
         private static final class OfInt
-                extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt, Node.OfInt> {
+                extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt<RuntimeException>, Node.OfInt> { // TODO covariance
             private OfInt(Node.OfInt node, int[] array, int offset) {
                 super(node, array, offset);
             }
@@ -2219,7 +2219,7 @@ final class Nodes {
         @SuppressWarnings("serial")
         private static final class OfInt<P_IN>
                 extends CollectorTask<P_IN, Integer, Node.OfInt, Node.Builder.OfInt> {
-            OfInt(PipelineHelper<Integer> helper, Spliterator<P_IN, ?> spliterator) {
+            OfInt(PipelineHelper<Integer, ?, ?> helper, Spliterator<P_IN, ?> spliterator) {
                 super(helper, spliterator, Nodes::intBuilder, ConcNode.OfInt::new);
             }
         }

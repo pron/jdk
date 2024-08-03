@@ -598,6 +598,7 @@ public interface Spliterator<T, X extends Exception> {
      * @param <T> the type of elements returned by this Spliterator.  The
      * type must be a wrapper type for a primitive type, such as {@code Integer}
      * for the primitive {@code int} type.
+     * @param <X> TBD
      * @param <T_CONS> the type of primitive consumer.  The type must be a
      * primitive specialization of {@link java.util.function.Consumer} for
      * {@code T}, such as {@link java.util.function.IntConsumer} for
@@ -611,8 +612,8 @@ public interface Spliterator<T, X extends Exception> {
      * @see Spliterator.OfDouble
      * @since 1.8
      */
-    public interface OfPrimitive<T, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>>
-            extends Spliterator<T> {
+    public interface OfPrimitive<T, X extends Exception, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
+            extends Spliterator<T, X> {
         @Override
         T_SPLITR trySplit();
 
@@ -629,10 +630,11 @@ public interface Spliterator<T, X extends Exception> {
          * @param action The action
          * @return {@code false} if no remaining elements existed
          * upon entry to this method, else {@code true}.
+         * @throws X TBD
          * @throws NullPointerException if the specified action is null
          */
         @SuppressWarnings("overloads")
-        boolean tryAdvance(T_CONS action);
+        boolean tryAdvance(T_CONS action) throws X;
 
         /**
          * Performs the given action for each remaining element, sequentially in
@@ -650,29 +652,31 @@ public interface Spliterator<T, X extends Exception> {
          * possible.
          *
          * @param action The action
+         * @throws X TBD
          * @throws NullPointerException if the specified action is null
          */
         @SuppressWarnings("overloads")
-        default void forEachRemaining(T_CONS action) {
+        default void forEachRemaining(T_CONS action) throws X {
             do { } while (tryAdvance(action));
         }
     }
 
     /**
      * A Spliterator specialized for {@code int} values.
+     * @param <X> TBD
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public interface OfInt extends OfPrimitive<Integer, IntConsumer, OfInt> {
+    public interface OfInt<throws X> extends OfPrimitive<Integer, X, IntConsumer, OfInt<X>> {
 
         @Override
-        OfInt trySplit();
+        OfInt<X> trySplit();
 
         @Override
-        boolean tryAdvance(IntConsumer action);
+        boolean tryAdvance(IntConsumer action) throws X;
 
         @Override
-        default void forEachRemaining(IntConsumer action) {
+        default void forEachRemaining(IntConsumer action) throws X {
             do { } while (tryAdvance(action));
         }
 
@@ -687,7 +691,7 @@ public interface Spliterator<T, X extends Exception> {
          * {@link #tryAdvance(java.util.function.IntConsumer)}.
          */
         @Override
-        default boolean tryAdvance(Consumer<? super Integer> action) {
+        default boolean tryAdvance(Consumer<? super Integer> action) throws X {
             if (action instanceof IntConsumer) {
                 return tryAdvance((IntConsumer) action);
             }
@@ -710,7 +714,7 @@ public interface Spliterator<T, X extends Exception> {
          * {@link #forEachRemaining(java.util.function.IntConsumer)}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Integer> action) {
+        default void forEachRemaining(Consumer<? super Integer> action) throws X {
             if (action instanceof IntConsumer) {
                 forEachRemaining((IntConsumer) action);
             }
@@ -728,7 +732,7 @@ public interface Spliterator<T, X extends Exception> {
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public interface OfLong extends OfPrimitive<Long, LongConsumer, OfLong> {
+    public interface OfLong extends OfPrimitive<Long, RuntimeException, LongConsumer, OfLong> {
 
         @Override
         OfLong trySplit();
@@ -793,7 +797,7 @@ public interface Spliterator<T, X extends Exception> {
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public interface OfDouble extends OfPrimitive<Double, DoubleConsumer, OfDouble> {
+    public interface OfDouble extends OfPrimitive<Double, RuntimeException, DoubleConsumer, OfDouble> {
 
         @Override
         OfDouble trySplit();

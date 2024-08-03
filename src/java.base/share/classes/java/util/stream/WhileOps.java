@@ -114,24 +114,25 @@ final class WhileOps {
      * @param upstream a reference stream with element type T
      * @param predicate the predicate that returns false to halt taking.
      */
-    static IntStream makeTakeWhileInt(AbstractPipeline<?, ?, Integer, RuntimeException, ?, ?> upstream,
+    static <X extends Exception> IntStream<X> makeTakeWhileInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream,
                                       IntPredicate predicate) {
         Objects.requireNonNull(predicate);
-        return new IntPipeline.StatefulOp<>(upstream, StreamShape.INT_VALUE, TAKE_FLAGS) {
+        return new IntPipeline.StatefulOp<Integer, X, X>(upstream, StreamShape.INT_VALUE, TAKE_FLAGS) {
             @Override
-            <P_IN, X_IN extends RuntimeException> Spliterator<Integer> opEvaluateParallelLazy(PipelineHelper<Integer, X_IN> helper,
+            @SuppressWarnings("unchecked")
+            <P_IN, X_IN extends X> Spliterator<Integer, ? extends X> opEvaluateParallelLazy(PipelineHelper<Integer, X_IN> helper,
                                                                Spliterator<P_IN, ? extends X_IN> spliterator) {
                 if (StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     return opEvaluateParallel(helper, spliterator, Integer[]::new)
                             .spliterator();
                 } else {
-                    return new UnorderedWhileSpliterator.OfInt.Taking(
-                            (Spliterator.OfInt) helper.wrapSpliterator(spliterator), false, predicate);
+                    return new UnorderedWhileSpliterator.OfInt.Taking<>(
+                            (Spliterator.OfInt<X_IN>)helper.wrapSpliterator(spliterator), false, predicate);
                 }
             }
 
             @Override
-            <P_IN, X_IN extends RuntimeException> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
+            <P_IN, X_IN extends X> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
                                                     Spliterator<P_IN, ? extends X_IN> spliterator,
                                                     IntFunction<Integer[]> generator) {
                 return new TakeWhileTask<>(this, helper, spliterator, generator)
@@ -399,29 +400,30 @@ final class WhileOps {
      * @param upstream a reference stream with element type T
      * @param predicate the predicate that returns false to halt dropping.
      */
-    static IntStream makeDropWhileInt(AbstractPipeline<?, ?, Integer, RuntimeException, ?, ?> upstream,
+    static <X extends Exception> IntStream<X> makeDropWhileInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream,
                                       IntPredicate predicate) {
         Objects.requireNonNull(predicate);
-        class Op extends IntPipeline.StatefulOp<Integer> implements DropWhileOp<Integer> {
-            public Op(AbstractPipeline<?, ?, Integer, RuntimeException, ?, ?> upstream, StreamShape inputShape, int opFlags) {
+        class Op extends IntPipeline.StatefulOp<Integer, X, X> implements DropWhileOp<Integer> {
+            public Op(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream, StreamShape inputShape, int opFlags) {
                 super(upstream, inputShape, opFlags);
             }
 
             @Override
-            <P_IN, X_IN extends RuntimeException> Spliterator<Integer> opEvaluateParallelLazy(PipelineHelper<Integer, X_IN> helper,
+            @SuppressWarnings("unchecked")
+            <P_IN, X_IN extends X> Spliterator<Integer, ? extends X> opEvaluateParallelLazy(PipelineHelper<Integer, X_IN> helper,
                                                                Spliterator<P_IN, ? extends X_IN> spliterator) {
                 if (StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     return opEvaluateParallel(helper, spliterator, Integer[]::new)
                             .spliterator();
                 }
                 else {
-                    return new UnorderedWhileSpliterator.OfInt.Dropping(
-                            (Spliterator.OfInt) helper.wrapSpliterator(spliterator), false, predicate);
+                    return new UnorderedWhileSpliterator.OfInt.Dropping<>(
+                            (Spliterator.OfInt<X_IN>)helper.wrapSpliterator(spliterator), false, predicate);
                 }
             }
 
             @Override
-            <P_IN, X_IN extends RuntimeException> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
+            <P_IN, X_IN extends X> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
                                                     Spliterator<P_IN, ? extends X_IN> spliterator,
                                                     IntFunction<Integer[]> generator) {
                 return new DropWhileTask<>(this, helper, spliterator, generator)
@@ -816,16 +818,16 @@ final class WhileOps {
             }
         }
 
-        abstract static class OfInt extends UnorderedWhileSpliterator<Integer, RuntimeException, Spliterator.OfInt> implements IntConsumer, Spliterator.OfInt {
+        abstract static class OfInt<X extends Exception> extends UnorderedWhileSpliterator<Integer, X, Spliterator.OfInt<X>> implements IntConsumer, Spliterator.OfInt<X> {
             final IntPredicate p;
             int t;
 
-            OfInt(Spliterator.OfInt s, boolean noSplitting, IntPredicate p) {
+            OfInt(Spliterator.OfInt<X> s, boolean noSplitting, IntPredicate p) {
                 super(s, noSplitting);
                 this.p = p;
             }
 
-            OfInt(Spliterator.OfInt s, UnorderedWhileSpliterator.OfInt parent) {
+            OfInt(Spliterator.OfInt<X> s, UnorderedWhileSpliterator.OfInt<X> parent) {
                 super(s, parent);
                 this.p = parent.p;
             }
@@ -836,17 +838,17 @@ final class WhileOps {
                 this.t = t;
             }
 
-            static final class Taking extends UnorderedWhileSpliterator.OfInt {
-                Taking(Spliterator.OfInt s, boolean noSplitting, IntPredicate p) {
+            static final class Taking<X extends Exception> extends UnorderedWhileSpliterator.OfInt<X> {
+                Taking(Spliterator.OfInt<X> s, boolean noSplitting, IntPredicate p) {
                     super(s, noSplitting, p);
                 }
 
-                Taking(Spliterator.OfInt s, UnorderedWhileSpliterator.OfInt parent) {
+                Taking(Spliterator.OfInt<X> s, UnorderedWhileSpliterator.OfInt<X> parent) {
                     super(s, parent);
                 }
 
                 @Override
-                public boolean tryAdvance(IntConsumer action) {
+                public boolean tryAdvance(IntConsumer action) throws X {
                     boolean test = true;
                     if (takeOrDrop &&               // If can take
                         checkCancelOnCount() && // and if not cancelled
@@ -867,28 +869,28 @@ final class WhileOps {
                 }
 
                 @Override
-                public Spliterator.OfInt trySplit() {
+                public Spliterator.OfInt<X> trySplit() {
                     // Do not split if all operations are cancelled
                     return cancel.get() ? null : super.trySplit();
                 }
 
                 @Override
-                Spliterator.OfInt makeSpliterator(Spliterator.OfInt s) {
-                    return new Taking(s, this);
+                Spliterator.OfInt<X> makeSpliterator(Spliterator.OfInt<X> s) {
+                    return new Taking<>(s, this);
                 }
             }
 
-            static final class Dropping extends UnorderedWhileSpliterator.OfInt {
-                Dropping(Spliterator.OfInt s, boolean noSplitting, IntPredicate p) {
+            static final class Dropping<X extends Exception> extends UnorderedWhileSpliterator.OfInt<X> {
+                Dropping(Spliterator.OfInt<X> s, boolean noSplitting, IntPredicate p) {
                     super(s, noSplitting, p);
                 }
 
-                Dropping(Spliterator.OfInt s, UnorderedWhileSpliterator.OfInt parent) {
+                Dropping(Spliterator.OfInt<X> s, UnorderedWhileSpliterator.OfInt<X> parent) {
                     super(s, parent);
                 }
 
                 @Override
-                public boolean tryAdvance(IntConsumer action) {
+                public boolean tryAdvance(IntConsumer action) throws X {
                     if (takeOrDrop) {
                         takeOrDrop = false;
                         boolean adv;
@@ -915,8 +917,8 @@ final class WhileOps {
                 }
 
                 @Override
-                Spliterator.OfInt makeSpliterator(Spliterator.OfInt s) {
-                    return new Dropping(s, this);
+                Spliterator.OfInt<X> makeSpliterator(Spliterator.OfInt<X> s) {
+                    return new Dropping<>(s, this);
                 }
             }
         }

@@ -182,7 +182,7 @@ class StreamSpliterators {
          * Initializes buffer, sink chain, and pusher for a shape-specific
          * implementation.
          */
-        abstract void initPartialTraversalState();
+        abstract void initPartialTraversalState() throws X_OUT;
 
         @Override
         public Spliterator<P_OUT, X_OUT> trySplit() {
@@ -294,7 +294,7 @@ class StreamSpliterators {
         }
 
         @Override
-        void initPartialTraversalState() {
+        void initPartialTraversalState() throws X_OUT {
             SpinedBuffer<P_OUT> b = new SpinedBuffer<>();
             buffer = b;
             bufferSink = ph.wrapSink(b::accept);
@@ -329,42 +329,46 @@ class StreamSpliterators {
         }
     }
 
-    static final class IntWrappingSpliterator<P_IN>
-            extends AbstractWrappingSpliterator<P_IN, Integer, RuntimeException, RuntimeException, SpinedBuffer.OfInt>
-            implements Spliterator.OfInt {
+    static final class IntWrappingSpliterator<P_IN, X_OUT extends Exception, X extends X_OUT>
+            extends AbstractWrappingSpliterator<P_IN, Integer, X_OUT, X, SpinedBuffer.OfInt>
+            implements Spliterator.OfInt<X_OUT> {
 
-        IntWrappingSpliterator(PipelineHelper<Integer> ph,
-                               Supplier<? extends Spliterator<P_IN, ? extends RuntimeException>> supplier,
+        IntWrappingSpliterator(PipelineHelper<Integer, ? extends X_OUT, ? extends X> ph,
+                               Supplier<? extends Spliterator<P_IN, ? extends X_OUT>> supplier,
                                boolean parallel) {
             super(ph, supplier, parallel);
         }
 
-        IntWrappingSpliterator(PipelineHelper<Integer> ph,
-                               Spliterator<P_IN, ? extends RuntimeException> spliterator,
+        IntWrappingSpliterator(PipelineHelper<Integer, ? extends X_OUT, ? extends X> ph,
+                               Spliterator<P_IN, ? extends X_OUT> spliterator,
                                boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        AbstractWrappingSpliterator<P_IN, Integer, RuntimeException, ?, ?> wrap(Spliterator<P_IN, ? extends RuntimeException> s) {
+        AbstractWrappingSpliterator<P_IN, Integer, X_OUT, X, ?> wrap(Spliterator<P_IN, ? extends X_OUT> s) {
             return new IntWrappingSpliterator<>(ph, s, isParallel);
         }
 
         @Override
-        void initPartialTraversalState() {
+        void initPartialTraversalState() throws X_OUT {
             SpinedBuffer.OfInt b = new SpinedBuffer.OfInt();
             buffer = b;
             bufferSink = ph.wrapSink((Sink.OfInt) b::accept);
-            pusher = () -> spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+            pusher = () -> {
+                try {
+                    return spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+                } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
+            };
         }
 
         @Override
-        public Spliterator.OfInt trySplit() {
-            return (Spliterator.OfInt) super.trySplit();
+        public Spliterator.OfInt<X_OUT> trySplit() {
+            return (Spliterator.OfInt<X_OUT>) super.trySplit();
         }
 
         @Override
-        public boolean tryAdvance(IntConsumer consumer) {
+        public boolean tryAdvance(IntConsumer consumer) throws X_OUT {
             Objects.requireNonNull(consumer);
             boolean hasNext = doAdvance();
             if (hasNext)
@@ -373,7 +377,7 @@ class StreamSpliterators {
         }
 
         @Override
-        public void forEachRemaining(IntConsumer consumer) {
+        public void forEachRemaining(IntConsumer consumer) throws X_OUT {
             if (buffer == null && !finished) {
                 Objects.requireNonNull(consumer);
                 init();
@@ -567,37 +571,38 @@ class StreamSpliterators {
             return getClass().getName() + "[" + get() + "]";
         }
 
-        static class OfPrimitive<T, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>>
-            extends DelegatingSpliterator<T, RuntimeException, T_SPLITR>
-            implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR> {
+        static class OfPrimitive<T, X extends Exception, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
+            extends DelegatingSpliterator<T, X, T_SPLITR>
+            implements Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR> {
             OfPrimitive(Supplier<? extends T_SPLITR> supplier) {
                 super(supplier);
             }
 
             @Override
-            public boolean tryAdvance(T_CONS consumer) {
+            public boolean tryAdvance(T_CONS consumer) throws X {
                 return get().tryAdvance(consumer);
             }
 
             @Override
-            public void forEachRemaining(T_CONS consumer) {
+            public void forEachRemaining(T_CONS consumer) throws X {
                 get().forEachRemaining(consumer);
             }
         }
 
         @SuppressWarnings("overloads")
-        static final class OfInt
-                extends OfPrimitive<Integer, IntConsumer, Spliterator.OfInt>
-                implements Spliterator.OfInt {
+        static final class OfInt<throws X>
+                extends OfPrimitive<Integer, X, IntConsumer, Spliterator.OfInt<X>>
+                implements Spliterator.OfInt<X> {
 
-            OfInt(Supplier<Spliterator.OfInt> supplier) {
-                super(supplier);
+            @SuppressWarnings("unchecked")
+            OfInt(Supplier<? extends Spliterator.OfInt<? extends X>> supplier) {
+                super((Supplier<Spliterator.OfInt<X>>)supplier); // TODO covariance
             }
         }
 
         @SuppressWarnings("overloads")
         static final class OfLong
-                extends OfPrimitive<Long, LongConsumer, Spliterator.OfLong>
+                extends OfPrimitive<Long, RuntimeException, LongConsumer, Spliterator.OfLong>
                 implements Spliterator.OfLong {
 
             OfLong(Supplier<Spliterator.OfLong> supplier) {
@@ -607,7 +612,7 @@ class StreamSpliterators {
 
         @SuppressWarnings("overloads")
         static final class OfDouble
-                extends OfPrimitive<Double, DoubleConsumer, Spliterator.OfDouble>
+                extends OfPrimitive<Double, RuntimeException, DoubleConsumer, Spliterator.OfDouble>
                 implements Spliterator.OfDouble {
 
             OfDouble(Supplier<Spliterator.OfDouble> supplier) {
@@ -767,11 +772,11 @@ class StreamSpliterators {
             }
         }
 
-        abstract static class OfPrimitive<T,
-                T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>,
+        abstract static class OfPrimitive<T, X extends Exception,
+                T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>,
                 T_CONS>
-                extends SliceSpliterator<T, RuntimeException, T_SPLITR>
-                implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR> {
+                extends SliceSpliterator<T, X, T_SPLITR>
+                implements Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR> {
 
             OfPrimitive(T_SPLITR s, long sliceOrigin, long sliceFence) {
                 this(s, sliceOrigin, sliceFence, 0, Math.min(s.estimateSize(), sliceFence));
@@ -783,7 +788,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public boolean tryAdvance(T_CONS action) {
+            public boolean tryAdvance(T_CONS action) throws X {
                 Objects.requireNonNull(action);
 
                 if (sliceOrigin >= fence)
@@ -802,7 +807,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public void forEachRemaining(T_CONS action) {
+            public void forEachRemaining(T_CONS action) throws X {
                 Objects.requireNonNull(action);
 
                 if (sliceOrigin >= fence)
@@ -832,22 +837,22 @@ class StreamSpliterators {
         }
 
         @SuppressWarnings("overloads")
-        static final class OfInt extends OfPrimitive<Integer, Spliterator.OfInt, IntConsumer>
-                implements Spliterator.OfInt {
-            OfInt(Spliterator.OfInt s, long sliceOrigin, long sliceFence) {
+        static final class OfInt<throws X> extends OfPrimitive<Integer, X, Spliterator.OfInt<X>, IntConsumer>
+                implements Spliterator.OfInt<X> {
+            OfInt(Spliterator.OfInt<X> s, long sliceOrigin, long sliceFence) {
                 super(s, sliceOrigin, sliceFence);
             }
 
-            OfInt(Spliterator.OfInt s,
+            OfInt(Spliterator.OfInt<X> s,
                   long sliceOrigin, long sliceFence, long origin, long fence) {
                 super(s, sliceOrigin, sliceFence, origin, fence);
             }
 
             @Override
-            protected Spliterator.OfInt makeSpliterator(Spliterator.OfInt s,
+            protected Spliterator.OfInt<X> makeSpliterator(Spliterator.OfInt<X> s,
                                                         long sliceOrigin, long sliceFence,
                                                         long origin, long fence) {
-                return new SliceSpliterator.OfInt(s, sliceOrigin, sliceFence, origin, fence);
+                return new SliceSpliterator.OfInt<>(s, sliceOrigin, sliceFence, origin, fence);
             }
 
             @Override
@@ -857,7 +862,7 @@ class StreamSpliterators {
         }
 
         @SuppressWarnings("overloads")
-        static final class OfLong extends OfPrimitive<Long, Spliterator.OfLong, LongConsumer>
+        static final class OfLong extends OfPrimitive<Long, RuntimeException, Spliterator.OfLong, LongConsumer>
                 implements Spliterator.OfLong {
             OfLong(Spliterator.OfLong s, long sliceOrigin, long sliceFence) {
                 super(s, sliceOrigin, sliceFence);
@@ -882,7 +887,7 @@ class StreamSpliterators {
         }
 
         @SuppressWarnings("overloads")
-        static final class OfDouble extends OfPrimitive<Double, Spliterator.OfDouble, DoubleConsumer>
+        static final class OfDouble extends OfPrimitive<Double, RuntimeException, Spliterator.OfDouble, DoubleConsumer>
                 implements Spliterator.OfDouble {
             OfDouble(Spliterator.OfDouble s, long sliceOrigin, long sliceFence) {
                 super(s, sliceOrigin, sliceFence);
@@ -1083,21 +1088,22 @@ class StreamSpliterators {
          */
         abstract static class OfPrimitive<
                 T,
+                X extends Exception,
                 T_CONS,
                 T_BUFF extends ArrayBuffer.OfPrimitive<T_CONS>,
-                T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>>
-                extends UnorderedSliceSpliterator<T, RuntimeException, T_SPLITR>
-                implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR> {
+                T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
+                extends UnorderedSliceSpliterator<T, X, T_SPLITR>
+                implements Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR> {
             OfPrimitive(T_SPLITR s, long skip, long limit) {
                 super(s, skip, limit);
             }
 
-            OfPrimitive(T_SPLITR s, UnorderedSliceSpliterator.OfPrimitive<T, T_CONS, T_BUFF, T_SPLITR> parent) {
+            OfPrimitive(T_SPLITR s, UnorderedSliceSpliterator.OfPrimitive<T, X, T_CONS, T_BUFF, T_SPLITR> parent) {
                 super(s, parent);
             }
 
             @Override
-            public boolean tryAdvance(T_CONS action) {
+            public boolean tryAdvance(T_CONS action) throws X {
                 Objects.requireNonNull(action);
                 @SuppressWarnings("unchecked")
                 T_CONS consumer = (T_CONS) this;
@@ -1116,7 +1122,7 @@ class StreamSpliterators {
             protected abstract void acceptConsumed(T_CONS action);
 
             @Override
-            public void forEachRemaining(T_CONS action) {
+            public void forEachRemaining(T_CONS action) throws X {
                 Objects.requireNonNull(action);
 
                 T_BUFF sb = null;
@@ -1148,17 +1154,17 @@ class StreamSpliterators {
         }
 
         @SuppressWarnings("overloads")
-        static final class OfInt
-                extends OfPrimitive<Integer, IntConsumer, ArrayBuffer.OfInt, Spliterator.OfInt>
-                implements Spliterator.OfInt, IntConsumer {
+        static final class OfInt<throws X>
+                extends OfPrimitive<Integer, X, IntConsumer, ArrayBuffer.OfInt, Spliterator.OfInt<X>>
+                implements Spliterator.OfInt<X>, IntConsumer {
 
             int tmpValue;
 
-            OfInt(Spliterator.OfInt s, long skip, long limit) {
+            OfInt(Spliterator.OfInt<X> s, long skip, long limit) {
                 super(s, skip, limit);
             }
 
-            OfInt(Spliterator.OfInt s, UnorderedSliceSpliterator.OfInt parent) {
+            OfInt(Spliterator.OfInt<X> s, UnorderedSliceSpliterator.OfInt<X> parent) {
                 super(s, parent);
             }
 
@@ -1178,14 +1184,14 @@ class StreamSpliterators {
             }
 
             @Override
-            protected Spliterator.OfInt makeSpliterator(Spliterator.OfInt s) {
-                return new UnorderedSliceSpliterator.OfInt(s, this);
+            protected Spliterator.OfInt<X> makeSpliterator(Spliterator.OfInt<X> s) {
+                return new UnorderedSliceSpliterator.OfInt<>(s, this);
             }
         }
 
         @SuppressWarnings("overloads")
         static final class OfLong
-                extends OfPrimitive<Long, LongConsumer, ArrayBuffer.OfLong, Spliterator.OfLong>
+                extends OfPrimitive<Long, RuntimeException, LongConsumer, ArrayBuffer.OfLong, Spliterator.OfLong>
                 implements Spliterator.OfLong, LongConsumer {
 
             long tmpValue;
@@ -1221,7 +1227,7 @@ class StreamSpliterators {
 
         @SuppressWarnings("overloads")
         static final class OfDouble
-                extends OfPrimitive<Double, DoubleConsumer, ArrayBuffer.OfDouble, Spliterator.OfDouble>
+                extends OfPrimitive<Double, RuntimeException, DoubleConsumer, ArrayBuffer.OfDouble, Spliterator.OfDouble>
                 implements Spliterator.OfDouble, DoubleConsumer {
 
             double tmpValue;
@@ -1348,7 +1354,7 @@ class StreamSpliterators {
      * The {@code tryAdvance} method always returns true.
      *
      */
-    abstract static class InfiniteSupplyingSpliterator<T> implements Spliterator<T> {
+    abstract static class InfiniteSupplyingSpliterator<T, throws X> implements Spliterator<T, X> {
         long estimate;
 
         protected InfiniteSupplyingSpliterator(long estimate) {
@@ -1365,7 +1371,7 @@ class StreamSpliterators {
             return IMMUTABLE;
         }
 
-        static final class OfRef<T> extends InfiniteSupplyingSpliterator<T> {
+        static final class OfRef<T, throws X> extends InfiniteSupplyingSpliterator<T, X> {
             final Supplier<? extends T> s;
 
             OfRef(long size, Supplier<? extends T> s) {
@@ -1374,7 +1380,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> action) {
+            public boolean tryAdvance(Consumer<? super T> action) throws X {
                 Objects.requireNonNull(action);
 
                 action.accept(s.get());
@@ -1382,15 +1388,15 @@ class StreamSpliterators {
             }
 
             @Override
-            public Spliterator<T> trySplit() {
+            public Spliterator<T, X> trySplit() {
                 if (estimate == 0)
                     return null;
                 return new InfiniteSupplyingSpliterator.OfRef<>(estimate >>>= 1, s);
             }
         }
 
-        static final class OfInt extends InfiniteSupplyingSpliterator<Integer>
-                implements Spliterator.OfInt {
+        static final class OfInt<throws X> extends InfiniteSupplyingSpliterator<Integer, X>
+                implements Spliterator.OfInt<X> {
             final IntSupplier s;
 
             OfInt(long size, IntSupplier s) {
@@ -1399,7 +1405,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public boolean tryAdvance(IntConsumer action) {
+            public boolean tryAdvance(IntConsumer action) throws X {
                 Objects.requireNonNull(action);
 
                 action.accept(s.getAsInt());
@@ -1407,10 +1413,10 @@ class StreamSpliterators {
             }
 
             @Override
-            public Spliterator.OfInt trySplit() {
+            public Spliterator.OfInt<X> trySplit() {
                 if (estimate == 0)
                     return null;
-                return new InfiniteSupplyingSpliterator.OfInt(estimate = estimate >>> 1, s);
+                return new InfiniteSupplyingSpliterator.OfInt<X>(estimate = estimate >>> 1, s);
             }
         }
 

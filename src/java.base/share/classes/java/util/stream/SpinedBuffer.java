@@ -55,7 +55,7 @@ import java.util.function.LongConsumer;
  */
 class SpinedBuffer<E>
         extends AbstractSpinedBuffer
-        implements Consumer<E>, Iterable<E> {
+        implements Consumer<E, RuntimeException>, Iterable<E> {
 
     /*
      * We optimistically hope that all the data will fit into the first chunk,
@@ -593,8 +593,8 @@ class SpinedBuffer<E>
             arrayForEach(curChunk, 0, elementIndex, consumer);
         }
 
-        abstract class BaseSpliterator<T_SPLITR extends Spliterator.OfPrimitive<E, T_CONS, T_SPLITR>>
-                implements Spliterator.OfPrimitive<E, T_CONS, T_SPLITR> {
+        abstract class BaseSpliterator<T_SPLITR extends Spliterator.OfPrimitive<E, RuntimeException, T_CONS, T_SPLITR>>
+                implements Spliterator.OfPrimitive<E, RuntimeException, T_CONS, T_SPLITR> {
             // The current spine index
             int splSpineIndex;
 
@@ -787,7 +787,7 @@ class SpinedBuffer<E>
 
         public Spliterator.OfInt spliterator() {
             @SuppressWarnings("overloads")
-            class Splitr extends BaseSpliterator<Spliterator.OfInt>
+            class Splitr extends BaseSpliterator<Spliterator.OfInt<RuntimeException>> // TODO covariance
                     implements Spliterator.OfInt {
                 Splitr(int firstSpineIndex, int lastSpineIndex,
                        int firstSpineElementIndex, int lastSpineElementFence) {
@@ -808,8 +808,9 @@ class SpinedBuffer<E>
                 }
 
                 @Override
-                Spliterator.OfInt arraySpliterator(int[] array, int offset, int len) {
-                    return Arrays.spliterator(array, offset, offset+len);
+                @SuppressWarnings("unchecked")
+                Spliterator.OfInt<RuntimeException> arraySpliterator(int[] array, int offset, int len) { // TODO covariance
+                    return (Spliterator.OfInt<RuntimeException>)Arrays.spliterator(array, offset, offset+len);
                 }
             }
             return new Splitr(0, spineIndex, 0, elementIndex);

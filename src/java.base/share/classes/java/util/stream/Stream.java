@@ -213,7 +213,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      *               function to apply to each element
      * @return the new stream
      */
-    IntStream mapToInt(ToIntFunction<? super T> mapper);
+    IntStream<? extends X> mapToInt(ToIntFunction<? super T> mapper);
 
     /**
      * Returns a {@code LongStream} consisting of the results of applying the
@@ -1342,7 +1342,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      * and, as a side-effect, print out the list elements.
      *
      * @return the count of elements in this stream
-     * @throws X throws
+     * @throws X TBD
      */
     long count() throws X;
 
@@ -1702,7 +1702,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
 
         @SuppressWarnings("unchecked")
         Spliterator<T> split = new Streams.ConcatSpliterator.OfRef<>(
-                (Spliterator<T>) a.spliterator(), (Spliterator<T>) b.spliterator());
+                (Spliterator<T, RuntimeException>) a.spliterator(), (Spliterator<T, RuntimeException>) b.spliterator());
         Stream<T> stream = StreamSupport.stream(split, a.isParallel() || b.isParallel());
         return stream.onClose(Streams.composedClose(a, b));
     }

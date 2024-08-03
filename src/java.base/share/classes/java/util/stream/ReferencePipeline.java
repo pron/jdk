@@ -228,15 +228,10 @@ abstract class ReferencePipeline<P_IN, X_IN extends Exception, P_OUT, X_OUT exte
         };
     }
 
-    @SuppressWarnings("unchecked")
-    private AbstractPipeline<?,?,P_OUT,RuntimeException,?,?> eraseException() {
-        return (AbstractPipeline<?,?,P_OUT,RuntimeException,?,?>)this; // TODO
-    }
-
     @Override
-    public final IntStream mapToInt(ToIntFunction<? super P_OUT> mapper) {
+    public final IntStream<? extends X_OUT> mapToInt(ToIntFunction<? super P_OUT> mapper) {
         Objects.requireNonNull(mapper);
-        return new IntPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
+        return new IntPipeline.StatelessOp<>(this, StreamShape.REFERENCE,
                                               StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
             Sink<P_OUT> opWrapSink(int flags, Sink<Integer> sink) {

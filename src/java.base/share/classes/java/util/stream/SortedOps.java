@@ -69,10 +69,11 @@ final class SortedOps {
      * Appends a "sorted" operation to the provided stream.
      *
      * @param <T> the type of both input and output elements
+     * @param <X> TBD
      * @param upstream a reference stream with element type T
      */
-    static <T> IntStream makeInt(AbstractPipeline<?, ?, Integer, RuntimeException, ?, ?> upstream) {
-        return new OfInt(upstream);
+    static <T, X extends Exception> IntStream<X> makeInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream) {
+        return new OfInt<>(upstream);
     }
 
     /**
@@ -166,8 +167,8 @@ final class SortedOps {
     /**
      * Specialized subtype for sorting int streams.
      */
-    private static final class OfInt extends IntPipeline.StatefulOp<Integer> {
-        OfInt(AbstractPipeline<?, ?, Integer, RuntimeException, ?, ?> upstream) {
+    private static final class OfInt<X extends Exception> extends IntPipeline.StatefulOp<Integer, X, X, RuntimeException> {
+        OfInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream) {
             super(upstream, StreamShape.INT_VALUE,
                   StreamOpFlag.IS_ORDERED | StreamOpFlag.IS_SORTED);
         }
@@ -185,9 +186,9 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, X_IN extends RuntimeException> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
+        public <P_IN, X_IN extends X> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
                                                        Spliterator<P_IN, ? extends X_IN> spliterator,
-                                                       IntFunction<Integer[]> generator) {
+                                                       IntFunction<Integer[]> generator) throws X_IN {
             if (StreamOpFlag.SORTED.isKnown(helper.getStreamAndOpFlags())) {
                 return helper.evaluate(spliterator, false, generator);
             }

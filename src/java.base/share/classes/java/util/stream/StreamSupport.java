@@ -134,8 +134,9 @@ public final class StreamSupport {
      *        stream; if {@code false} the returned stream is a sequential
      *        stream.
      * @return a new sequential or parallel {@code IntStream}
+     * @param <X> TBD
      */
-    public static IntStream intStream(Spliterator.OfInt spliterator, boolean parallel) {
+    public static <X extends Exception> IntStream<X> intStream(Spliterator.OfInt<X> spliterator, boolean parallel) {
         return new IntPipeline.Head<>(spliterator,
                                       StreamOpFlag.fromCharacteristics(spliterator),
                                       parallel);
@@ -152,7 +153,7 @@ public final class StreamSupport {
      * <p>For spliterators that report a characteristic of {@code IMMUTABLE}
      * or {@code CONCURRENT}, or that are
      * <a href="../Spliterator.html#binding">late-binding</a>, it is likely
-     * more efficient to use {@link #intStream(java.util.Spliterator.OfInt, boolean)}
+     * more efficient to use {link #intStream(java.util.Spliterator.OfInt, boolean)} TODO RON
      * instead.
      * <p>The use of a {@code Supplier} in this form provides a level of
      * indirection that reduces the scope of potential interference with the
@@ -171,7 +172,7 @@ public final class StreamSupport {
      *        stream; if {@code false} the returned stream is a sequential
      *        stream.
      * @return a new sequential or parallel {@code IntStream}
-     * @see #intStream(java.util.Spliterator.OfInt, boolean)
+     * see #intStream(java.util.Spliterator.OfInt, boolean) TODO RON
      */
     public static IntStream intStream(Supplier<? extends Spliterator.OfInt> supplier,
                                       int characteristics,

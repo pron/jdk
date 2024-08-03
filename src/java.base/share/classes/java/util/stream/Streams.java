@@ -128,7 +128,7 @@ final class Streams {
         }
 
         @Override
-        public Spliterator.OfInt trySplit() {
+        public Spliterator.OfInt<RuntimeException> trySplit() {
             long size = estimateSize();
             return size <= 1
                    ? null
@@ -415,7 +415,7 @@ final class Streams {
     }
 
     static final class IntStreamBuilderImpl
-            extends AbstractStreamBuilderImpl<Integer, Spliterator.OfInt>
+            extends AbstractStreamBuilderImpl<Integer, Spliterator.OfInt<RuntimeException>> // TODO covariance
             implements IntStream.Builder, Spliterator.OfInt {
         // The first element in the stream
         // valid if count == 1
@@ -687,8 +687,8 @@ final class Streams {
         }
     }
 
-    abstract static class ConcatSpliterator<T, T_SPLITR extends Spliterator<T>>
-            implements Spliterator<T> {
+    abstract static class ConcatSpliterator<T, X extends Exception, T_SPLITR extends Spliterator<T, X>>
+            implements Spliterator<T, X> {
         protected final T_SPLITR aSpliterator;
         protected final T_SPLITR bSpliterator;
         // True when no split has occurred, otherwise false
@@ -714,7 +714,7 @@ final class Streams {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> consumer) {
+        public boolean tryAdvance(Consumer<? super T> consumer) throws X {
             boolean hasNext;
             if (beforeSplit) {
                 hasNext = aSpliterator.tryAdvance(consumer);
@@ -729,7 +729,7 @@ final class Streams {
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super T> consumer) {
+        public void forEachRemaining(Consumer<? super T> consumer) throws X {
             if (beforeSplit)
                 aSpliterator.forEachRemaining(consumer);
             bSpliterator.forEachRemaining(consumer);
@@ -768,21 +768,21 @@ final class Streams {
             return bSpliterator.getComparator();
         }
 
-        static class OfRef<T> extends ConcatSpliterator<T, Spliterator<T>> {
-            OfRef(Spliterator<T> aSpliterator, Spliterator<T> bSpliterator) {
+        static class OfRef<T, X extends Exception> extends ConcatSpliterator<T, X, Spliterator<T, X>> {
+            OfRef(Spliterator<T, X> aSpliterator, Spliterator<T, X> bSpliterator) {
                 super(aSpliterator, bSpliterator);
             }
         }
 
-        private abstract static class OfPrimitive<T, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>>
-                extends ConcatSpliterator<T, T_SPLITR>
-                implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR> {
+        private abstract static class OfPrimitive<T, X extends Exception, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
+                extends ConcatSpliterator<T, X, T_SPLITR>
+                implements Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR> {
             private OfPrimitive(T_SPLITR aSpliterator, T_SPLITR bSpliterator) {
                 super(aSpliterator, bSpliterator);
             }
 
             @Override
-            public boolean tryAdvance(T_CONS action) {
+            public boolean tryAdvance(T_CONS action) throws X {
                 boolean hasNext;
                 if (beforeSplit) {
                     hasNext = aSpliterator.tryAdvance(action);
@@ -797,7 +797,7 @@ final class Streams {
             }
 
             @Override
-            public void forEachRemaining(T_CONS action) {
+            public void forEachRemaining(T_CONS action) throws X {
                 if (beforeSplit)
                     aSpliterator.forEachRemaining(action);
                 bSpliterator.forEachRemaining(action);
@@ -805,17 +805,17 @@ final class Streams {
         }
 
         @SuppressWarnings("overloads")
-        static class OfInt
-                extends ConcatSpliterator.OfPrimitive<Integer, IntConsumer, Spliterator.OfInt>
-                implements Spliterator.OfInt {
-            OfInt(Spliterator.OfInt aSpliterator, Spliterator.OfInt bSpliterator) {
+        static class OfInt<X extends Exception>
+                extends ConcatSpliterator.OfPrimitive<Integer, X, IntConsumer, Spliterator.OfInt<X>>
+                implements Spliterator.OfInt<X> {
+            OfInt(Spliterator.OfInt<X> aSpliterator, Spliterator.OfInt<X> bSpliterator) {
                 super(aSpliterator, bSpliterator);
             }
         }
 
         @SuppressWarnings("overloads")
         static class OfLong
-                extends ConcatSpliterator.OfPrimitive<Long, LongConsumer, Spliterator.OfLong>
+                extends ConcatSpliterator.OfPrimitive<Long, RuntimeException, LongConsumer, Spliterator.OfLong>
                 implements Spliterator.OfLong {
             OfLong(Spliterator.OfLong aSpliterator, Spliterator.OfLong bSpliterator) {
                 super(aSpliterator, bSpliterator);
@@ -824,7 +824,7 @@ final class Streams {
 
         @SuppressWarnings("overloads")
         static class OfDouble
-                extends ConcatSpliterator.OfPrimitive<Double, DoubleConsumer, Spliterator.OfDouble>
+                extends ConcatSpliterator.OfPrimitive<Double, RuntimeException, DoubleConsumer, Spliterator.OfDouble>
                 implements Spliterator.OfDouble {
             OfDouble(Spliterator.OfDouble aSpliterator, Spliterator.OfDouble bSpliterator) {
                 super(aSpliterator, bSpliterator);

@@ -225,7 +225,7 @@ interface Node<T> {
     }
 
     public interface OfPrimitive<T, T_CONS, T_ARR,
-                                 T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>,
+                                 T_SPLITR extends Spliterator.OfPrimitive<T, RuntimeException, T_CONS, T_SPLITR>,
                                  T_NODE extends OfPrimitive<T, T_CONS, T_ARR, T_SPLITR, T_NODE>>
             extends Node<T> {
 
@@ -315,7 +315,7 @@ interface Node<T> {
      * Specialized {@code Node} for int elements
      */
     @SuppressWarnings("overloads")
-    interface OfInt extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt, OfInt> {
+    interface OfInt extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt<RuntimeException>, OfInt> { // TODO covariance
 
         /**
          * {@inheritDoc}
