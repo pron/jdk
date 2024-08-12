@@ -1189,13 +1189,15 @@ public class Types {
                 if (cache.add(pair)) {
                     try {
                         return containsType(t.getTypeArguments(),
-                                            s.getTypeArguments());
+                                            s.getTypeArguments(),
+                                            t.tsym.type.allparams());
                     } finally {
                         cache.remove(pair);
                     }
                 } else {
                     return containsType(t.getTypeArguments(),
-                                        rewriteSupers(s).getTypeArguments());
+                                        rewriteSupers(s).getTypeArguments(),
+                                        t.tsym.type.allparams());
                 }
             }
 
@@ -1598,11 +1600,12 @@ public class Types {
         }
     }
 
-    boolean containsType(List<Type> ts, List<Type> ss) {
+    boolean containsType(List<Type> ts, List<Type> ss, List<Type> formals) {
         while (ts.nonEmpty() && ss.nonEmpty()
-               && containsType(ts.head, ss.head)) {
+               && containsType(maybeCovariant(ts.head, formals.head), ss.head)) {
             ts = ts.tail;
             ss = ss.tail;
+            formals = formals.tail;
         }
         return ts.isEmpty() && ss.isEmpty();
     }
@@ -1671,6 +1674,11 @@ public class Types {
 //                                  || isSubtypeNoCapture(wildLowerBound(t), wildLowerBound(s)));
 //                System.err.println();
 //            }
+
+            @Override
+            public Boolean visitClassType(ClassType t, Type s) {
+                return visitType(t, s);
+            }
 
             @Override
             public Boolean visitWildcardType(WildcardType t, Type s) {
@@ -3520,6 +3528,14 @@ public class Types {
         return syms.exceptionType;
     }
 
+    public Type maybeCovariant(Type t, Type formalParam) {
+        if (t.hasTag(CLASS) && isThrowsParam(formalParam)) {
+            // TypeVar tv = (TypeVar)formalParam;
+            t = new WildcardType(t, EXTENDS, t.tsym);
+        }
+        return t;
+    }
+
     public boolean isLastParamThrows(List<Type> formals) {
         if (formals.isEmpty()) return false;
         return isThrowsParam(formals.last());
@@ -4941,7 +4957,7 @@ public class Types {
             if (b.isParameterized() &&
                     (!(isUnbounded(b) ||
                     isSubtype(from, b) ||
-                    ((subFrom != null) && containsType(b.allparams(), subFrom.allparams()))))) {
+                    ((subFrom != null) && containsType(b.allparams(), subFrom.allparams(), b.tsym.type.allparams()))))) {
                 return true;
             }
         }
