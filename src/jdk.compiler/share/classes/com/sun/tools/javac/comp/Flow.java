@@ -1456,9 +1456,9 @@ public class Flow {
          */
         @SuppressWarnings("unchecked")
         void markThrown(JCTree tree, Type exc) {
-            if (exc instanceof CapturedType ct)
-                exc = ct.getUpperBound();
-            if (exc instanceof ThrowableUnionClassType tu) {
+            if (exc instanceof CapturedType ct) {
+                markThrown(tree, ct.getUpperBound());
+            } else if (exc instanceof ThrowableUnionClassType tu) {
                 for (var ext : tu.alternatives())
                     markThrown(tree, ext);
             } else if (!chk.isUnchecked(tree.pos(), exc)) {
