@@ -3066,7 +3066,7 @@ public class Check {
                 if (oldit != null) {
                     List<Type> oldparams = oldit.allparams();
                     List<Type> newparams = it.allparams();
-                    if (!types.containsTypeEquivalent(oldparams, newparams))
+                    if (!types.containsTypeEquivalent(oldparams, newparams, it.hasTag(CLASS) ? it.tsym.type.allparams() : null))
                         log.error(pos,
                                   Errors.CantInheritDiffArg(it.tsym,
                                                             Type.toString(oldparams),

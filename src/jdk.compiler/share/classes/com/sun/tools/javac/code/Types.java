@@ -1506,7 +1506,7 @@ public class Types {
                 }
                 return t.tsym == s.tsym
                     && visit(t.getEnclosingType(), s.getEnclosingType())
-                    && containsTypeEquivalent(t.getTypeArguments(), s.getTypeArguments());
+                    && containsTypeEquivalent(t.getTypeArguments(), s.getTypeArguments(), t.tsym.type.allparams());
             }
 
             @Override
@@ -1721,11 +1721,14 @@ public class Types {
         return w.kind == t.kind && w.type == t.type;
     }
 
-    public boolean containsTypeEquivalent(List<Type> ts, List<Type> ss) {
+    public boolean containsTypeEquivalent(List<Type> ts, List<Type> ss, List<Type> formals) {
         while (ts.nonEmpty() && ss.nonEmpty()
-               && containsTypeEquivalent(ts.head, ss.head)) {
+               && (formals != null
+                  ? containsTypeEquivalent(maybeCovariant(ts.head, formals.head), maybeCovariant(ss.head, formals.head))
+                  : containsTypeEquivalent(ts.head, ss.head))) {
             ts = ts.tail;
             ss = ss.tail;
+            formals = (formals != null ? formals.tail : formals);
         }
         return ts.isEmpty() && ss.isEmpty();
     }
@@ -3529,7 +3532,8 @@ public class Types {
     }
 
     public Type maybeCovariant(Type t, Type formalParam) {
-        if (t.hasTag(CLASS) && isThrowsParam(formalParam)) {
+        if ((t.hasTag(CLASS) || t.hasTag(TYPEVAR))
+                && isThrowsParam(formalParam)) {
             // TypeVar tv = (TypeVar)formalParam;
             t = new WildcardType(t, EXTENDS, t.tsym);
         }
@@ -3674,7 +3678,7 @@ public class Types {
             @Override
             public Boolean visitMethodType(MethodType t, Type s) {
                 return s.hasTag(METHOD)
-                    && containsTypeEquivalent(t.argtypes, s.getParameterTypes());
+                    && containsTypeEquivalent(t.argtypes, s.getParameterTypes(), null);
             }
 
             @Override
