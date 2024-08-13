@@ -911,7 +911,7 @@ public final class Spliterators {
 
         @SuppressWarnings("overloads")
         private static final class OfInt
-                extends EmptySpliterator<Integer, Spliterator.OfInt<RuntimeException>, IntConsumer> // TBD covariance
+                extends EmptySpliterator<Integer, Spliterator.OfInt, IntConsumer>
                 implements Spliterator.OfInt {
             static final Spliterator.OfInt EMPTY_INT_SPLITERATOR =
                     new EmptySpliterator.OfInt();
@@ -1113,7 +1113,7 @@ public final class Spliterators {
         }
 
         @Override
-        public OfInt<RuntimeException> trySplit() { // TBD covariance
+        public OfInt trySplit() {
             int lo = index, mid = (lo + fence) >>> 1;
             if (lo >= mid) return null;
             if (estimatedSize == -1) {
@@ -1555,7 +1555,7 @@ public final class Spliterators {
          * This implementation permits limited parallelism.
          */
         @Override
-        public Spliterator.OfInt<RuntimeException> trySplit() { // TBD covariance
+        public Spliterator.OfInt trySplit() {
             HoldingIntConsumer holder = new HoldingIntConsumer();
             long s = est;
             if (s > 1 && tryAdvance(holder)) {
@@ -2030,7 +2030,7 @@ public final class Spliterators {
         }
 
         @Override
-        public OfInt<RuntimeException> trySplit() { // TBD covariance
+        public OfInt trySplit() {
             PrimitiveIterator.OfInt i = it;
             long s = est;
             if (s > 1 && i.hasNext()) {

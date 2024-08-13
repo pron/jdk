@@ -1169,7 +1169,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
 
         @SuppressWarnings("unchecked")
         Spliterator.OfInt split = new Streams.ConcatSpliterator.OfInt(
-            (Spliterator.OfInt<RuntimeException>)a.spliterator(), (Spliterator.OfInt<RuntimeException>)b.spliterator()); // TBD covariance
+            (Spliterator.OfInt)a.spliterator(), (Spliterator.OfInt)b.spliterator());
         IntStream stream = StreamSupport.intStream(split, a.isParallel() || b.isParallel());
         return stream.onClose(Streams.composedClose(a, b));
     }

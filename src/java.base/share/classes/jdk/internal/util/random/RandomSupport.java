@@ -942,7 +942,7 @@ public class RandomSupport {
             this.origin = origin; this.bound = bound;
         }
 
-        public Spliterator.OfInt<RuntimeException> trySplit() { // TBD covariance
+        public Spliterator.OfInt trySplit() {
             long i = index, m = (i + fence) >>> 1;
             if (m <= i) return null;
             index = m;
@@ -1733,7 +1733,7 @@ public class RandomSupport {
                 this.generatingGenerator = generatingGenerator;
             }
 
-            public Spliterator.OfInt<RuntimeException> trySplit() { // TBD covariance
+            public Spliterator.OfInt trySplit() {
                 long i = index, delta = Long.highestOneBit((fence - i) - 1), m = i + delta;
                 if (m <= i) return null;
                 index = m;
@@ -2126,7 +2126,7 @@ public class RandomSupport {
                 this.origin = origin; this.bound = bound;
             }
 
-            public Spliterator.OfInt<RuntimeException> trySplit() { // TBD covariance
+            public Spliterator.OfInt trySplit() {
                 long i = index, m = (i + fence) >>> 1;
                 if (m <= i) return null;
                 index = m;

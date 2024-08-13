@@ -1317,7 +1317,7 @@ public class BitSet implements Cloneable, java.io.Serializable {
             }
 
             @Override
-            public OfInt<RuntimeException> trySplit() { // TBD covariance
+            public OfInt trySplit() {
                 int hi = getFence();
                 int lo = index;
                 if (lo < 0) {

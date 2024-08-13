@@ -53,7 +53,7 @@ class CharBufferSpliterator implements Spliterator.OfInt {
     }
 
     @Override
-    public OfInt<RuntimeException> trySplit() { // TODO covariance
+    public OfInt trySplit() {
         int lo = index, mid = (lo + limit) >>> 1;
         return (lo >= mid)
                ? null
