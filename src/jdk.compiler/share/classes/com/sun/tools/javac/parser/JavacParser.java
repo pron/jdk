@@ -2407,8 +2407,23 @@ public class JavacParser implements Parser {
      */
     JCExpression typeArgument() {
         List<JCAnnotation> annotations = typeAnnotationsOpt();
-        if (token.kind != QUES) return parseType(false, annotations);
         int pos = token.pos;
+
+        if (token.kind != QUES) {
+            JCExpression result = parseType(false, annotations);
+            if (token.kind == BAR) {
+                ListBuffer<JCExpression> bounds = new ListBuffer<>();
+                bounds.append(result);
+                while (token.kind == BAR) {
+                    nextToken();
+                    bounds.append(parseType());
+                }
+                TypeBoundKind t = to(F.at(pos).TypeBoundKind(BoundKind.EXTENDS));
+                result = F.at(pos).Wildcard(t, true, bounds.toList());
+            }
+            return result;
+        }
+
         nextToken();
         JCExpression result;
         if (token.kind == EXTENDS) {
