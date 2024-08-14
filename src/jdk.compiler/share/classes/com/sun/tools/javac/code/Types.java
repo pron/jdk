@@ -3532,9 +3532,8 @@ public class Types {
     }
 
     public Type maybeCovariant(Type t, Type formalParam) {
-        if ((t.hasTag(CLASS) || t.hasTag(TYPEVAR))
+        if ((t.hasTag(CLASS) || t.hasTag(TYPEVAR) || t.hasTag(UNDETVAR))
                 && isThrowsParam(formalParam)) {
-            // TypeVar tv = (TypeVar)formalParam;
             t = new WildcardType(t, EXTENDS, t.tsym);
         }
         return t;
