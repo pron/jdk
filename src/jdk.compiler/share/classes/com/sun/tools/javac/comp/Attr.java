@@ -846,6 +846,7 @@ public class Attr extends JCTree.Visitor {
             }
             if (tvar.throwsParam) {
                 TypeVar a = (TypeVar)tvar.type;
+                // TODO: new error messages
                 if (!tvar.bounds.isEmpty()) // bounds must be Throwable
                     chk.checkType(tvar.bounds.head, a.getUpperBound(), syms.throwableType);
                 // default must conform to bounds

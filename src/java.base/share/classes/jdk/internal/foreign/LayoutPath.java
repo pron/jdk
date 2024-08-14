@@ -404,7 +404,7 @@ public class LayoutPath {
     }
 
     public record SequenceElementByIndex(long index)
-            implements MemoryLayout.PathElement, UnaryOperator<LayoutPath, RuntimeException> {
+            implements MemoryLayout.PathElement, UnaryOperator<LayoutPath> {
 
         // Assert invariants
         public SequenceElementByIndex {
