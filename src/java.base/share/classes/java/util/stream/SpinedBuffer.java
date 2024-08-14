@@ -787,7 +787,7 @@ class SpinedBuffer<E>
 
         public Spliterator.OfInt spliterator() {
             @SuppressWarnings("overloads")
-            class Splitr extends BaseSpliterator<Spliterator.OfInt<RuntimeException>> // TODO covariance
+            class Splitr extends BaseSpliterator<Spliterator.OfInt>
                     implements Spliterator.OfInt {
                 Splitr(int firstSpineIndex, int lastSpineIndex,
                        int firstSpineElementIndex, int lastSpineElementFence) {
@@ -808,9 +808,8 @@ class SpinedBuffer<E>
                 }
 
                 @Override
-                @SuppressWarnings("unchecked")
-                Spliterator.OfInt<RuntimeException> arraySpliterator(int[] array, int offset, int len) { // TODO covariance
-                    return (Spliterator.OfInt<RuntimeException>)Arrays.spliterator(array, offset, offset+len);
+                Spliterator.OfInt arraySpliterator(int[] array, int offset, int len) {
+                    return Arrays.spliterator(array, offset, offset+len);
                 }
             }
             return new Splitr(0, spineIndex, 0, elementIndex);

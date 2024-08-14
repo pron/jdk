@@ -49,7 +49,7 @@ final class SortedOps {
      * @param upstream a reference stream with element type T
      */
 
-    static <T, X extends Exception> Stream<T, X> makeRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream) {
+    static <T, throws X> Stream<T, X> makeRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream) {
         return new OfRef<>(upstream);
     }
 
@@ -60,7 +60,7 @@ final class SortedOps {
      * @param upstream a reference stream with element type T
      * @param comparator the comparator to order elements by
      */
-    static <T, X extends Exception> Stream<T, X> makeRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream,
+    static <T, throws X> Stream<T, X> makeRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream,
                                                          Comparator<? super T> comparator) {
         return new OfRef<>(upstream, comparator);
     }
@@ -72,7 +72,7 @@ final class SortedOps {
      * @param <X> TBD
      * @param upstream a reference stream with element type T
      */
-    static <T, X extends Exception> IntStream<X> makeInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream) {
+    static <T, throws X> IntStream<X> makeInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream) {
         return new OfInt<>(upstream);
     }
 
@@ -99,7 +99,7 @@ final class SortedOps {
     /**
      * Specialized subtype for sorting reference streams
      */
-    private static final class OfRef<T, X extends Exception> extends ReferencePipeline.StatefulOp<T, X, T, X, RuntimeException> {
+    private static final class OfRef<T, throws X> extends ReferencePipeline.StatefulOp<T, X, T, X, RuntimeException> {
         /**
          * Comparator used for sorting
          */
@@ -147,8 +147,8 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, X_IN extends X> Node<T> opEvaluateParallel(PipelineHelper<T, X_IN> helper,
-                                                 Spliterator<P_IN, ? extends X_IN> spliterator,
+        public <P_IN, throws X_IN extends X> Node<T> opEvaluateParallel(PipelineHelper<T, X_IN> helper,
+                                                 Spliterator<P_IN, X_IN> spliterator,
                                                  IntFunction<T[]> generator) throws X {
             // If the input is already naturally sorted and this operation
             // naturally sorts then collect the output
@@ -167,7 +167,7 @@ final class SortedOps {
     /**
      * Specialized subtype for sorting int streams.
      */
-    private static final class OfInt<X extends Exception> extends IntPipeline.StatefulOp<Integer, X, X, RuntimeException> {
+    private static final class OfInt<throws X> extends IntPipeline.StatefulOp<Integer, X, X, RuntimeException> {
         OfInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream) {
             super(upstream, StreamShape.INT_VALUE,
                   StreamOpFlag.IS_ORDERED | StreamOpFlag.IS_SORTED);
@@ -186,8 +186,8 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, X_IN extends X> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
-                                                       Spliterator<P_IN, ? extends X_IN> spliterator,
+        public <P_IN, throws X_IN extends X> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
+                                                       Spliterator<P_IN, X_IN> spliterator,
                                                        IntFunction<Integer[]> generator) throws X_IN {
             if (StreamOpFlag.SORTED.isKnown(helper.getStreamAndOpFlags())) {
                 return helper.evaluate(spliterator, false, generator);
@@ -225,8 +225,8 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, X_IN extends RuntimeException> Node<Long> opEvaluateParallel(PipelineHelper<Long, X_IN> helper,
-                                                    Spliterator<P_IN, ? extends X_IN> spliterator,
+        public <P_IN, throws X_IN extends RuntimeException> Node<Long> opEvaluateParallel(PipelineHelper<Long, X_IN> helper,
+                                                    Spliterator<P_IN, X_IN> spliterator,
                                                     IntFunction<Long[]> generator) {
             if (StreamOpFlag.SORTED.isKnown(helper.getStreamAndOpFlags())) {
                 return helper.evaluate(spliterator, false, generator);
@@ -264,8 +264,8 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, X_IN extends RuntimeException> Node<Double> opEvaluateParallel(PipelineHelper<Double, X_IN> helper,
-                                                      Spliterator<P_IN, ? extends X_IN> spliterator,
+        public <P_IN, throws X_IN extends RuntimeException> Node<Double> opEvaluateParallel(PipelineHelper<Double, X_IN> helper,
+                                                      Spliterator<P_IN, X_IN> spliterator,
                                                       IntFunction<Double[]> generator) {
             if (StreamOpFlag.SORTED.isKnown(helper.getStreamAndOpFlags())) {
                 return helper.evaluate(spliterator, false, generator);

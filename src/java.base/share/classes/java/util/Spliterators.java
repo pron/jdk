@@ -69,7 +69,7 @@ public final class Spliterators {
      *
      * @return An empty spliterator
      */
-    public static Spliterator.OfInt<? extends RuntimeException> emptyIntSpliterator() {
+    public static Spliterator.OfInt emptyIntSpliterator() {
         return EmptySpliterator.OfInt.EMPTY_INT_SPLITERATOR;
     }
 

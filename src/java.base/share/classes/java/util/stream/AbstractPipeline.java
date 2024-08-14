@@ -70,7 +70,7 @@ import java.util.function.Supplier;
  * @param <S> type of the subclass implementing {@code BaseStream}
  * @since 1.8
  */
-abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT extends X_IN|X, X extends Exception, S extends BaseStream<E_OUT, X_OUT, S>>
+abstract class AbstractPipeline<E_IN, throws X_IN, E_OUT, throws X_OUT extends X_IN|X, throws X, S extends BaseStream<E_OUT, X_OUT, S>>
         extends PipelineHelper<E_OUT, X_OUT, X> implements BaseStream<E_OUT, X_OUT, S> {
     private static final String MSG_STREAM_LINKED = "stream has already been operated upon or closed";
     private static final String MSG_CONSUMED = "source already consumed or closed";
@@ -374,7 +374,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
     // Primitive specialization use co-variant overrides, hence is not final
     @Override
     @SuppressWarnings("unchecked")
-    public Spliterator<E_OUT, ? extends X_OUT> spliterator() {
+    public Spliterator<E_OUT, X_OUT> spliterator() {
         if (linkedOrConsumed)
             throw new IllegalStateException(MSG_STREAM_LINKED);
         linkedOrConsumed = true;
@@ -557,14 +557,14 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
     }
 
     @Override
-    final <P_IN, XIN extends Exception, S extends Sink<E_OUT>>
+    final <P_IN, throws XIN, S extends Sink<E_OUT>>
     S wrapAndCopyInto(S sink, Spliterator<P_IN, XIN> spliterator) throws XIN, X {
         copyInto(wrapSink(Objects.requireNonNull(sink)), spliterator);
         return sink;
     }
 
     @Override
-    final <P_IN, XIN extends Exception>
+    final <P_IN, throws XIN>
     void copyInto(Sink<P_IN> wrappedSink, Spliterator<P_IN, XIN> spliterator) throws XIN {
         Objects.requireNonNull(wrappedSink);
 
@@ -583,7 +583,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
 
     @Override
     @SuppressWarnings("unchecked")
-    final <P_IN, XIN extends Exception>
+    final <P_IN, throws XIN>
     boolean copyIntoWithCancel(Sink<P_IN> wrappedSink, Spliterator<P_IN, XIN> spliterator) throws XIN {
         @SuppressWarnings({"rawtypes","unchecked"})
         AbstractPipeline p = AbstractPipeline.this;
@@ -623,7 +623,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
 
     @Override
     @SuppressWarnings("unchecked")
-    final <P_IN, X_IN extends X_OUT> Spliterator<E_OUT, ? extends X_OUT> wrapSpliterator(Spliterator<P_IN, X_IN> sourceSpliterator) {
+    final <P_IN, throws X_IN extends X_OUT> Spliterator<E_OUT, X_OUT> wrapSpliterator(Spliterator<P_IN, X_IN> sourceSpliterator) {
         if (depth == 0) {
             return (Spliterator<E_OUT, X_OUT>) sourceSpliterator;
         }
@@ -634,7 +634,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
 
     @Override
     @SuppressWarnings("unchecked")
-    final <P_IN> Node<E_OUT> evaluate(Spliterator<P_IN, ? extends X_OUT> spliterator,
+    final <P_IN> Node<E_OUT> evaluate(Spliterator<P_IN, X_OUT> spliterator,
                                       boolean flatten,
                                       IntFunction<E_OUT[]> generator) throws X_OUT {
         if (isParallel()) {
@@ -675,7 +675,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
      * @param generator the array generator
      * @return a Node holding the output of the pipeline
      */
-    abstract <P_IN, XIN extends X_OUT> Node<E_OUT> evaluateToNode(PipelineHelper<E_OUT, ? extends X_OUT, ? extends X> helper,
+    abstract <P_IN, XIN extends X_OUT> Node<E_OUT> evaluateToNode(PipelineHelper<E_OUT, X_OUT, X> helper,
                                                Spliterator<P_IN, XIN> spliterator,
                                                boolean flattenTree,
                                                IntFunction<E_OUT[]> generator); // TODO: Throw here?
@@ -689,7 +689,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
      * @param supplier the supplier of a spliterator
      * @return a wrapping spliterator compatible with this shape
      */
-    abstract <P_IN, XIN extends X_OUT> Spliterator<E_OUT, ? extends X_OUT> wrap(PipelineHelper<E_OUT, ? extends X_OUT, ? extends X> ph,
+    abstract <P_IN, XIN extends X_OUT> Spliterator<E_OUT, X_OUT> wrap(PipelineHelper<E_OUT, X_OUT, X> ph,
                                                    Supplier<Spliterator<P_IN, XIN>> supplier,
                                                    boolean isParallel);
 
@@ -698,7 +698,7 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
      * spliterator when a method is invoked on the lazy spliterator.
      * @param supplier the supplier of a spliterator
      */
-    abstract Spliterator<E_OUT, ? extends X_OUT> lazySpliterator(Supplier<? extends Spliterator<E_OUT, ? extends X_OUT>> supplier);
+    abstract Spliterator<E_OUT, X_OUT> lazySpliterator(Supplier<? extends Spliterator<E_OUT, X_OUT>> supplier);
 
     /**
      * Traverse the elements of a spliterator compatible with this stream shape,
@@ -779,8 +779,8 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
      * @param generator the array generator
      * @return a {@code Node} describing the result of the evaluation
      */
-    <P_IN, XX extends X_IN> Node<E_OUT> opEvaluateParallel(PipelineHelper<E_OUT, XX, ? extends X> helper,
-                                          Spliterator<P_IN, ? extends XX> spliterator,
+    <P_IN, throws XX extends X_IN> Node<E_OUT> opEvaluateParallel(PipelineHelper<E_OUT, XX, X> helper,
+                                          Spliterator<P_IN, XX> spliterator,
                                           IntFunction<E_OUT[]> generator) throws X_OUT {
         throw new UnsupportedOperationException("Parallel evaluation is not supported");
     }
@@ -806,8 +806,8 @@ abstract class AbstractPipeline<E_IN, X_IN extends Exception, E_OUT, X_OUT exten
      * @return a {@code Spliterator} describing the result of the evaluation
      */
     @SuppressWarnings("unchecked")
-    <P_IN, XX extends X_IN> Spliterator<E_OUT, ? extends X_OUT> opEvaluateParallelLazy(PipelineHelper<E_OUT, XX, ? extends X> helper,
-                                                     Spliterator<P_IN, ? extends XX> spliterator) throws X_OUT {
+    <P_IN, throws XX extends X_IN> Spliterator<E_OUT, X_OUT> opEvaluateParallelLazy(PipelineHelper<E_OUT, XX,  X> helper,
+                                                     Spliterator<P_IN, XX> spliterator) throws X_OUT {
         return opEvaluateParallel(helper, spliterator, Nodes.castingArray()).spliterator();
     }
 

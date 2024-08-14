@@ -145,15 +145,15 @@ final class FindOps {
         }
 
         @Override
-        public <S, X_IN extends Exception, X extends Exception> O evaluateSequential(PipelineHelper<T, X_IN, X> helper,
-                                                                Spliterator<S, ? extends X_IN> spliterator) throws X_IN, X {
+        public <S, throws X_IN, throws X> O evaluateSequential(PipelineHelper<T, X_IN, X> helper,
+                                                                Spliterator<S, X_IN> spliterator) throws X_IN, X {
             O result = helper.wrapAndCopyInto(sinkSupplier.get(), spliterator).get();
             return result != null ? result : emptyValue;
         }
 
         @Override
-        public <P_IN, X_IN extends Exception, X extends Exception> O evaluateParallel(PipelineHelper<T, X_IN, X> helper,
-                                                                 Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+        public <P_IN, throws X_IN, throws X> O evaluateParallel(PipelineHelper<T, X_IN, X> helper,
+                                                                 Spliterator<P_IN, X_IN> spliterator) throws X_IN, X {
             // This takes into account the upstream ops flags and the terminal
             // op flags and therefore takes into account findFirst or findAny
             boolean mustFindFirst = StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags());

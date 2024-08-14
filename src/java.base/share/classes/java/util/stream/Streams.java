@@ -415,7 +415,7 @@ final class Streams {
     }
 
     static final class IntStreamBuilderImpl
-            extends AbstractStreamBuilderImpl<Integer, Spliterator.OfInt<RuntimeException>> // TODO covariance
+            extends AbstractStreamBuilderImpl<Integer, Spliterator.OfInt>
             implements IntStream.Builder, Spliterator.OfInt {
         // The first element in the stream
         // valid if count == 1
@@ -687,7 +687,7 @@ final class Streams {
         }
     }
 
-    abstract static class ConcatSpliterator<T, X extends Exception, T_SPLITR extends Spliterator<T, X>>
+    abstract static class ConcatSpliterator<T, throws X, T_SPLITR extends Spliterator<T, X>>
             implements Spliterator<T, X> {
         protected final T_SPLITR aSpliterator;
         protected final T_SPLITR bSpliterator;
@@ -768,13 +768,13 @@ final class Streams {
             return bSpliterator.getComparator();
         }
 
-        static class OfRef<T, X extends Exception> extends ConcatSpliterator<T, X, Spliterator<T, X>> {
+        static class OfRef<T, throws X> extends ConcatSpliterator<T, X, Spliterator<T, X>> {
             OfRef(Spliterator<T, X> aSpliterator, Spliterator<T, X> bSpliterator) {
                 super(aSpliterator, bSpliterator);
             }
         }
 
-        private abstract static class OfPrimitive<T, X extends Exception, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
+        private abstract static class OfPrimitive<T, throws X, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
                 extends ConcatSpliterator<T, X, T_SPLITR>
                 implements Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR> {
             private OfPrimitive(T_SPLITR aSpliterator, T_SPLITR bSpliterator) {
@@ -805,7 +805,7 @@ final class Streams {
         }
 
         @SuppressWarnings("overloads")
-        static class OfInt<X extends Exception>
+        static class OfInt<throws X>
                 extends ConcatSpliterator.OfPrimitive<Integer, X, IntConsumer, Spliterator.OfInt<X>>
                 implements Spliterator.OfInt<X> {
             OfInt(Spliterator.OfInt<X> aSpliterator, Spliterator.OfInt<X> bSpliterator) {

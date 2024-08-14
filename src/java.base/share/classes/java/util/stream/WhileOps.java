@@ -58,13 +58,13 @@ final class WhileOps {
      * @param upstream a reference stream with element type T
      * @param predicate the predicate that returns false to halt taking.
      */
-    static <T, X extends Exception> Stream<T, X> makeTakeWhileRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream,
+    static <T, throws X> Stream<T, X> makeTakeWhileRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream,
                                                                   Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate);
         return new ReferencePipeline.StatefulOp<T, X, T, X>(upstream, StreamShape.REFERENCE, TAKE_FLAGS) {
             @Override
-            <P_IN, X_IN extends X> Spliterator<T, ? extends X> opEvaluateParallelLazy(PipelineHelper<T, X_IN> helper,
-                                                         Spliterator<P_IN, ? extends X_IN> spliterator) {
+            <P_IN, throws X_IN extends X> Spliterator<T, X> opEvaluateParallelLazy(PipelineHelper<T, X_IN> helper,
+                                                         Spliterator<P_IN, X_IN> spliterator) {
                 if (StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     return opEvaluateParallel(helper, spliterator, Nodes.castingArray())
                             .spliterator();
@@ -75,8 +75,8 @@ final class WhileOps {
             }
 
             @Override
-            <P_IN, X_IN extends X> Node<T> opEvaluateParallel(PipelineHelper<T, X_IN> helper,
-                                              Spliterator<P_IN, ? extends X_IN> spliterator,
+            <P_IN, throws X_IN extends X> Node<T> opEvaluateParallel(PipelineHelper<T, X_IN> helper,
+                                              Spliterator<P_IN, X_IN> spliterator,
                                               IntFunction<T[]> generator) {
                 return new TakeWhileTask<>(this, helper, spliterator, generator)
                         .invoke();
@@ -114,14 +114,14 @@ final class WhileOps {
      * @param upstream a reference stream with element type T
      * @param predicate the predicate that returns false to halt taking.
      */
-    static <X extends Exception> IntStream<X> makeTakeWhileInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream,
+    static <throws X> IntStream<X> makeTakeWhileInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream,
                                       IntPredicate predicate) {
         Objects.requireNonNull(predicate);
         return new IntPipeline.StatefulOp<Integer, X, X>(upstream, StreamShape.INT_VALUE, TAKE_FLAGS) {
             @Override
             @SuppressWarnings("unchecked")
-            <P_IN, X_IN extends X> Spliterator<Integer, ? extends X> opEvaluateParallelLazy(PipelineHelper<Integer, X_IN> helper,
-                                                               Spliterator<P_IN, ? extends X_IN> spliterator) {
+            <P_IN, throws X_IN extends X> Spliterator<Integer, X> opEvaluateParallelLazy(PipelineHelper<Integer, X_IN> helper,
+                                                               Spliterator<P_IN, X_IN> spliterator) {
                 if (StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     return opEvaluateParallel(helper, spliterator, Integer[]::new)
                             .spliterator();
@@ -132,8 +132,8 @@ final class WhileOps {
             }
 
             @Override
-            <P_IN, X_IN extends X> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
-                                                    Spliterator<P_IN, ? extends X_IN> spliterator,
+            <P_IN, throws X_IN extends X> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
+                                                    Spliterator<P_IN, X_IN> spliterator,
                                                     IntFunction<Integer[]> generator) {
                 return new TakeWhileTask<>(this, helper, spliterator, generator)
                         .invoke();
@@ -177,7 +177,7 @@ final class WhileOps {
         return new LongPipeline.StatefulOp<>(upstream, StreamShape.LONG_VALUE, TAKE_FLAGS) {
             @Override
             <P_IN, X_IN extends RuntimeException> Spliterator<Long> opEvaluateParallelLazy(PipelineHelper<Long, X_IN> helper,
-                                                            Spliterator<P_IN, ? extends X_IN> spliterator) {
+                                                            Spliterator<P_IN, X_IN> spliterator) {
                 if (StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     return opEvaluateParallel(helper, spliterator, Long[]::new)
                             .spliterator();
@@ -189,7 +189,7 @@ final class WhileOps {
 
             @Override
             <P_IN, X_IN extends RuntimeException> Node<Long> opEvaluateParallel(PipelineHelper<Long, X_IN> helper,
-                                                 Spliterator<P_IN, ? extends X_IN> spliterator,
+                                                 Spliterator<P_IN, X_IN> spliterator,
                                                  IntFunction<Long[]> generator) {
                 return new TakeWhileTask<>(this, helper, spliterator, generator)
                         .invoke();
@@ -233,7 +233,7 @@ final class WhileOps {
         return new DoublePipeline.StatefulOp<>(upstream, StreamShape.DOUBLE_VALUE, TAKE_FLAGS) {
             @Override
             <P_IN, X_IN extends RuntimeException> Spliterator<Double> opEvaluateParallelLazy(PipelineHelper<Double, X_IN> helper,
-                                                              Spliterator<P_IN, ? extends X_IN> spliterator) {
+                                                              Spliterator<P_IN, X_IN> spliterator) {
                 if (StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     return opEvaluateParallel(helper, spliterator, Double[]::new)
                             .spliterator();
@@ -245,7 +245,7 @@ final class WhileOps {
 
             @Override
             <P_IN, X_IN extends RuntimeException> Node<Double> opEvaluateParallel(PipelineHelper<Double, X_IN> helper,
-                                                   Spliterator<P_IN, ? extends X_IN> spliterator,
+                                                   Spliterator<P_IN, X_IN> spliterator,
                                                    IntFunction<Double[]> generator) {
                 return new TakeWhileTask<>(this, helper, spliterator, generator)
                         .invoke();
@@ -324,7 +324,7 @@ final class WhileOps {
      * @param upstream a reference stream with element type T
      * @param predicate the predicate that returns false to halt dropping.
      */
-    static <T, X extends Exception> Stream<T, X> makeDropWhileRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream,
+    static <T, throws X> Stream<T, X> makeDropWhileRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream,
                                                                   Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate);
 
@@ -334,8 +334,8 @@ final class WhileOps {
             }
 
             @Override
-            <P_IN, X_IN extends X> Spliterator<T, ? extends X> opEvaluateParallelLazy(PipelineHelper<T, X_IN> helper,
-                                                         Spliterator<P_IN, ? extends X_IN> spliterator) {
+            <P_IN, throws X_IN extends X> Spliterator<T, X> opEvaluateParallelLazy(PipelineHelper<T, X_IN> helper,
+                                                         Spliterator<P_IN, X_IN> spliterator) {
                 if (StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     return opEvaluateParallel(helper, spliterator, Nodes.castingArray())
                             .spliterator();
@@ -347,8 +347,8 @@ final class WhileOps {
             }
 
             @Override
-            <P_IN, X_IN extends X> Node<T> opEvaluateParallel(PipelineHelper<T, X_IN> helper,
-                                              Spliterator<P_IN, ? extends X_IN> spliterator,
+            <P_IN, throws X_IN extends X> Node<T> opEvaluateParallel(PipelineHelper<T, X_IN> helper,
+                                              Spliterator<P_IN, X_IN> spliterator,
                                               IntFunction<T[]> generator) {
                 return new DropWhileTask<>(this, helper, spliterator, generator)
                         .invoke();
@@ -400,7 +400,7 @@ final class WhileOps {
      * @param upstream a reference stream with element type T
      * @param predicate the predicate that returns false to halt dropping.
      */
-    static <X extends Exception> IntStream<X> makeDropWhileInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream,
+    static <throws X> IntStream<X> makeDropWhileInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream,
                                       IntPredicate predicate) {
         Objects.requireNonNull(predicate);
         class Op extends IntPipeline.StatefulOp<Integer, X, X> implements DropWhileOp<Integer> {
@@ -410,8 +410,8 @@ final class WhileOps {
 
             @Override
             @SuppressWarnings("unchecked")
-            <P_IN, X_IN extends X> Spliterator<Integer, ? extends X> opEvaluateParallelLazy(PipelineHelper<Integer, X_IN> helper,
-                                                               Spliterator<P_IN, ? extends X_IN> spliterator) {
+            <P_IN, throws X_IN extends X> Spliterator<Integer, X> opEvaluateParallelLazy(PipelineHelper<Integer, X_IN> helper,
+                                                               Spliterator<P_IN, X_IN> spliterator) {
                 if (StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     return opEvaluateParallel(helper, spliterator, Integer[]::new)
                             .spliterator();
@@ -423,8 +423,8 @@ final class WhileOps {
             }
 
             @Override
-            <P_IN, X_IN extends X> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
-                                                    Spliterator<P_IN, ? extends X_IN> spliterator,
+            <P_IN, throws X_IN extends X> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
+                                                    Spliterator<P_IN, X_IN> spliterator,
                                                     IntFunction<Integer[]> generator) {
                 return new DropWhileTask<>(this, helper, spliterator, generator)
                         .invoke();
@@ -486,7 +486,7 @@ final class WhileOps {
 
             @Override
             <P_IN, X_IN extends RuntimeException> Spliterator<Long> opEvaluateParallelLazy(PipelineHelper<Long, X_IN> helper,
-                                                            Spliterator<P_IN, ? extends X_IN> spliterator) {
+                                                            Spliterator<P_IN, X_IN> spliterator) {
                 if (StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     return opEvaluateParallel(helper, spliterator, Long[]::new)
                             .spliterator();
@@ -498,8 +498,8 @@ final class WhileOps {
             }
 
             @Override
-            <P_IN, X_IN extends RuntimeException> Node<Long> opEvaluateParallel(PipelineHelper<Long, X_IN> helper,
-                                                 Spliterator<P_IN, ? extends X_IN> spliterator,
+            <P_IN, throws X_IN extends RuntimeException> Node<Long> opEvaluateParallel(PipelineHelper<Long, X_IN> helper,
+                                                 Spliterator<P_IN, X_IN> spliterator,
                                                  IntFunction<Long[]> generator) {
                 return new DropWhileTask<>(this, helper, spliterator, generator)
                         .invoke();
@@ -561,7 +561,7 @@ final class WhileOps {
 
             @Override
             <P_IN, X_IN extends RuntimeException> Spliterator<Double> opEvaluateParallelLazy(PipelineHelper<Double, X_IN> helper,
-                                                              Spliterator<P_IN, ? extends X_IN> spliterator) {
+                                                              Spliterator<P_IN, X_IN> spliterator) {
                 if (StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags())) {
                     return opEvaluateParallel(helper, spliterator, Double[]::new)
                             .spliterator();
@@ -573,8 +573,8 @@ final class WhileOps {
             }
 
             @Override
-            <P_IN, X_IN extends RuntimeException> Node<Double> opEvaluateParallel(PipelineHelper<Double, X_IN> helper,
-                                                   Spliterator<P_IN, ? extends X_IN> spliterator,
+            <P_IN, throws X_IN extends RuntimeException> Node<Double> opEvaluateParallel(PipelineHelper<Double, X_IN> helper,
+                                                   Spliterator<P_IN, X_IN> spliterator,
                                                    IntFunction<Double[]> generator) {
                 return new DropWhileTask<>(this, helper, spliterator, generator)
                         .invoke();
@@ -647,7 +647,7 @@ final class WhileOps {
      * @param <T> the type of elements returned by this spliterator
      * @param <T_SPLITR> the type of the spliterator
      */
-    abstract static class UnorderedWhileSpliterator<T, X extends Exception, T_SPLITR extends Spliterator<T, X>> implements Spliterator<T, X> {
+    abstract static class UnorderedWhileSpliterator<T, throws X, T_SPLITR extends Spliterator<T, X>> implements Spliterator<T, X> {
         // Power of two constant minus one used for modulus of count
         static final int CANCEL_CHECK_COUNT = (1 << 6) - 1;
 
@@ -713,7 +713,7 @@ final class WhileOps {
 
         abstract T_SPLITR makeSpliterator(T_SPLITR s);
 
-        abstract static class OfRef<T, X extends Exception> extends UnorderedWhileSpliterator<T, X, Spliterator<T, X>> implements Consumer<T> {
+        abstract static class OfRef<T, throws X> extends UnorderedWhileSpliterator<T, X, Spliterator<T, X>> implements Consumer<T> {
             final Predicate<? super T> p;
             T t;
 
@@ -733,7 +733,7 @@ final class WhileOps {
                 this.t = t;
             }
 
-            static final class Taking<T, X extends Exception> extends OfRef<T, X> {
+            static final class Taking<T, throws X> extends OfRef<T, X> {
                 Taking(Spliterator<T, X> s, boolean noSplitting, Predicate<? super T> p) {
                     super(s, noSplitting, p);
                 }
@@ -775,7 +775,7 @@ final class WhileOps {
                 }
             }
 
-            static final class Dropping<T, X extends Exception> extends OfRef<T, X> {
+            static final class Dropping<T, throws X> extends OfRef<T, X> {
                 Dropping(Spliterator<T, X> s, boolean noSplitting, Predicate<? super T> p) {
                     super(s, noSplitting, p);
                 }
@@ -818,7 +818,7 @@ final class WhileOps {
             }
         }
 
-        abstract static class OfInt<X extends Exception> extends UnorderedWhileSpliterator<Integer, X, Spliterator.OfInt<X>> implements IntConsumer, Spliterator.OfInt<X> {
+        abstract static class OfInt<throws X> extends UnorderedWhileSpliterator<Integer, X, Spliterator.OfInt<X>> implements IntConsumer, Spliterator.OfInt<X> {
             final IntPredicate p;
             int t;
 
@@ -838,7 +838,7 @@ final class WhileOps {
                 this.t = t;
             }
 
-            static final class Taking<X extends Exception> extends UnorderedWhileSpliterator.OfInt<X> {
+            static final class Taking<throws X> extends UnorderedWhileSpliterator.OfInt<X> {
                 Taking(Spliterator.OfInt<X> s, boolean noSplitting, IntPredicate p) {
                     super(s, noSplitting, p);
                 }
@@ -880,7 +880,7 @@ final class WhileOps {
                 }
             }
 
-            static final class Dropping<X extends Exception> extends UnorderedWhileSpliterator.OfInt<X> {
+            static final class Dropping<throws X> extends UnorderedWhileSpliterator.OfInt<X> {
                 Dropping(Spliterator.OfInt<X> s, boolean noSplitting, IntPredicate p) {
                     super(s, noSplitting, p);
                 }

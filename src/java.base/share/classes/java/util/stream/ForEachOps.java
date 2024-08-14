@@ -67,7 +67,7 @@ final class ForEachOps {
      * @param <T> the type of the stream elements
      * @return the {@code TerminalOp} instance
      */
-    public static <T, X1 extends Exception> TerminalOp<T, Void> makeRef(Consumer<? super T, X1> action,
+    public static <T, throws X1> TerminalOp<T, Void> makeRef(Consumer<? super T, X1> action,
                                                   boolean ordered) {
         Objects.requireNonNull(action);
         return new ForEachOp.OfRef<>(action, ordered);
@@ -146,14 +146,14 @@ final class ForEachOps {
         }
 
         @Override
-        public <S, X_IN extends Exception, X extends Exception> Void evaluateSequential(PipelineHelper<T, X_IN, X> helper,
-                                           Spliterator<S, ? extends X_IN> spliterator) throws X_IN, X {
+        public <S, throws X_IN, throws X> Void evaluateSequential(PipelineHelper<T, X_IN, X> helper,
+                                           Spliterator<S, X_IN> spliterator) throws X_IN, X {
             return helper.wrapAndCopyInto(this, spliterator).get();
         }
 
         @Override
-        public <S, X_IN extends Exception, X extends Exception> Void evaluateParallel(PipelineHelper<T, X_IN, X> helper,
-                                         Spliterator<S, ? extends X_IN> spliterator) throws X_IN, X {
+        public <S, throws X_IN, throws X> Void evaluateParallel(PipelineHelper<T, X_IN, X> helper,
+                                         Spliterator<S, X_IN> spliterator) throws X_IN, X {
             if (ordered)
                 new ForEachOrderedTask<>(helper, spliterator, this).invoke();
             else
@@ -251,7 +251,7 @@ final class ForEachOps {
 
     /** A {@code ForkJoinTask} for performing a parallel for-each operation */
     @SuppressWarnings("serial")
-    static final class ForEachTask<S, T, X_OUT extends Exception> extends CountedCompleter<Void> {
+    static final class ForEachTask<S, T, throws X_OUT> extends CountedCompleter<Void> {
         private Spliterator<S, ?> spliterator;
         private final Sink<S> sink;
         private final PipelineHelper<T, X_OUT, ?> helper;
@@ -321,7 +321,7 @@ final class ForEachOps {
      * which visits the elements in encounter order
      */
     @SuppressWarnings("serial")
-    static final class ForEachOrderedTask<S, T, X_OUT extends Exception> extends CountedCompleter<Void> {
+    static final class ForEachOrderedTask<S, T, throws X_OUT> extends CountedCompleter<Void> {
         /*
          * Our goal is to ensure that the elements associated with a task are
          * processed according to an in-order traversal of the computation tree.
@@ -411,7 +411,7 @@ final class ForEachOps {
             doCompute(this);
         }
 
-        private static <S, T, X_OUT extends Exception> void doCompute(ForEachOrderedTask<S, T, X_OUT> task) {
+        private static <S, T, throws X_OUT> void doCompute(ForEachOrderedTask<S, T, X_OUT> task) {
             Spliterator<S, ?> rightSplit = task.spliterator, leftSplit;
             long sizeThreshold = task.targetSize;
             boolean forkRight = false;

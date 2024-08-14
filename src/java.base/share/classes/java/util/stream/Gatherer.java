@@ -200,7 +200,7 @@ import java.util.function.Supplier;
  * @since 22
  */
 @PreviewFeature(feature = PreviewFeature.Feature.STREAM_GATHERERS)
-public interface Gatherer<T, A, R, X extends Exception> {
+public interface Gatherer<T, A, R, throws X> {
     /**
      * A function that produces an instance of the intermediate state used for
      * this gathering operation.
@@ -271,9 +271,9 @@ public interface Gatherer<T, A, R, X extends Exception> {
      *         Gatherer as input that Gatherer
      */
     @SuppressWarnings({"unchecked", "rawtypes"}) // TODO ????
-    default <RR, X2 extends Exception> Gatherer<T, ?, RR, ? extends X|X2> andThen(Gatherer<? super R, ?, ? extends RR, X2> that) {
+    default <RR, throws X2> Gatherer<T, ?, RR, X|X2> andThen(Gatherer<? super R, ?, ? extends RR, X2> that) {
         Objects.requireNonNull(that);
-        return (Gatherer<T, ?, RR, ? extends X|X2>)Gatherers.Composite.of((Gatherer)this, that); // TODO ????
+        return (Gatherer<T, ?, RR, X|X2>)Gatherers.Composite.of((Gatherer)this, that); // TODO ????
     }
 
     /**

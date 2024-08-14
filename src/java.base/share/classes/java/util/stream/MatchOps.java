@@ -225,14 +225,14 @@ final class MatchOps {
         }
 
         @Override
-        public <S, X_IN extends Exception, X extends Exception> Boolean evaluateSequential(PipelineHelper<T, X_IN, X> helper,
-                                                                      Spliterator<S, ? extends X_IN> spliterator) throws X_IN, X {
+        public <S, throws X_IN, throws X> Boolean evaluateSequential(PipelineHelper<T, X_IN, X> helper,
+                                                                      Spliterator<S, X_IN> spliterator) throws X_IN, X {
             return helper.wrapAndCopyInto(sinkSupplier.get(), spliterator).getAndClearState();
         }
 
         @Override
-        public <S, X_IN extends Exception, X extends Exception> Boolean evaluateParallel(PipelineHelper<T, X_IN, X> helper,
-                                                                    Spliterator<S, ? extends X_IN> spliterator) throws X_IN, X {
+        public <S, throws X_IN, throws X> Boolean evaluateParallel(PipelineHelper<T, X_IN, X> helper,
+                                                                    Spliterator<S, X_IN> spliterator) throws X_IN, X {
             // Approach for parallel implementation:
             // - Decompose as per usual
             // - run match on leaf chunks, call result "b"

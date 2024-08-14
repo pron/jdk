@@ -50,7 +50,7 @@ import java.util.function.Supplier;
  * @param <E_IN> type of elements in the upstream source
  * @since 1.8
  */
-abstract class IntPipeline<E_IN, X_IN extends Exception, X_OUT extends X_IN|X, X extends Exception>
+abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throws X>
         extends AbstractPipeline<E_IN, X_IN, Integer, X_OUT, X, IntStream<X_OUT>>
         implements IntStream<X_OUT> {
 
@@ -115,7 +115,7 @@ abstract class IntPipeline<E_IN, X_IN extends Exception, X_OUT extends X_IN|X, X
      * exception if this cast is not possible.
      */
     @SuppressWarnings("unchecked")
-    private static <X extends Exception> Spliterator.OfInt<X> adapt(Spliterator<Integer, X> s) {
+    private static <throws X> Spliterator.OfInt<X> adapt(Spliterator<Integer, X> s) {
         if (s instanceof Spliterator.OfInt<?>) {
             return (Spliterator.OfInt<X>) s;
         }
@@ -137,7 +137,7 @@ abstract class IntPipeline<E_IN, X_IN extends Exception, X_OUT extends X_IN|X, X
 
     @Override
     @SuppressWarnings("unchecked")
-    final <P_IN, XIN extends X_OUT> Node<Integer> evaluateToNode(PipelineHelper<Integer, ? extends X_OUT, ? extends X> helper,
+    final <P_IN, throws XIN extends X_OUT> Node<Integer> evaluateToNode(PipelineHelper<Integer, X_OUT, X> helper,
                                               Spliterator<P_IN, XIN> spliterator,
                                               boolean flattenTree,
                                               IntFunction<Integer[]> generator) {
@@ -146,7 +146,7 @@ abstract class IntPipeline<E_IN, X_IN extends Exception, X_OUT extends X_IN|X, X
 
     @Override
     @SuppressWarnings("unchecked")
-    final <P_IN, XIN extends X_OUT> Spliterator<Integer, ? extends X_OUT> wrap(PipelineHelper<Integer, ? extends X_OUT, ? extends X> ph,
+    final <P_IN, throws XIN extends X_OUT> Spliterator<Integer, X_OUT> wrap(PipelineHelper<Integer, X_OUT, X> ph,
                                            Supplier<Spliterator<P_IN, XIN>> supplier,
                                            boolean isParallel) {
         return new StreamSpliterators.IntWrappingSpliterator<P_IN, X_OUT, X>(ph, supplier, isParallel);
@@ -154,8 +154,8 @@ abstract class IntPipeline<E_IN, X_IN extends Exception, X_OUT extends X_IN|X, X
 
     @Override
     @SuppressWarnings("unchecked")
-    final Spliterator.OfInt<? extends X_OUT> lazySpliterator(Supplier<? extends Spliterator<Integer, ? extends X_OUT>> supplier) {
-        return new StreamSpliterators.DelegatingSpliterator.OfInt<>((Supplier<Spliterator.OfInt<? extends X_OUT>>)supplier);
+    final Spliterator.OfInt<X_OUT> lazySpliterator(Supplier<? extends Spliterator<Integer, X_OUT>> supplier) {
+        return new StreamSpliterators.DelegatingSpliterator.OfInt<>((Supplier<Spliterator.OfInt<X_OUT>>)supplier);
     }
 
     @Override
@@ -199,7 +199,7 @@ abstract class IntPipeline<E_IN, X_IN extends Exception, X_OUT extends X_IN|X, X
     }
 
     @Override
-    public final Spliterator.OfInt<? extends X_OUT> spliterator() {
+    public final Spliterator.OfInt<X_OUT> spliterator() {
         return adapt(super.spliterator());
     }
 
@@ -447,12 +447,12 @@ abstract class IntPipeline<E_IN, X_IN extends Exception, X_OUT extends X_IN|X, X
     }
 
     @Override
-    public final IntStream<? extends X_OUT> takeWhile(IntPredicate predicate) {
+    public final IntStream<X_OUT> takeWhile(IntPredicate predicate) {
         return WhileOps.makeTakeWhileInt(this, predicate);
     }
 
     @Override
-    public final IntStream<? extends X_OUT> dropWhile(IntPredicate predicate) {
+    public final IntStream<X_OUT> dropWhile(IntPredicate predicate) {
         return WhileOps.makeDropWhileInt(this, predicate);
     }
 
@@ -466,7 +466,7 @@ abstract class IntPipeline<E_IN, X_IN extends Exception, X_OUT extends X_IN|X, X
     public final IntStream<X_OUT> distinct() {
         // While functional and quick to implement, this approach is not very efficient.
         // An efficient version requires an int-specific map/set implementation.
-        return (IntStream<X_OUT>)boxed().distinct().mapToInt(i -> i);
+        return boxed().distinct().mapToInt(i -> i);
     }
 
     // Terminal ops from IntStream

@@ -51,11 +51,11 @@ final class DistinctOps {
      * @param upstream a reference stream with element type T
      * @return the new stream
      */
-    static <T, X extends Exception> ReferencePipeline<T, X, T, X> makeRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream) {
+    static <T, throws X> ReferencePipeline<T, X, T, X> makeRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream) {
         return new ReferencePipeline.StatefulOp<T, X, T, X>(upstream, StreamShape.REFERENCE,
                                                       StreamOpFlag.IS_DISTINCT | StreamOpFlag.NOT_SIZED) {
 
-            <P_IN, X_IN extends X> Node<T> reduce(PipelineHelper<T, X_IN> helper, Spliterator<P_IN, ? extends X_IN> spliterator) throws X {
+            <P_IN, throws X_IN extends X> Node<T> reduce(PipelineHelper<T, X_IN> helper, Spliterator<P_IN, X_IN> spliterator) throws X {
                 // If the stream is SORTED then it should also be ORDERED so the following will also
                 // preserve the sort order
                 TerminalOp<T, LinkedHashSet<T>> reduceOp
@@ -65,8 +65,8 @@ final class DistinctOps {
             }
 
             @Override
-            <P_IN, XX extends X> Node<T> opEvaluateParallel(PipelineHelper<T, XX> helper,
-                                              Spliterator<P_IN, ? extends XX> spliterator,
+            <P_IN, throws XX extends X> Node<T> opEvaluateParallel(PipelineHelper<T, XX> helper,
+                                              Spliterator<P_IN, XX> spliterator,
                                               IntFunction<T[]> generator) throws X {
                 if (StreamOpFlag.DISTINCT.isKnown(helper.getStreamAndOpFlags())) {
                     // No-op
@@ -100,7 +100,7 @@ final class DistinctOps {
             }
 
             @Override
-            <P_IN, X_IN extends X> Spliterator<T, ? extends X> opEvaluateParallelLazy(PipelineHelper<T, X_IN> helper, Spliterator<P_IN, ? extends X_IN> spliterator) throws X {
+            <P_IN, throws X_IN extends X> Spliterator<T, X> opEvaluateParallelLazy(PipelineHelper<T, X_IN> helper, Spliterator<P_IN, X_IN> spliterator) throws X {
                 if (StreamOpFlag.DISTINCT.isKnown(helper.getStreamAndOpFlags())) {
                     // No-op
                     return helper.wrapSpliterator(spliterator);

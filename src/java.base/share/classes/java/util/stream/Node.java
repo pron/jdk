@@ -315,7 +315,7 @@ interface Node<T> {
      * Specialized {@code Node} for int elements
      */
     @SuppressWarnings("overloads")
-    interface OfInt extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt<RuntimeException>, OfInt> { // TODO covariance
+    interface OfInt extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt, OfInt> {
 
         /**
          * {@inheritDoc}

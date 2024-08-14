@@ -1702,7 +1702,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
 
         @SuppressWarnings("unchecked")
         Spliterator<T> split = new Streams.ConcatSpliterator.OfRef<>(
-                (Spliterator<T, RuntimeException>) a.spliterator(), (Spliterator<T, RuntimeException>) b.spliterator());
+                (Spliterator<T>) a.spliterator(), (Spliterator<T>) b.spliterator());
         Stream<T> stream = StreamSupport.stream(split, a.isParallel() || b.isParallel());
         return stream.onClose(Streams.composedClose(a, b));
     }

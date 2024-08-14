@@ -483,13 +483,13 @@ public final class Gatherers {
         }
     }
 
-    record GathererImpl<T, A, R, X extends Exception>(
+    record GathererImpl<T, A, R, throws X>(
             @Override Supplier<A> initializer,
             @Override Integrator<A, T, R> integrator,
             @Override BinaryOperator<A> combiner,
             @Override BiConsumer<A, Downstream<? super R>> finisher) implements Gatherer<T, A, R, X> {
 
-        static <T, A, R, X extends Exception> GathererImpl<T, A, R, X> of(
+        static <T, A, R, throws X> GathererImpl<T, A, R, X> of(
                 Supplier<A> initializer,
                 Integrator<A, T, R> integrator,
                 BinaryOperator<A> combiner,
@@ -503,13 +503,13 @@ public final class Gatherers {
         }
     }
 
-    static final class Composite<T, A, R, AA, RR, X1 extends Exception, X2 extends Exception, X3 extends X1|X2> implements Gatherer<T, Object, RR, X3> {
+    static final class Composite<T, A, R, AA, RR, throws X1, throws X2, throws X3 extends X1|X2> implements Gatherer<T, Object, RR, X3> {
         private final Gatherer<T, A, ? extends R, X1> left;
         private final Gatherer<? super R, AA, ? extends RR, X2> right;
         // FIXME change `impl` to a computed constant when available
         private GathererImpl<T, Object, RR, X3> impl;
 
-        static <T, A, R, AA, RR, XL extends Exception, XR extends Exception> Composite<T, A, R, AA, RR, XL, XR, ? extends XL|XR> of(
+        static <T, A, R, AA, RR, throws XL, throws XR> Composite<T, A, R, AA, RR, XL, XR, XL|XR> of(
                 Gatherer<T, A, ? extends R, XL> left,
                 Gatherer<? super R, AA, ? extends RR, XR> right) {
             return new Composite<>(left, right);
@@ -550,22 +550,22 @@ public final class Gatherers {
 
         @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
-        public <RRR, X4 extends Exception> Gatherer<T, ?, RRR, ? extends X3|X4> andThen(
+        public <RRR, throws X4> Gatherer<T, ?, RRR, X3|X4> andThen(
                 Gatherer<? super RR, ?, ? extends RRR, X4> that) {
             
             Gatherer r; // TBD ???
-            Gatherer<T, ?, RRR, ? extends X1|X2|X4> x;
+            Gatherer<T, ?, RRR, X1|X2|X4> x;
             if (that.getClass() == Composite.class) {
                 final var c = (Composite<? super RR, ?, Object, ?, ? extends RRR, X4, X4, X4>) that;
                 r = left.andThen(right.andThen(c.left).andThen(c.right)); // x = 
             } else {
-                // Gatherer<? super R, ?, ? extends RRR, ? extends X2|X4> y
+                // Gatherer<? super R, ?, ? extends RRR, X2|X4> y
                 r = left.andThen(right.andThen(that)); // x =
             }
-            return x = (Gatherer<T, ?, RRR, ? extends X1|X2|X4>)r;
+            return x = (Gatherer<T, ?, RRR, X1|X2|X4>)r;
         }
 
-        static final <T, A, R, AA, RR, X1 extends Exception, X2 extends Exception, X3 extends X1|X2> GathererImpl<T, ?, RR, X3> impl(
+        static final <T, A, R, AA, RR, throws X1, throws X2, throws X3 extends X1|X2> GathererImpl<T, ?, RR, X3> impl(
                 Gatherer<T, A, R, X1> left, Gatherer<? super R, AA, RR, X2> right) {
             final var leftInitializer = left.initializer();
             final var leftIntegrator = left.integrator();

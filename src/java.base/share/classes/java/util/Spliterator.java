@@ -294,7 +294,7 @@ import java.util.function.LongConsumer;
  * @see Collection
  * @since 1.8
  */
-public interface Spliterator<T, X extends Exception> {
+public interface Spliterator<T, throws X> {
     /**
      * If a remaining element exists: performs the given action on it,
      * returning {@code true}; else returns {@code false}.  If this
@@ -376,7 +376,7 @@ public interface Spliterator<T, X extends Exception> {
      * @return a {@code Spliterator} covering some portion of the
      * elements, or {@code null} if this spliterator cannot be split
      */
-    Spliterator<T, ? extends X> trySplit();
+    Spliterator<T, X> trySplit();
 
     /**
      * Returns an estimate of the number of elements that would be
@@ -612,7 +612,7 @@ public interface Spliterator<T, X extends Exception> {
      * @see Spliterator.OfDouble
      * @since 1.8
      */
-    public interface OfPrimitive<T, X extends Exception, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
+    public interface OfPrimitive<T, throws X, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
             extends Spliterator<T, X> {
         @Override
         T_SPLITR trySplit();

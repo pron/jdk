@@ -389,7 +389,7 @@ final class Nodes {
      * @return a {@link Node.OfLong} describing the output elements
      */
     public static <P_IN> Node.OfLong collectLong(PipelineHelper<Long> helper,
-                                                 Spliterator<P_IN, ? extends RuntimeException> spliterator,
+                                                 Spliterator<P_IN> spliterator,
                                                  boolean flattenTree) {
         long size = helper.exactOutputSizeIfKnown(spliterator);
         if (size >= 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
@@ -427,7 +427,7 @@ final class Nodes {
      * @return a {@link Node.OfDouble} describing the output elements
      */
     public static <P_IN> Node.OfDouble collectDouble(PipelineHelper<Double> helper,
-                                                     Spliterator<P_IN, ? extends RuntimeException> spliterator,
+                                                     Spliterator<P_IN> spliterator,
                                                      boolean flattenTree) {
         long size = helper.exactOutputSizeIfKnown(spliterator);
         if (size >= 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
@@ -589,9 +589,8 @@ final class Nodes {
             OfInt() { } // Avoid creation of special accessor
 
             @Override
-            @SuppressWarnings("unchecked")
-            public Spliterator.OfInt<RuntimeException> spliterator() { // TODO covariance
-                return (Spliterator.OfInt<RuntimeException>)Spliterators.emptyIntSpliterator();
+            public Spliterator.OfInt spliterator() {
+                return Spliterators.emptyIntSpliterator();
             }
 
             @Override
@@ -1169,7 +1168,7 @@ final class Nodes {
 
         @SuppressWarnings("overloads")
         private static final class OfInt
-                extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt<RuntimeException>, Node.OfInt> // TODO covariance
+                extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt, Node.OfInt>
                 implements Spliterator.OfInt {
 
             OfInt(Node.OfInt cur) {
@@ -1338,9 +1337,9 @@ final class Nodes {
         // Node
 
         @Override
-        @SuppressWarnings("unchecked")
-        public Spliterator.OfInt<RuntimeException> spliterator() { // TODO covariance
-            return (Spliterator.OfInt<RuntimeException>)Arrays.spliterator(array, 0, curSize);
+        public Spliterator.OfInt spliterator() {
+            return Arrays.spliterator(array, 0, curSize);
+
         }
 
         @Override
@@ -1654,10 +1653,9 @@ final class Nodes {
         IntSpinedNodeBuilder() {} // Avoid creation of special accessor
 
         @Override
-        @SuppressWarnings("unchecked")
-        public Spliterator.OfInt<RuntimeException> spliterator() { // TODO covariance
+        public Spliterator.OfInt spliterator() {
             assert !building : "during building";
-            return (Spliterator.OfInt<RuntimeException>)super.spliterator();
+            return super.spliterator();
         }
 
         @Override
@@ -2139,7 +2137,7 @@ final class Nodes {
 
         @SuppressWarnings("serial")
         private static final class OfInt
-                extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt<RuntimeException>, Node.OfInt> { // TODO covariance
+                extends OfPrimitive<Integer, IntConsumer, int[], Spliterator.OfInt, Node.OfInt> {
             private OfInt(Node.OfInt node, int[] array, int offset) {
                 super(node, array, offset);
             }

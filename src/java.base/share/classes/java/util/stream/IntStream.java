@@ -372,7 +372,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      * @return the new stream
      * @since 9
      */
-    default IntStream<? extends X> takeWhile(IntPredicate predicate) {
+    default IntStream<X> takeWhile(IntPredicate predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
@@ -438,7 +438,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      * @return the new stream
      * @since 9
      */
-    default IntStream<? extends X> dropWhile(IntPredicate predicate) {
+    default IntStream<X> dropWhile(IntPredicate predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
@@ -895,7 +895,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
     PrimitiveIterator.OfInt iterator();
 
     @Override
-    Spliterator.OfInt<? extends X> spliterator();
+    Spliterator.OfInt<X> spliterator();
 
     // Static factories
 
@@ -1167,9 +1167,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
         Objects.requireNonNull(a);
         Objects.requireNonNull(b);
 
-        @SuppressWarnings("unchecked")
-        Spliterator.OfInt split = new Streams.ConcatSpliterator.OfInt(
-            (Spliterator.OfInt)a.spliterator(), (Spliterator.OfInt)b.spliterator());
+        Spliterator.OfInt split = new Streams.ConcatSpliterator.OfInt(a.spliterator(), b.spliterator());
         IntStream stream = StreamSupport.intStream(split, a.isParallel() || b.isParallel());
         return stream.onClose(Streams.composedClose(a, b));
     }

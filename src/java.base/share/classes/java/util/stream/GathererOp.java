@@ -46,9 +46,9 @@ import java.util.stream.Gatherer.Integrator;
  *
  * @since 22
  */
-final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_OUT extends X_IN|X> extends ReferencePipeline<T, X_IN, R, X_OUT, X> {
+final class GathererOp<T, throws X_IN, A, throws X, R, throws X_OUT extends X_IN|X> extends ReferencePipeline<T, X_IN, R, X_OUT, X> {
     @SuppressWarnings("unchecked")
-    static <P_IN, P_OUT extends T, T, A, R, X_IN extends Exception, X extends Exception, X_OUT extends X_IN|X> Stream<R, X_OUT> of(
+    static <P_IN, P_OUT extends T, T, A, R, throws X_IN, throws X, throws X_OUT extends X_IN|X> Stream<R, X_OUT> of(
             ReferencePipeline<P_IN, ?, P_OUT, X_IN, ?> upstream,
             Gatherer<T, A, R, X> gatherer) {
         // When attaching a gather-operation onto another gather-operation,
@@ -130,7 +130,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
     }
 
 
-    static final class GatherSink<T, X extends Exception, A, R, X_OUT extends X> implements Sink<T>, Gatherer.Downstream<R> {
+    static final class GatherSink<T, throws X, A, R, throws X_OUT extends X> implements Sink<T>, Gatherer.Downstream<R> {
         private final Sink<R> sink;
         private final Gatherer<T, A, R, X> gatherer;
         private final Integrator<A, T, R> integrator; // Optimization: reuse
@@ -279,8 +279,8 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
      * other Stream operations (in parallel)
      */
     @Override
-    <I, XX extends X_IN> Node<R> opEvaluateParallel(PipelineHelper<R, XX, ? extends X> unused1,
-                                   Spliterator<I, ? extends XX> spliterator,
+    <I, throws XX extends X_IN> Node<R> opEvaluateParallel(PipelineHelper<R, XX, X> unused1,
+                                   Spliterator<I, XX> spliterator,
                                    IntFunction<R[]> unused2) throws X_OUT {
         return this.<NodeBuilder<R>, Node<R>>evaluate(
             upstream().wrapSpliterator(spliterator),
@@ -294,8 +294,8 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
     }
 
     @Override
-    <P_IN, XX extends X_IN> Spliterator<R, ? extends X_IN> opEvaluateParallelLazy(PipelineHelper<R, XX, ? extends X> helper,
-                                                 Spliterator<P_IN, ? extends XX> spliterator) throws X_OUT {
+    <P_IN, throws XX extends X_IN> Spliterator<R, X_IN> opEvaluateParallelLazy(PipelineHelper<R, XX, X> helper,
+                                                 Spliterator<P_IN, XX> spliterator) throws X_OUT {
         /*
          * There's a very small subset of possible Gatherers which would be
          * expressible as Spliterators directly,
@@ -357,7 +357,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
      * and implements both sequential, hybrid parallel-sequential, and
      * parallel evaluation
      */
-    private <CA, CR> CR evaluate(final Spliterator<T, ? extends X_IN> spliterator,
+    private <CA, CR> CR evaluate(final Spliterator<T, X_IN> spliterator,
                                  final boolean parallel,
                                  final Gatherer<T, A, R, X> gatherer,
                                  final Supplier<CA> collectorSupplier,
@@ -390,7 +390,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
             }
 
             @ForceInline
-            Sequential evaluateUsing(Spliterator<T, ? extends X_IN> spliterator) throws X_OUT {
+            Sequential evaluateUsing(Spliterator<T, X_IN> spliterator) throws X_OUT {
                 if (greedy)
                     spliterator.forEachRemaining(this);
                 else
@@ -462,7 +462,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
             private final AtomicBoolean cancelled;
             private final Sequential localResult;
 
-            private Spliterator<T, ? extends X_IN> spliterator;
+            private Spliterator<T, X_IN> spliterator;
             private Hybrid next;
 
             private static final VarHandle NEXT;
@@ -476,7 +476,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
                 }
             }
 
-            protected Hybrid(Spliterator<T, ? extends X_IN> spliterator) {
+            protected Hybrid(Spliterator<T, X_IN> spliterator) {
                 super(null);
                 this.spliterator = spliterator;
                 this.targetSize =
@@ -486,7 +486,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
                 this.leftPredecessor = null;
             }
 
-            Hybrid(Hybrid parent, Spliterator<T, ? extends X_IN> spliterator, Hybrid leftPredecessor) {
+            Hybrid(Hybrid parent, Spliterator<T, X_IN> spliterator, Hybrid leftPredecessor) {
                 super(parent);
                 this.spliterator = spliterator;
                 this.targetSize = parent.targetSize;
@@ -508,7 +508,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
             @Override
             public void compute() {
                 var task = this;
-                Spliterator<T, ? extends X_IN> rightSplit = task.spliterator, leftSplit;
+                Spliterator<T, X_IN> rightSplit = task.spliterator, leftSplit;
                 long sizeThreshold = task.targetSize;
                 boolean forkRight = false;
                 while ((greedy || !cancelled.get())
@@ -630,20 +630,20 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
          */
         @SuppressWarnings("serial")
         final class Parallel extends CountedCompleter<Sequential> {
-            private Spliterator<T, ? extends X_IN> spliterator;
+            private Spliterator<T, X_IN> spliterator;
             private Parallel leftChild; // Only non-null if rightChild is
             private Parallel rightChild; // Only non-null if leftChild is
             private Sequential localResult;
             private volatile boolean canceled;
             private long targetSize; // lazily initialized
 
-            private Parallel(Parallel parent, Spliterator<T, ? extends X_IN> spliterator) {
+            private Parallel(Parallel parent, Spliterator<T, X_IN> spliterator) {
                 super(parent);
                 this.targetSize = parent.targetSize;
                 this.spliterator = spliterator;
             }
 
-            Parallel(Spliterator<T, ? extends X_IN> spliterator) {
+            Parallel(Spliterator<T, X_IN> spliterator) {
                 super(null);
                 this.targetSize = 0L;
                 this.spliterator = spliterator;
@@ -674,7 +674,7 @@ final class GathererOp<T, X_IN extends Exception, A, X extends Exception, R, X_O
 
             @Override
             public void compute() {
-                Spliterator<T, ? extends X_IN> rs = spliterator, ls;
+                Spliterator<T, X_IN> rs = spliterator, ls;
                 long sizeEstimate = rs.estimateSize();
                 final long sizeThreshold = getTargetSize(sizeEstimate);
                 Parallel task = this;
