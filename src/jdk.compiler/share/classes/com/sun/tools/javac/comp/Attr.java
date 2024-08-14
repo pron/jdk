@@ -819,8 +819,6 @@ public class Attr extends JCTree.Visitor {
                         for (JCExpression bound : tvar.bounds.tail)
                             bounds = bounds.prepend(attribType(bound, env));
                         types.setBounds(a, bounds.reverse(), tvar.union);
-                        if (tvar.throwsParam) // bounds must be Throwable
-                            chk.checkType(tvar.bounds.head, a.getUpperBound(), syms.throwableType);
                     } else {
                         Assert.check(tvar.throwsParam);
                         a.setUpperBound(types.defaultUpperBoundForThrows());
@@ -830,8 +828,6 @@ public class Attr extends JCTree.Visitor {
                         a.setThrowsDefault(tvar.throwsDefault != null
                                 ? attribType(tvar.throwsDefault, env)
                                 : syms.runtimeExceptionType);
-                        // default must conform to bounds
-                        chk.checkType(tvar.throwsDefault, a.getThrowsDefault(), a.getUpperBound());
                     }
                 } finally {
                     env.info.isTypeVar = oldIsTypeVar;
@@ -847,6 +843,13 @@ public class Attr extends JCTree.Visitor {
         for (JCTypeParameter tvar : typarams) { // probably needs to be recursive or something
             if (tvar.type.getUpperBound() instanceof ThrowableUnionClassType tu && tu.supertype_field == null) {
                 tu.recomputeBound(types);
+            }
+            if (tvar.throwsParam) {
+                TypeVar a = (TypeVar)tvar.type;
+                if (!tvar.bounds.isEmpty()) // bounds must be Throwable
+                    chk.checkType(tvar.bounds.head, a.getUpperBound(), syms.throwableType);
+                // default must conform to bounds
+                chk.checkType(tvar.throwsDefault, a.getThrowsDefault(), a.getUpperBound());
             }
         }
         if (checkCyclic) {
