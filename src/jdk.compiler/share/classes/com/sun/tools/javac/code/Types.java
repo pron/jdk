@@ -3589,8 +3589,8 @@ public class Types {
 
     private Type defaultThrows(Type t, boolean wildcard) {
         Type d = defaultThrows0(t);
-        if (wildcard)
-            d = new WildcardType(d, BoundKind.EXTENDS, syms.boundClass);
+//        if (wildcard)
+//            d = new WildcardType(d, BoundKind.EXTENDS, syms.boundClass);
         return d;
     }
 
