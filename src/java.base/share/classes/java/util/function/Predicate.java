@@ -38,7 +38,7 @@ import java.util.Objects;
  * @since 1.8
  */
 @FunctionalInterface
-public interface Predicate<T, X extends Exception> {
+public interface Predicate<T, throws X> {
 
     /**
      * Evaluates this predicate on the given argument.
@@ -102,7 +102,7 @@ public interface Predicate<T, X extends Exception> {
      *
      * @param <X1> throws
      */
-    default <X1 extends Exception> Predicate<T, ? extends X|X1> or(Predicate<? super T, ? extends X1> other) {
+    default <X1 extends Exception> Predicate<T, X|X1> or(Predicate<? super T, X1> other) {
         Objects.requireNonNull(other);
         return (t) -> test(t) || other.test(t);
     }
@@ -140,7 +140,7 @@ public interface Predicate<T, X extends Exception> {
      * @since 11
      */
     @SuppressWarnings("unchecked")
-    static <T, X extends Exception> Predicate<T, X> not(Predicate<? super T, X> target) {
+    static <T, throws X> Predicate<T, X> not(Predicate<? super T, X> target) {
         Objects.requireNonNull(target);
         return (Predicate<T, X>)target.negate();
     }

@@ -39,7 +39,7 @@ package java.util.function;
  * @since 1.8
  */
 @FunctionalInterface
- public interface Supplier<T, X extends Exception> {
+ public interface Supplier<T, throws X> {
     /**
      * Gets a result.
      *

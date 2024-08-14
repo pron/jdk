@@ -164,7 +164,7 @@ import java.util.function.UnaryOperator;
  * @see DoubleStream
  * @see <a href="package-summary.html">java.util.stream</a>
  */
-public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<T, X>> {
+public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match
@@ -181,7 +181,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      *
      * @param <X1> throws
      */
-    <X1 extends Exception> Stream<T, ? extends X|X1> filter(Predicate<? super T, ? extends X1> predicate);
+    <throws X1> Stream<T, X|X1> filter(Predicate<? super T, X1> predicate);
 
     /**
      * Returns a stream consisting of the results of applying the given
@@ -199,7 +199,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      *
      * @param <X1> throws
      */
-    <R, X1 extends Exception> Stream<R, ? extends X|X1> map(Function<? super T, ? extends R, ? extends X1> mapper);
+    <R, throws X1> Stream<R, X|X1> map(Function<? super T, ? extends R, X1> mapper);
 
     /**
      * Returns an {@code IntStream} consisting of the results of applying the
@@ -213,7 +213,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      *               function to apply to each element
      * @return the new stream
      */
-    IntStream<? extends X> mapToInt(ToIntFunction<? super T> mapper);
+    IntStream<X> mapToInt(ToIntFunction<? super T> mapper);
 
     /**
      * Returns a {@code LongStream} consisting of the results of applying the
@@ -288,8 +288,8 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      * @param <X1> throws
      * @param <X2> throws
      */
-    <R, X1 extends Exception, X2 extends Exception>
-    Stream<R, ? extends X|X1|X2> flatMap(Function<? super T, ? extends Stream<? extends R, ? extends X2>, ? extends X1> mapper);
+    <R, throws X1, throws X2>
+    Stream<R, X|X1|X2> flatMap(Function<? super T, ? extends Stream<? extends R, X2>, X1> mapper);
 
     /**
      * Returns an {@code IntStream} consisting of the results of replacing each
@@ -435,8 +435,8 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      * @see #flatMap flatMap
      * @since 16
      */
-    default <R, X1 extends Exception>
-    Stream<R, ? extends X|X1> mapMulti(BiConsumer<? super T, ? super Consumer<R>, ? extends X1> mapper) {
+    default <R, throws X1>
+    Stream<R, X|X1> mapMulti(BiConsumer<? super T, ? super Consumer<R>, X1> mapper) {
         Objects.requireNonNull(mapper);
         return flatMap(e -> {
             SpinedBuffer<R> buffer = new SpinedBuffer<>();
@@ -655,7 +655,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      *                 they are consumed from the stream
      * @return the new stream
      */
-    Stream<T, ? extends X> peek(Consumer<? super T> action);
+    Stream<T, X> peek(Consumer<? super T> action);
 
     /**
      * Returns a stream consisting of the elements of this stream, truncated
@@ -769,7 +769,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      * @return the new stream
      * @since 9
      */
-    default Stream<T, ? extends X> takeWhile(Predicate<? super T> predicate) {
+    default Stream<T, X> takeWhile(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
@@ -835,7 +835,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      * @return the new stream
      * @since 9
      */
-    default Stream<T, ? extends X> dropWhile(Predicate<? super T> predicate) {
+    default Stream<T, X> dropWhile(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
@@ -864,7 +864,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      * @throws X1 throws
      * @throws X throws
      */
-    <X1 extends Exception> void forEach(Consumer<? super T, X1> action) throws X, X1;
+    <throws X1> void forEach(Consumer<? super T, X1> action) throws X, X1;
 
     /**
      * Performs an action for each element of this stream, in the encounter
@@ -886,7 +886,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      * @throws X throws
      * @see #forEach(Consumer)
      */
-    <X1 extends Exception> void forEachOrdered(Consumer<? super T, X1> action) throws X, X1;
+    <throws X1> void forEachOrdered(Consumer<? super T, X1> action) throws X, X1;
 
     /**
      * Returns an array containing the elements of this stream.
@@ -1122,7 +1122,7 @@ public interface Stream<T, X extends Exception> extends BaseStream<T, X, Stream<
      * @since 22
      */
     @PreviewFeature(feature = PreviewFeature.Feature.STREAM_GATHERERS)
-    default <R, X1 extends Exception> Stream<R, ? extends X|X1> gather(Gatherer<? super T, ?, R, X1> gatherer) {
+    default <R, throws X1> Stream<R, X|X1> gather(Gatherer<? super T, ?, R, X1> gatherer) {
         return StreamSupport.stream(spliterator(), isParallel())
                             .gather(gatherer)
                             .onClose(this::close);

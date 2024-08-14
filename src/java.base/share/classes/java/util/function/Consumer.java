@@ -40,7 +40,7 @@ import java.util.Objects;
  * @since 1.8
  */
 @FunctionalInterface
-public interface Consumer<T, X extends Exception> {
+public interface Consumer<T, throws X> {
 
     /**
      * Performs this operation on the given argument.
@@ -64,7 +64,7 @@ public interface Consumer<T, X extends Exception> {
      *
      * @param <X1> throws
      */
-    default <X1 extends Exception> Consumer<T, ? extends X|X1> andThen(Consumer<? super T, X1> after) {
+    default <throws X1> Consumer<T, X|X1> andThen(Consumer<? super T, X1> after) {
         Objects.requireNonNull(after);
         return (T t) -> { accept(t); after.accept(t); };
     }

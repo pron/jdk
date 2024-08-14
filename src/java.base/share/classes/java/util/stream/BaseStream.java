@@ -55,7 +55,7 @@ import java.util.Spliterator;
  * @see DoubleStream
  * @see <a href="package-summary.html">java.util.stream</a>
  */
-public interface BaseStream<T, X extends Exception, S extends BaseStream<T, X, S>>
+public interface BaseStream<T, throws X, S extends BaseStream<T, X, S>>
         extends AutoCloseable {
     /**
      * Returns an iterator for the elements of this stream.
@@ -93,7 +93,7 @@ public interface BaseStream<T, X extends Exception, S extends BaseStream<T, X, S
      *
      * @return the element spliterator for this stream
      */
-    Spliterator<T, ? extends X> spliterator();
+    Spliterator<T, X> spliterator();
 
     /**
      * Returns whether this stream, if a terminal operation were to be executed,

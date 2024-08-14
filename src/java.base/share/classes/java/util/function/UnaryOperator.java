@@ -39,7 +39,7 @@ package java.util.function;
  * @since 1.8
  */
 @FunctionalInterface
-public interface UnaryOperator<T, X extends Exception> extends Function<T, T, X> {
+public interface UnaryOperator<T, throws X> extends Function<T, T, X> {
 
     /**
      * Returns a unary operator that always returns its input argument.

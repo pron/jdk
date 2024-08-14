@@ -39,7 +39,7 @@ import java.util.Objects;
  * @since 1.8
  */
 @FunctionalInterface
-public interface Function<T, R, X extends Exception> {
+public interface Function<T, R, throws X> {
 
     /**
      * Applies this function to the given argument.
@@ -67,7 +67,7 @@ public interface Function<T, R, X extends Exception> {
      *
      * @see #andThen(Function)
      */
-    default <V, X1 extends Exception> Function<V, R, ? extends X|X1> compose(Function<? super V, ? extends T, X1> before) {
+    default <V, throws X1> Function<V, R, X|X1> compose(Function<? super V, ? extends T, X1> before) {
         Objects.requireNonNull(before);
         return (V v) -> apply(before.apply(v));
     }
@@ -88,8 +88,8 @@ public interface Function<T, R, X extends Exception> {
      *
      * @see #compose(Function)
      */
-    default <V, X1 extends Exception>
-    Function<T, V, ? extends X|X1> andThen(Function<? super R, ? extends V, ? extends X1> after) {
+    default <V, throws X1>
+    Function<T, V, X|X1> andThen(Function<? super R, ? extends V, X1> after) {
         Objects.requireNonNull(after);
         return (T t) -> after.apply(apply(t));
     }
