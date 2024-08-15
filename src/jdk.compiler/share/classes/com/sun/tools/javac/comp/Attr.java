@@ -4246,9 +4246,14 @@ public class Attr extends JCTree.Visitor {
             preview.checkSourceLevel(pos, Feature.PRIMITIVE_PATTERNS);
             return true;
         } else if (warner.hasLint(LintCategory.UNCHECKED)) {
-            log.error(pos,
-                    Errors.InstanceofReifiableNotSafe(exprType, pattType));
-            return false;
+            if (types.isAllParamsThrows(pattType)) { // TODO: new warning
+                chk.warnUnchecked(pos, Warnings.UncheckedCastToType);
+                return true;
+            } else {
+                log.error(pos,
+                        Errors.InstanceofReifiableNotSafe(exprType, pattType));
+                return false;
+            }
         } else {
             return true;
         }
