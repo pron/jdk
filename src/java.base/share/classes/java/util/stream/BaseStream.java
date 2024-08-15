@@ -70,7 +70,7 @@ public interface BaseStream<T, throws X, S extends BaseStream<T, X, S>>
      *
      * @return the element iterator for this stream
      */
-    Iterator<T> iterator();
+    Iterator<T, X> iterator();
 
     /**
      * Returns a spliterator for the elements of this stream.

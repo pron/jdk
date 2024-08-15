@@ -424,6 +424,7 @@ public final class Spliterators {
      * size is not equal to the actual number of elements in the source.
      *
      * @param <T> Type of elements
+     * @param <X> throws
      * @param iterator The iterator for the source
      * @param size The number of elements in the source, to be reported as
      *        initial {@code estimateSize}
@@ -433,7 +434,7 @@ public final class Spliterators {
      * @return A spliterator from an iterator
      * @throws NullPointerException if the given iterator is {@code null}
      */
-    public static <T> Spliterator<T> spliterator(Iterator<? extends T> iterator,
+    public static <T, throws X> Spliterator<T, X> spliterator(Iterator<? extends T, X> iterator,
                                                  long size,
                                                  int characteristics) {
         return new IteratorSpliterator<>(Objects.requireNonNull(iterator), size,
@@ -454,6 +455,7 @@ public final class Spliterators {
      * operated on after the spliterator is returned.
      *
      * @param <T> Type of elements
+     * @param <X> throws
      * @param iterator The iterator for the source
      * @param characteristics Characteristics of this spliterator's source
      *        or elements ({@code SIZED} and {@code SUBSIZED}, if supplied, are
@@ -461,7 +463,7 @@ public final class Spliterators {
      * @return A spliterator from an iterator
      * @throws NullPointerException if the given iterator is {@code null}
      */
-    public static <T> Spliterator<T> spliteratorUnknownSize(Iterator<? extends T> iterator,
+    public static <T, throws X> Spliterator<T, X> spliteratorUnknownSize(Iterator<? extends T, X> iterator,
                                                             int characteristics) {
         return new IteratorSpliterator<>(Objects.requireNonNull(iterator), characteristics);
     }
@@ -481,6 +483,7 @@ public final class Spliterators {
      * operated on after the spliterator is returned, or the initially reported
      * size is not equal to the actual number of elements in the source.
      *
+     * @param <X> throws
      * @param iterator The iterator for the source
      * @param size The number of elements in the source, to be reported as
      *        initial {@code estimateSize}.
@@ -490,10 +493,10 @@ public final class Spliterators {
      * @return A spliterator from an iterator
      * @throws NullPointerException if the given iterator is {@code null}
      */
-    public static Spliterator.OfInt spliterator(PrimitiveIterator.OfInt iterator,
+    public static <throws X> Spliterator.OfInt<X> spliterator(PrimitiveIterator.OfInt<X> iterator,
                                                 long size,
                                                 int characteristics) {
-        return new IntIteratorSpliterator(Objects.requireNonNull(iterator),
+        return new IntIteratorSpliterator<>(Objects.requireNonNull(iterator),
                                           size, characteristics);
     }
 
@@ -511,6 +514,7 @@ public final class Spliterators {
      * The behaviour of splitting and traversal is undefined if the iterator is
      * operated on after the spliterator is returned.
      *
+     * @param <X> throws
      * @param iterator The iterator for the source
      * @param characteristics Characteristics of this spliterator's source
      *        or elements ({@code SIZED} and {@code SUBSIZED}, if supplied, are
@@ -518,9 +522,9 @@ public final class Spliterators {
      * @return A spliterator from an iterator
      * @throws NullPointerException if the given iterator is {@code null}
      */
-    public static Spliterator.OfInt spliteratorUnknownSize(PrimitiveIterator.OfInt iterator,
+    public static <throws X> Spliterator.OfInt<X> spliteratorUnknownSize(PrimitiveIterator.OfInt<X> iterator,
                                                            int characteristics) {
-        return new IntIteratorSpliterator(Objects.requireNonNull(iterator), characteristics);
+        return new IntIteratorSpliterator<>(Objects.requireNonNull(iterator), characteristics);
     }
 
     /**
@@ -538,6 +542,7 @@ public final class Spliterators {
      * operated on after the spliterator is returned, or the initially reported
      * size is not equal to the actual number of elements in the source.
      *
+     * @param <X> throws
      * @param iterator The iterator for the source
      * @param size The number of elements in the source, to be reported as
      *        initial {@code estimateSize}.
@@ -547,10 +552,10 @@ public final class Spliterators {
      * @return A spliterator from an iterator
      * @throws NullPointerException if the given iterator is {@code null}
      */
-    public static Spliterator.OfLong spliterator(PrimitiveIterator.OfLong iterator,
+    public static <throws X> Spliterator.OfLong<X> spliterator(PrimitiveIterator.OfLong<X> iterator,
                                                  long size,
                                                  int characteristics) {
-        return new LongIteratorSpliterator(Objects.requireNonNull(iterator),
+        return new LongIteratorSpliterator<>(Objects.requireNonNull(iterator),
                                            size, characteristics);
     }
 
@@ -568,6 +573,7 @@ public final class Spliterators {
      * The behaviour of splitting and traversal is undefined if the iterator is
      * operated on after the spliterator is returned.
      *
+     * @param <X> throws
      * @param iterator The iterator for the source
      * @param characteristics Characteristics of this spliterator's source
      *        or elements ({@code SIZED} and {@code SUBSIZED}, if supplied, are
@@ -575,9 +581,9 @@ public final class Spliterators {
      * @return A spliterator from an iterator
      * @throws NullPointerException if the given iterator is {@code null}
      */
-    public static Spliterator.OfLong spliteratorUnknownSize(PrimitiveIterator.OfLong iterator,
+    public static <throws X> Spliterator.OfLong<X> spliteratorUnknownSize(PrimitiveIterator.OfLong<X> iterator,
                                                             int characteristics) {
-        return new LongIteratorSpliterator(Objects.requireNonNull(iterator), characteristics);
+        return new LongIteratorSpliterator<>(Objects.requireNonNull(iterator), characteristics);
     }
 
     /**
@@ -595,6 +601,7 @@ public final class Spliterators {
      * operated on after the spliterator is returned, or the initially reported
      * size is not equal to the actual number of elements in the source.
      *
+     * @param <X> throws
      * @param iterator The iterator for the source
      * @param size The number of elements in the source, to be reported as
      *        initial {@code estimateSize}
@@ -604,10 +611,10 @@ public final class Spliterators {
      * @return A spliterator from an iterator
      * @throws NullPointerException if the given iterator is {@code null}
      */
-    public static Spliterator.OfDouble spliterator(PrimitiveIterator.OfDouble iterator,
+    public static <throws X> Spliterator.OfDouble<X> spliterator(PrimitiveIterator.OfDouble<X> iterator,
                                                    long size,
                                                    int characteristics) {
-        return new DoubleIteratorSpliterator(Objects.requireNonNull(iterator),
+        return new DoubleIteratorSpliterator<>(Objects.requireNonNull(iterator),
                                              size, characteristics);
     }
 
@@ -625,6 +632,7 @@ public final class Spliterators {
      * The behaviour of splitting and traversal is undefined if the iterator is
      * operated on after the spliterator is returned.
      *
+     * @param <X> throws
      * @param iterator The iterator for the source
      * @param characteristics Characteristics of this spliterator's source
      *        or elements ({@code SIZED} and {@code SUBSIZED}, if supplied, are
@@ -632,9 +640,9 @@ public final class Spliterators {
      * @return A spliterator from an iterator
      * @throws NullPointerException if the given iterator is {@code null}
      */
-    public static Spliterator.OfDouble spliteratorUnknownSize(PrimitiveIterator.OfDouble iterator,
+    public static <throws X> Spliterator.OfDouble<X> spliteratorUnknownSize(PrimitiveIterator.OfDouble<X> iterator,
                                                               int characteristics) {
-        return new DoubleIteratorSpliterator(Objects.requireNonNull(iterator), characteristics);
+        return new DoubleIteratorSpliterator<>(Objects.requireNonNull(iterator), characteristics);
     }
 
     // Iterators from Spliterators
@@ -647,13 +655,14 @@ public final class Spliterators {
      * after the iterator is returned.
      *
      * @param <T> Type of elements
+     * @param <X> throws
      * @param spliterator The spliterator
      * @return An iterator
      * @throws NullPointerException if the given spliterator is {@code null}
      */
-    public static<T> Iterator<T> iterator(Spliterator<? extends T, ?> spliterator) {
+    public static <T, throws X> Iterator<T, X> iterator(Spliterator<? extends T, X> spliterator) {
         Objects.requireNonNull(spliterator);
-        class Adapter implements Iterator<T>, Consumer<T> {
+        class Adapter implements Iterator<T, X>, Consumer<T> {
             boolean valueReady = false;
             T nextElement;
 
@@ -664,17 +673,15 @@ public final class Spliterators {
             }
 
             @Override
-            public boolean hasNext() {
+            public boolean hasNext() throws X {
                 if (!valueReady) {
-                    try {
-                        spliterator.tryAdvance(this);
-                    } catch (Exception ex) { throw new RuntimeException("wrapped", ex); } // TODO
+                    spliterator.tryAdvance(this);
                 }
                 return valueReady;
             }
 
             @Override
-            public T next() {
+            public T next() throws X {
                 if (!valueReady && !hasNext())
                     throw new NoSuchElementException();
                 else {
@@ -686,7 +693,7 @@ public final class Spliterators {
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super T> action) {
+            public void forEachRemaining(Consumer<? super T> action) throws X {
                 Objects.requireNonNull(action);
                 if (valueReady) {
                     valueReady = false;
@@ -694,9 +701,7 @@ public final class Spliterators {
                     nextElement = null;
                     action.accept(t);
                 }
-                try {
-                    spliterator.forEachRemaining(action);
-                } catch (Exception ex) { throw new RuntimeException("wrapped", ex); } // TODO
+                spliterator.forEachRemaining(action);
             }
         }
 
@@ -711,11 +716,12 @@ public final class Spliterators {
      * The behaviour of traversal is undefined if the spliterator is operated
      * after the iterator is returned.
      *
+     * @param <X> throws
      * @param spliterator The spliterator
      * @return An iterator
      * @throws NullPointerException if the given spliterator is {@code null}
      */
-    public static PrimitiveIterator.OfInt iterator(Spliterator.OfInt<?> spliterator) {
+    public static <throws X> PrimitiveIterator.OfInt<X> iterator(Spliterator.OfInt<X> spliterator) {
         Objects.requireNonNull(spliterator);
         class Adapter implements PrimitiveIterator.OfInt, IntConsumer {
             boolean valueReady = false;
@@ -771,13 +777,14 @@ public final class Spliterators {
      * The behaviour of traversal is undefined if the spliterator is operated
      * after the iterator is returned.
      *
+     * @param <X> throws
      * @param spliterator The spliterator
      * @return An iterator
      * @throws NullPointerException if the given spliterator is {@code null}
      */
-    public static PrimitiveIterator.OfLong iterator(Spliterator.OfLong spliterator) {
+    public static <throws X> PrimitiveIterator.OfLong<X> iterator(Spliterator.OfLong<X> spliterator) {
         Objects.requireNonNull(spliterator);
-        class Adapter implements PrimitiveIterator.OfLong, LongConsumer {
+        class Adapter implements PrimitiveIterator.OfLong<X>, LongConsumer {
             boolean valueReady = false;
             long nextElement;
 
@@ -788,14 +795,14 @@ public final class Spliterators {
             }
 
             @Override
-            public boolean hasNext() {
+            public boolean hasNext() throws X {
                 if (!valueReady)
                     spliterator.tryAdvance(this);
                 return valueReady;
             }
 
             @Override
-            public long nextLong() {
+            public long nextLong() throws X {
                 if (!valueReady && !hasNext())
                     throw new NoSuchElementException();
                 else {
@@ -805,7 +812,7 @@ public final class Spliterators {
             }
 
             @Override
-            public void forEachRemaining(LongConsumer action) {
+            public void forEachRemaining(LongConsumer action) throws X {
                 Objects.requireNonNull(action);
                 if (valueReady) {
                     valueReady = false;
@@ -826,13 +833,14 @@ public final class Spliterators {
      * The behaviour of traversal is undefined if the spliterator is operated
      * after the iterator is returned.
      *
+     * @param <X> throws
      * @param spliterator The spliterator
      * @return An iterator
      * @throws NullPointerException if the given spliterator is {@code null}
      */
-    public static PrimitiveIterator.OfDouble iterator(Spliterator.OfDouble spliterator) {
+    public static <throws X> PrimitiveIterator.OfDouble<X> iterator(Spliterator.OfDouble<X> spliterator) {
         Objects.requireNonNull(spliterator);
-        class Adapter implements PrimitiveIterator.OfDouble, DoubleConsumer {
+        class Adapter implements PrimitiveIterator.OfDouble<X>, DoubleConsumer {
             boolean valueReady = false;
             double nextElement;
 
@@ -843,14 +851,14 @@ public final class Spliterators {
             }
 
             @Override
-            public boolean hasNext() {
+            public boolean hasNext() throws X {
                 if (!valueReady)
                     spliterator.tryAdvance(this);
                 return valueReady;
             }
 
             @Override
-            public double nextDouble() {
+            public double nextDouble() throws X {
                 if (!valueReady && !hasNext())
                     throw new NoSuchElementException();
                 else {
@@ -860,7 +868,7 @@ public final class Spliterators {
             }
 
             @Override
-            public void forEachRemaining(DoubleConsumer action) {
+            public void forEachRemaining(DoubleConsumer action) throws X {
                 Objects.requireNonNull(action);
                 if (valueReady) {
                     valueReady = false;
@@ -937,6 +945,63 @@ public final class Spliterators {
                     new EmptySpliterator.OfDouble();
 
             private OfDouble() { }
+        }
+    }
+
+    // Throwing spliterator
+    private abstract static class ThrowingSpliterator<T, throws X, S extends Spliterator<T, X>, C> {
+        private final X exception;
+
+        @SuppressWarnings("unchecked")
+        ThrowingSpliterator(Exception ex) {
+            this.exception = (X)ex;
+        }
+
+        public S trySplit() {
+            return null;
+        }
+
+        public boolean tryAdvance(C consumer) throws X {
+            throw exception;
+        }
+
+        public void forEachRemaining(C consumer) throws X {
+            throw exception;
+        }
+
+        public long estimateSize() {
+            return 0;
+        }
+
+        public int characteristics() {
+            return Spliterator.SIZED | Spliterator.SUBSIZED;
+        }
+
+        static final class OfRef<T, throws X>
+                extends ThrowingSpliterator<T, X, Spliterator<T, X>, Consumer<? super T>>
+                implements Spliterator<T, X> {
+            OfRef(Exception ex) { super(ex); }
+        }
+
+        @SuppressWarnings("overloads")
+        static final class OfInt<throws X>
+                extends ThrowingSpliterator<Integer, X, Spliterator.OfInt<X>, IntConsumer>
+                implements Spliterator.OfInt<X> {
+            OfInt(Exception ex) { super(ex); }
+        }
+
+        @SuppressWarnings("overloads")
+        static final class OfLong<throws X>
+                extends ThrowingSpliterator<Long, X, Spliterator.OfLong<X>, LongConsumer>
+                implements Spliterator.OfLong<X> {
+            OfLong(Exception ex) { super(ex); }
+        }
+
+        @SuppressWarnings("overloads")
+        static final class OfDouble<throws X>
+                extends ThrowingSpliterator<Double, X, Spliterator.OfDouble<X>, DoubleConsumer>
+                implements Spliterator.OfDouble<X> {
+            OfDouble(Exception ex) { super(ex); }
         }
     }
 
@@ -1834,11 +1899,11 @@ public final class Spliterators {
      * operations. The spliterator implements {@code trySplit} to
      * permit limited parallelism.
      */
-    static class IteratorSpliterator<T> implements Spliterator<T> {
+    static class IteratorSpliterator<T, throws X> implements Spliterator<T, X> {
         static final int BATCH_UNIT = 1 << 10;  // batch array size increment
         static final int MAX_BATCH = 1 << 25;  // max batch array size;
         private final Collection<? extends T> collection; // null OK
-        private Iterator<? extends T> it;
+        private Iterator<? extends T, X> it;
         private final int characteristics;
         private long est;             // size estimate
         private int batch;            // batch size for splits
@@ -1871,7 +1936,7 @@ public final class Spliterators {
          * @param characteristics properties of this spliterator's
          * source or elements.
          */
-        public IteratorSpliterator(Iterator<? extends T> iterator, long size, int characteristics) {
+        public IteratorSpliterator(Iterator<? extends T, X> iterator, long size, int characteristics) {
             this.collection = null;
             this.it = iterator;
             this.est = size;
@@ -1889,7 +1954,7 @@ public final class Spliterators {
          * @param characteristics properties of this spliterator's
          * source or elements.
          */
-        public IteratorSpliterator(Iterator<? extends T> iterator, int characteristics) {
+        public IteratorSpliterator(Iterator<? extends T, X> iterator, int characteristics) {
             this.collection = null;
             this.it = iterator;
             this.est = Long.MAX_VALUE;
@@ -1897,7 +1962,7 @@ public final class Spliterators {
         }
 
         @Override
-        public Spliterator<T> trySplit() {
+        public Spliterator<T, X> trySplit() {
             /*
              * Split into arrays of arithmetically increasing batch
              * sizes.  This will only improve parallel performance if
@@ -1911,7 +1976,7 @@ public final class Spliterators {
              * O(sqrt(#elements)) splits, allowing O(sqrt(#cores))
              * potential speedup.
              */
-            Iterator<? extends T> i;
+            Iterator<? extends T, X> i;
             long s;
             if ((i = it) == null) {
                 i = it = collection.iterator();
@@ -1919,29 +1984,37 @@ public final class Spliterators {
             }
             else
                 s = est;
-            if (s > 1 && i.hasNext()) {
-                int n = batch + BATCH_UNIT;
-                if (n > s)
-                    n = (int) s;
-                if (n > MAX_BATCH)
-                    n = MAX_BATCH;
-                Object[] a = new Object[n];
-                int j = 0;
-                do { a[j] = i.next(); } while (++j < n && i.hasNext());
-                batch = j;
-                if (est != Long.MAX_VALUE) {
-                    est -= j;
-                    return new ArraySpliterator<>(a, 0, j, characteristics);
+            try {
+                if (s > 1 && i.hasNext()) {
+                    int n = batch + BATCH_UNIT;
+                    if (n > s)
+                        n = (int) s;
+                    if (n > MAX_BATCH)
+                        n = MAX_BATCH;
+                    Object[] a = new Object[n];
+                    int j = 0;
+                    do {
+                        a[j] = i.next();
+                    } while (++j < n && i.hasNext());
+                    batch = j;
+                    if (est != Long.MAX_VALUE) {
+                        est -= j;
+                        return new ArraySpliterator<>(a, 0, j, characteristics);
+                    }
+                    return new ArraySpliterator<>(a, 0, j, characteristics, Long.MAX_VALUE / 2);
                 }
-                return new ArraySpliterator<>(a, 0, j, characteristics, Long.MAX_VALUE / 2);
+            } catch (RuntimeException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                return new ThrowingSpliterator.OfRef<T, X>(ex);
             }
             return null;
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super T> action) {
+        public void forEachRemaining(Consumer<? super T> action) throws X {
             if (action == null) throw new NullPointerException();
-            Iterator<? extends T> i;
+            Iterator<? extends T, X> i;
             if ((i = it) == null) {
                 i = it = collection.iterator();
                 est = (long)collection.size();
@@ -1950,7 +2023,7 @@ public final class Spliterators {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> action) {
+        public boolean tryAdvance(Consumer<? super T> action) throws X {
             if (action == null) throw new NullPointerException();
             if (it == null) {
                 it = collection.iterator();
@@ -1988,10 +2061,10 @@ public final class Spliterators {
      * operations. The spliterator implements {@code trySplit} to
      * permit limited parallelism.
      */
-    static final class IntIteratorSpliterator implements Spliterator.OfInt {
+    static final class IntIteratorSpliterator<throws X> implements Spliterator.OfInt<X> {
         static final int BATCH_UNIT = IteratorSpliterator.BATCH_UNIT;
         static final int MAX_BATCH = IteratorSpliterator.MAX_BATCH;
-        private final PrimitiveIterator.OfInt it;
+        private final PrimitiveIterator.OfInt<X> it;
         private final int characteristics;
         private long est;             // size estimate
         private int batch;            // batch size for splits
@@ -2006,7 +2079,7 @@ public final class Spliterators {
          * @param characteristics properties of this spliterator's
          * source or elements.
          */
-        public IntIteratorSpliterator(PrimitiveIterator.OfInt iterator, long size, int characteristics) {
+        public IntIteratorSpliterator(PrimitiveIterator.OfInt<X> iterator, long size, int characteristics) {
             this.it = iterator;
             this.est = size;
             this.characteristics = (characteristics & Spliterator.CONCURRENT) == 0
@@ -2023,43 +2096,51 @@ public final class Spliterators {
          * @param characteristics properties of this spliterator's
          * source or elements.
          */
-        public IntIteratorSpliterator(PrimitiveIterator.OfInt iterator, int characteristics) {
+        public IntIteratorSpliterator(PrimitiveIterator.OfInt<X> iterator, int characteristics) {
             this.it = iterator;
             this.est = Long.MAX_VALUE;
             this.characteristics = characteristics & ~(Spliterator.SIZED | Spliterator.SUBSIZED);
         }
 
         @Override
-        public OfInt trySplit() {
-            PrimitiveIterator.OfInt i = it;
+        public OfInt<X> trySplit() {
+            PrimitiveIterator.OfInt<X> i = it;
             long s = est;
-            if (s > 1 && i.hasNext()) {
-                int n = batch + BATCH_UNIT;
-                if (n > s)
-                    n = (int) s;
-                if (n > MAX_BATCH)
-                    n = MAX_BATCH;
-                int[] a = new int[n];
-                int j = 0;
-                do { a[j] = i.nextInt(); } while (++j < n && i.hasNext());
-                batch = j;
-                if (est != Long.MAX_VALUE) {
-                    est -= j;
-                    return new IntArraySpliterator(a, 0, j, characteristics);
+            try {
+                if (s > 1 && i.hasNext()) {
+                    int n = batch + BATCH_UNIT;
+                    if (n > s)
+                        n = (int) s;
+                    if (n > MAX_BATCH)
+                        n = MAX_BATCH;
+                    int[] a = new int[n];
+                    int j = 0;
+                    do {
+                        a[j] = i.nextInt();
+                    } while (++j < n && i.hasNext());
+                    batch = j;
+                    if (est != Long.MAX_VALUE) {
+                        est -= j;
+                        return new IntArraySpliterator(a, 0, j, characteristics);
+                    }
+                    return new IntArraySpliterator(a, 0, j, characteristics, Long.MAX_VALUE / 2);
                 }
-                return new IntArraySpliterator(a, 0, j, characteristics, Long.MAX_VALUE / 2);
+            } catch (RuntimeException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                return new ThrowingSpliterator.OfInt<X>(ex);
             }
             return null;
         }
 
         @Override
-        public void forEachRemaining(IntConsumer action) {
+        public void forEachRemaining(IntConsumer action) throws X {
             if (action == null) throw new NullPointerException();
             it.forEachRemaining(action);
         }
 
         @Override
-        public boolean tryAdvance(IntConsumer action) {
+        public boolean tryAdvance(IntConsumer action) throws X {
             if (action == null) throw new NullPointerException();
             if (it.hasNext()) {
                 action.accept(it.nextInt());
@@ -2084,10 +2165,10 @@ public final class Spliterators {
         }
     }
 
-    static final class LongIteratorSpliterator implements Spliterator.OfLong {
+    static final class LongIteratorSpliterator<throws X> implements Spliterator.OfLong<X> {
         static final int BATCH_UNIT = IteratorSpliterator.BATCH_UNIT;
         static final int MAX_BATCH = IteratorSpliterator.MAX_BATCH;
-        private final PrimitiveIterator.OfLong it;
+        private final PrimitiveIterator.OfLong<X> it;
         private final int characteristics;
         private long est;             // size estimate
         private int batch;            // batch size for splits
@@ -2102,7 +2183,7 @@ public final class Spliterators {
          * @param characteristics properties of this spliterator's
          * source or elements.
          */
-        public LongIteratorSpliterator(PrimitiveIterator.OfLong iterator, long size, int characteristics) {
+        public LongIteratorSpliterator(PrimitiveIterator.OfLong<X> iterator, long size, int characteristics) {
             this.it = iterator;
             this.est = size;
             this.characteristics = (characteristics & Spliterator.CONCURRENT) == 0
@@ -2119,43 +2200,49 @@ public final class Spliterators {
          * @param characteristics properties of this spliterator's
          * source or elements.
          */
-        public LongIteratorSpliterator(PrimitiveIterator.OfLong iterator, int characteristics) {
+        public LongIteratorSpliterator(PrimitiveIterator.OfLong<X> iterator, int characteristics) {
             this.it = iterator;
             this.est = Long.MAX_VALUE;
             this.characteristics = characteristics & ~(Spliterator.SIZED | Spliterator.SUBSIZED);
         }
 
         @Override
-        public OfLong trySplit() {
-            PrimitiveIterator.OfLong i = it;
+        public OfLong<X> trySplit() {
+            PrimitiveIterator.OfLong<X> i = it;
             long s = est;
-            if (s > 1 && i.hasNext()) {
-                int n = batch + BATCH_UNIT;
-                if (n > s)
-                    n = (int) s;
-                if (n > MAX_BATCH)
-                    n = MAX_BATCH;
-                long[] a = new long[n];
-                int j = 0;
-                do { a[j] = i.nextLong(); } while (++j < n && i.hasNext());
-                batch = j;
-                if (est != Long.MAX_VALUE) {
-                    est -= j;
-                    return new LongArraySpliterator(a, 0, j, characteristics);
+            try {
+                if (s > 1 && i.hasNext()) {
+                    int n = batch + BATCH_UNIT;
+                    if (n > s)
+                        n = (int) s;
+                    if (n > MAX_BATCH)
+                        n = MAX_BATCH;
+                    long[] a = new long[n];
+                    int j = 0;
+                    do { a[j] = i.nextLong(); } while (++j < n && i.hasNext());
+                    batch = j;
+                    if (est != Long.MAX_VALUE) {
+                        est -= j;
+                        return new LongArraySpliterator(a, 0, j, characteristics);
+                    }
+                    return new LongArraySpliterator(a, 0, j, characteristics, Long.MAX_VALUE / 2);
                 }
-                return new LongArraySpliterator(a, 0, j, characteristics, Long.MAX_VALUE / 2);
+            } catch (RuntimeException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                return new ThrowingSpliterator.OfLong<X>(ex);
             }
             return null;
         }
 
         @Override
-        public void forEachRemaining(LongConsumer action) {
+        public void forEachRemaining(LongConsumer action) throws X {
             if (action == null) throw new NullPointerException();
             it.forEachRemaining(action);
         }
 
         @Override
-        public boolean tryAdvance(LongConsumer action) {
+        public boolean tryAdvance(LongConsumer action) throws X {
             if (action == null) throw new NullPointerException();
             if (it.hasNext()) {
                 action.accept(it.nextLong());
@@ -2180,10 +2267,10 @@ public final class Spliterators {
         }
     }
 
-    static final class DoubleIteratorSpliterator implements Spliterator.OfDouble {
+    static final class DoubleIteratorSpliterator<throws X> implements Spliterator.OfDouble<X> {
         static final int BATCH_UNIT = IteratorSpliterator.BATCH_UNIT;
         static final int MAX_BATCH = IteratorSpliterator.MAX_BATCH;
-        private final PrimitiveIterator.OfDouble it;
+        private final PrimitiveIterator.OfDouble<X> it;
         private final int characteristics;
         private long est;             // size estimate
         private int batch;            // batch size for splits
@@ -2198,7 +2285,7 @@ public final class Spliterators {
          * @param characteristics properties of this spliterator's
          * source or elements.
          */
-        public DoubleIteratorSpliterator(PrimitiveIterator.OfDouble iterator, long size, int characteristics) {
+        public DoubleIteratorSpliterator(PrimitiveIterator.OfDouble<X> iterator, long size, int characteristics) {
             this.it = iterator;
             this.est = size;
             this.characteristics = (characteristics & Spliterator.CONCURRENT) == 0
@@ -2215,43 +2302,51 @@ public final class Spliterators {
          * @param characteristics properties of this spliterator's
          * source or elements.
          */
-        public DoubleIteratorSpliterator(PrimitiveIterator.OfDouble iterator, int characteristics) {
+        public DoubleIteratorSpliterator(PrimitiveIterator.OfDouble<X> iterator, int characteristics) {
             this.it = iterator;
             this.est = Long.MAX_VALUE;
             this.characteristics = characteristics & ~(Spliterator.SIZED | Spliterator.SUBSIZED);
         }
 
         @Override
-        public OfDouble trySplit() {
-            PrimitiveIterator.OfDouble i = it;
+        public OfDouble<X> trySplit() {
+            PrimitiveIterator.OfDouble<X> i = it;
             long s = est;
-            if (s > 1 && i.hasNext()) {
-                int n = batch + BATCH_UNIT;
-                if (n > s)
-                    n = (int) s;
-                if (n > MAX_BATCH)
-                    n = MAX_BATCH;
-                double[] a = new double[n];
-                int j = 0;
-                do { a[j] = i.nextDouble(); } while (++j < n && i.hasNext());
-                batch = j;
-                if (est != Long.MAX_VALUE) {
-                    est -= j;
-                    return new DoubleArraySpliterator(a, 0, j, characteristics);
+            try {
+                if (s > 1 && i.hasNext()) {
+                    int n = batch + BATCH_UNIT;
+                    if (n > s)
+                        n = (int) s;
+                    if (n > MAX_BATCH)
+                        n = MAX_BATCH;
+                    double[] a = new double[n];
+                    int j = 0;
+                    do {
+                        a[j] = i.nextDouble();
+                    } while (++j < n && i.hasNext());
+                    batch = j;
+                    if (est != Long.MAX_VALUE) {
+                        est -= j;
+                        return new DoubleArraySpliterator(a, 0, j, characteristics);
+                    }
+                    return new DoubleArraySpliterator(a, 0, j, characteristics, Long.MAX_VALUE / 2);
                 }
-                return new DoubleArraySpliterator(a, 0, j, characteristics, Long.MAX_VALUE / 2);
+            } catch (RuntimeException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                return new ThrowingSpliterator.OfDouble<X>(ex);
             }
             return null;
         }
 
         @Override
-        public void forEachRemaining(DoubleConsumer action) {
+        public void forEachRemaining(DoubleConsumer action) throws X {
             if (action == null) throw new NullPointerException();
             it.forEachRemaining(action);
         }
 
         @Override
-        public boolean tryAdvance(DoubleConsumer action) {
+        public boolean tryAdvance(DoubleConsumer action) throws X {
             if (action == null) throw new NullPointerException();
             if (it.hasNext()) {
                 action.accept(it.nextDouble());

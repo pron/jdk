@@ -43,7 +43,7 @@ import java.util.Objects;
  * @since 1.8
  */
 @FunctionalInterface
-public interface BiConsumer<T, U, X extends Exception> {
+public interface BiConsumer<T, U, throws X> {
 
     /**
      * Performs this operation on the given arguments.
@@ -66,8 +66,8 @@ public interface BiConsumer<T, U, X extends Exception> {
      * @throws NullPointerException if {@code after} is null
      * @param <X1> throws
      */
-    default <X1 extends Exception>
-    BiConsumer<T, U, ? extends X|X1> andThen(BiConsumer<? super T, ? super U, ? extends X1> after) {
+    default <throws X1>
+    BiConsumer<T, U, X|X1> andThen(BiConsumer<? super T, ? super U, X1> after) {
         Objects.requireNonNull(after);
 
         return (l, r) -> {

@@ -62,10 +62,11 @@ import java.util.function.LongConsumer;
  *        primitive specialization of {@link java.util.function.Consumer} for
  *        {@code T}, such as {@link java.util.function.IntConsumer} for
  *        {@code Integer}.
+ * @param <X> throws
  *
  * @since 1.8
  */
-public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
+public interface PrimitiveIterator<T, T_CONS, throws X> extends Iterator<T, X> {
 
     /**
      * Performs the given action for each remaining element until all elements
@@ -82,25 +83,28 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
      * exception.
      *
      * @param action The action to be performed for each element
+     * @throws X TBD
      * @throws NullPointerException if the specified action is null
      */
     @SuppressWarnings("overloads")
-    void forEachRemaining(T_CONS action);
+    void forEachRemaining(T_CONS action) throws X;
 
     /**
      * An Iterator specialized for {@code int} values.
+     * @param <X> throws
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public static interface OfInt extends PrimitiveIterator<Integer, IntConsumer> {
+    public static interface OfInt<throws X> extends PrimitiveIterator<Integer, IntConsumer, X> {
 
         /**
          * Returns the next {@code int} element in the iteration.
          *
          * @return the next {@code int} element in the iteration
          * @throws NoSuchElementException if the iteration has no more elements
+         * @throws X TBD
          */
-        int nextInt();
+        int nextInt() throws X;
 
         /**
          * {@inheritDoc}
@@ -111,7 +115,7 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
          *         action.accept(nextInt());
          * }</pre>
          */
-        default void forEachRemaining(IntConsumer action) {
+        default void forEachRemaining(IntConsumer action) throws X {
             Objects.requireNonNull(action);
             while (hasNext())
                 action.accept(nextInt());
@@ -124,7 +128,7 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
          * {@link #nextInt()}, and returns that boxed result.
          */
         @Override
-        default Integer next() {
+        default Integer next() throws X {
             if (Tripwire.ENABLED)
                 Tripwire.trip(getClass(), "{0} calling PrimitiveIterator.OfInt.nextInt()");
             return nextInt();
@@ -140,7 +144,7 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
          * and then passed to {@link #forEachRemaining}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Integer> action) {
+        default void forEachRemaining(Consumer<? super Integer> action) throws X {
             if (action instanceof IntConsumer) {
                 forEachRemaining((IntConsumer) action);
             }
@@ -157,18 +161,20 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
 
     /**
      * An Iterator specialized for {@code long} values.
+     * @param <X> throws
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public static interface OfLong extends PrimitiveIterator<Long, LongConsumer> {
+    public static interface OfLong<throws X> extends PrimitiveIterator<Long, LongConsumer, X> {
 
         /**
          * Returns the next {@code long} element in the iteration.
          *
          * @return the next {@code long} element in the iteration
+         * @throws X TBD
          * @throws NoSuchElementException if the iteration has no more elements
          */
-        long nextLong();
+        long nextLong() throws X;
 
         /**
          * {@inheritDoc}
@@ -179,7 +185,7 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
          *         action.accept(nextLong());
          * }</pre>
          */
-        default void forEachRemaining(LongConsumer action) {
+        default void forEachRemaining(LongConsumer action) throws X {
             Objects.requireNonNull(action);
             while (hasNext())
                 action.accept(nextLong());
@@ -192,7 +198,7 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
          * {@link #nextLong()}, and returns that boxed result.
          */
         @Override
-        default Long next() {
+        default Long next() throws X {
             if (Tripwire.ENABLED)
                 Tripwire.trip(getClass(), "{0} calling PrimitiveIterator.OfLong.nextLong()");
             return nextLong();
@@ -208,7 +214,7 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
          * and then passed to {@link #forEachRemaining}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Long> action) {
+        default void forEachRemaining(Consumer<? super Long> action) throws X {
             if (action instanceof LongConsumer) {
                 forEachRemaining((LongConsumer) action);
             }
@@ -224,18 +230,20 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
 
     /**
      * An Iterator specialized for {@code double} values.
+     * @param <X> throws
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public static interface OfDouble extends PrimitiveIterator<Double, DoubleConsumer> {
+    public static interface OfDouble<throws X> extends PrimitiveIterator<Double, DoubleConsumer, X> {
 
         /**
          * Returns the next {@code double} element in the iteration.
          *
          * @return the next {@code double} element in the iteration
+         * @throws X TBD
          * @throws NoSuchElementException if the iteration has no more elements
          */
-        double nextDouble();
+        double nextDouble() throws X;
 
         /**
          * {@inheritDoc}
@@ -246,7 +254,7 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
          *         action.accept(nextDouble());
          * }</pre>
          */
-        default void forEachRemaining(DoubleConsumer action) {
+        default void forEachRemaining(DoubleConsumer action) throws X {
             Objects.requireNonNull(action);
             while (hasNext())
                 action.accept(nextDouble());
@@ -259,7 +267,7 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
          * {@link #nextDouble()}, and returns that boxed result.
          */
         @Override
-        default Double next() {
+        default Double next() throws X {
             if (Tripwire.ENABLED)
                 Tripwire.trip(getClass(), "{0} calling PrimitiveIterator.OfDouble.nextLong()");
             return nextDouble();
@@ -276,7 +284,7 @@ public interface PrimitiveIterator<T, T_CONS> extends Iterator<T> {
          * {@link #forEachRemaining}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Double> action) {
+        default void forEachRemaining(Consumer<? super Double> action) throws X {
             if (action instanceof DoubleConsumer) {
                 forEachRemaining((DoubleConsumer) action);
             }

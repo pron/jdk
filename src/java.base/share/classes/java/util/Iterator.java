@@ -48,6 +48,7 @@ import java.util.function.Consumer;
  * using the {@link Enumeration#asIterator} method.
  *
  * @param <E> the type of elements returned by this iterator
+ * @param <X> throws
  *
  * @author  Josh Bloch
  * @see Collection
@@ -55,23 +56,25 @@ import java.util.function.Consumer;
  * @see Iterable
  * @since 1.2
  */
-public interface Iterator<E> {
+public interface Iterator<E, throws X> {
     /**
      * Returns {@code true} if the iteration has more elements.
      * (In other words, returns {@code true} if {@link #next} would
      * return an element rather than throwing an exception.)
      *
      * @return {@code true} if the iteration has more elements
+     * @throws X TBD
      */
-    boolean hasNext();
+    boolean hasNext() throws X;
 
     /**
      * Returns the next element in the iteration.
      *
      * @return the next element in the iteration
+     * @throws X TBD
      * @throws NoSuchElementException if the iteration has no more elements
      */
-    E next();
+    E next() throws X;
 
     /**
      * Removes from the underlying collection the last element returned
@@ -125,9 +128,10 @@ public interface Iterator<E> {
      *
      * @param action The action to be performed for each element
      * @throws NullPointerException if the specified action is null
+     * @throws X TBD
      * @since 1.8
      */
-    default void forEachRemaining(Consumer<? super E> action) {
+    default void forEachRemaining(Consumer<? super E> action) throws X {
         Objects.requireNonNull(action);
         while (hasNext())
             action.accept(next());

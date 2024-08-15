@@ -68,8 +68,10 @@ import java.util.function.Supplier;
  * @since 1.8
  * @see Stream
  * @see <a href="package-summary.html">java.util.stream</a>
+ *
+ * @param <X> throws
  */
-public interface DoubleStream extends BaseStream<Double, RuntimeException, DoubleStream> {
+public interface DoubleStream<throws X> extends BaseStream<Double, X, DoubleStream<X>> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match
@@ -84,7 +86,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *                  should be included
      * @return the new stream
      */
-    DoubleStream filter(DoublePredicate predicate);
+    DoubleStream<X> filter(DoublePredicate predicate);
 
     /**
      * Returns a stream consisting of the results of applying the given
@@ -98,7 +100,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *               function to apply to each element
      * @return the new stream
      */
-    DoubleStream map(DoubleUnaryOperator mapper);
+    DoubleStream<X> map(DoubleUnaryOperator mapper);
 
     /**
      * Returns an object-valued {@code Stream} consisting of the results of
@@ -113,7 +115,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *               function to apply to each element
      * @return the new stream
      */
-    <U> Stream<U> mapToObj(DoubleFunction<? extends U> mapper);
+    <U> Stream<U, X> mapToObj(DoubleFunction<? extends U> mapper);
 
     /**
      * Returns an {@code IntStream} consisting of the results of applying the
@@ -127,7 +129,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *               function to apply to each element
      * @return the new stream
      */
-    IntStream mapToInt(DoubleToIntFunction mapper);
+    IntStream<X> mapToInt(DoubleToIntFunction mapper);
 
     /**
      * Returns a {@code LongStream} consisting of the results of applying the
@@ -141,7 +143,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *               function to apply to each element
      * @return the new stream
      */
-    LongStream mapToLong(DoubleToLongFunction mapper);
+    LongStream<X> mapToLong(DoubleToLongFunction mapper);
 
     /**
      * Returns a stream consisting of the results of replacing each element of
@@ -161,7 +163,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      * @return the new stream
      * @see Stream#flatMap(Function)
      */
-    DoubleStream flatMap(DoubleFunction<? extends DoubleStream> mapper);
+    DoubleStream<X> flatMap(DoubleFunction<? extends DoubleStream> mapper);
 
     /**
      * Returns a stream consisting of the results of replacing each element of
@@ -191,7 +193,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      * @see Stream#mapMulti Stream.mapMulti
      * @since 16
      */
-    default DoubleStream mapMulti(DoubleMapMultiConsumer mapper) {
+    default DoubleStream<X> mapMulti(DoubleMapMultiConsumer mapper) {
         Objects.requireNonNull(mapper);
         return flatMap(e -> {
             SpinedBuffer.OfDouble buffer = new SpinedBuffer.OfDouble();
@@ -210,7 +212,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *
      * @return the result stream
      */
-    DoubleStream distinct();
+    DoubleStream<X> distinct();
 
     /**
      * Returns a stream consisting of the elements of this stream in sorted
@@ -222,7 +224,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *
      * @return the result stream
      */
-    DoubleStream sorted();
+    DoubleStream<X> sorted();
 
     /**
      * Returns a stream consisting of the elements of this stream, additionally
@@ -258,7 +260,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *               they are consumed from the stream
      * @return the new stream
      */
-    DoubleStream peek(DoubleConsumer action);
+    DoubleStream<X> peek(DoubleConsumer action);
 
     /**
      * Returns a stream consisting of the elements of this stream, truncated
@@ -285,7 +287,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      * @return the new stream
      * @throws IllegalArgumentException if {@code maxSize} is negative
      */
-    DoubleStream limit(long maxSize);
+    DoubleStream<X> limit(long maxSize);
 
     /**
      * Returns a stream consisting of the remaining elements of this stream
@@ -314,7 +316,7 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      * @return the new stream
      * @throws IllegalArgumentException if {@code n} is negative
      */
-    DoubleStream skip(long n);
+    DoubleStream<X> skip(long n);
 
     /**
      * Returns, if this stream is ordered, a stream consisting of the longest
@@ -373,12 +375,12 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      * @return the new stream
      * @since 9
      */
-    default DoubleStream takeWhile(DoublePredicate predicate) {
+    default DoubleStream<X> takeWhile(DoublePredicate predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
         return StreamSupport.doubleStream(
-                new WhileOps.UnorderedWhileSpliterator.OfDouble.Taking(spliterator(), true, predicate),
+                new WhileOps.UnorderedWhileSpliterator.OfDouble.Taking<>(spliterator(), true, predicate),
                 isParallel()).onClose(this::close);
     }
 
@@ -440,12 +442,12 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      * @return the new stream
      * @since 9
      */
-    default DoubleStream dropWhile(DoublePredicate predicate) {
+    default DoubleStream<X> dropWhile(DoublePredicate predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
         return StreamSupport.doubleStream(
-                new WhileOps.UnorderedWhileSpliterator.OfDouble.Dropping(spliterator(), true, predicate),
+                new WhileOps.UnorderedWhileSpliterator.OfDouble.Dropping<>(spliterator(), true, predicate),
                 isParallel()).onClose(this::close);
     }
 
@@ -464,8 +466,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *
      * @param action a <a href="package-summary.html#NonInterference">
      *               non-interfering</a> action to perform on the elements
+     * @throws X TBD
      */
-    void forEach(DoubleConsumer action);
+    void forEach(DoubleConsumer action) throws X;
 
     /**
      * Performs an action for each element of this stream, guaranteeing that
@@ -477,9 +480,10 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *
      * @param action a <a href="package-summary.html#NonInterference">
      *               non-interfering</a> action to perform on the elements
+     * @throws X TBD
      * @see #forEach(DoubleConsumer)
      */
-    void forEachOrdered(DoubleConsumer action);
+    void forEachOrdered(DoubleConsumer action) throws X;
 
     /**
      * Returns an array containing the elements of this stream.
@@ -488,8 +492,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      * operation</a>.
      *
      * @return an array containing the elements of this stream
+     * @throws X TBD
      */
-    double[] toArray();
+    double[] toArray() throws X;
 
     /**
      * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
@@ -539,12 +544,13 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *           <a href="package-summary.html#Statelessness">stateless</a>
      *           function for combining two values
      * @return the result of the reduction
+     * @throws X TBD
      * @see #sum()
      * @see #min()
      * @see #max()
      * @see #average()
      */
-    double reduce(double identity, DoubleBinaryOperator op);
+    double reduce(double identity, DoubleBinaryOperator op) throws X;
 
     /**
      * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
@@ -579,9 +585,10 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *           <a href="package-summary.html#Statelessness">stateless</a>
      *           function for combining two values
      * @return the result of the reduction
+     * @throws X TBD
      * @see #reduce(double, DoubleBinaryOperator)
      */
-    OptionalDouble reduce(DoubleBinaryOperator op);
+    OptionalDouble reduce(DoubleBinaryOperator op) throws X;
 
     /**
      * Performs a <a href="package-summary.html#MutableReduction">mutable
@@ -622,11 +629,12 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *                    the elements from the second result container into the
      *                    first result container.
      * @return the result of the reduction
+     * @throws X TBD
      * @see Stream#collect(Supplier, BiConsumer, BiConsumer)
      */
     <R> R collect(Supplier<R> supplier,
                   ObjDoubleConsumer<R> accumulator,
-                  BiConsumer<R, R> combiner);
+                  BiConsumer<R, R> combiner) throws X;
 
     /**
      * Returns the sum of elements in this stream.
@@ -701,8 +709,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      * to yield more accurate results.
      *
      * @return the sum of elements in this stream
+     * @throws X TBD
      */
-    double sum();
+    double sum() throws X;
 
     /**
      * Returns an {@code OptionalDouble} describing the minimum element of this
@@ -721,8 +730,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *
      * @return an {@code OptionalDouble} containing the minimum element of this
      * stream, or an empty optional if the stream is empty
+     * @throws X TBD
      */
-    OptionalDouble min();
+    OptionalDouble min() throws X;
 
     /**
      * Returns an {@code OptionalDouble} describing the maximum element of this
@@ -742,8 +752,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *
      * @return an {@code OptionalDouble} containing the maximum element of this
      * stream, or an empty optional if the stream is empty
+     * @throws X TBD
      */
-    OptionalDouble max();
+    OptionalDouble max() throws X;
 
     /**
      * Returns the count of elements in this stream.  This is a special case of
@@ -774,8 +785,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      * execute the pipeline and, as a side-effect, print out the elements.
      *
      * @return the count of elements in this stream
+     * @throws X TBD
      */
-    long count();
+    long count() throws X;
 
     /**
      * Returns an {@code OptionalDouble} describing the arithmetic
@@ -797,8 +809,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *
      * @return an {@code OptionalDouble} containing the average element of this
      * stream, or an empty optional if the stream is empty
+     * @throws X TBD
      */
-    OptionalDouble average();
+    OptionalDouble average() throws X;
 
     /**
      * Returns a {@code DoubleSummaryStatistics} describing various summary data
@@ -810,8 +823,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *
      * @return a {@code DoubleSummaryStatistics} describing various summary data
      * about the elements of this stream
+     * @throws X TBD
      */
-    DoubleSummaryStatistics summaryStatistics();
+    DoubleSummaryStatistics summaryStatistics() throws X;
 
     /**
      * Returns whether any elements of this stream match the provided
@@ -831,8 +845,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *                  predicate to apply to elements of this stream
      * @return {@code true} if any elements of the stream match the provided
      * predicate, otherwise {@code false}
+     * @throws X TBD
      */
-    boolean anyMatch(DoublePredicate predicate);
+    boolean anyMatch(DoublePredicate predicate) throws X;
 
     /**
      * Returns whether all elements of this stream match the provided predicate.
@@ -854,8 +869,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *                  predicate to apply to elements of this stream
      * @return {@code true} if either all elements of the stream match the
      * provided predicate or the stream is empty, otherwise {@code false}
+     * @throws X TBD
      */
-    boolean allMatch(DoublePredicate predicate);
+    boolean allMatch(DoublePredicate predicate) throws X;
 
     /**
      * Returns whether no elements of this stream match the provided predicate.
@@ -877,8 +893,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *                  predicate to apply to elements of this stream
      * @return {@code true} if either no elements of the stream match the
      * provided predicate or the stream is empty, otherwise {@code false}
+     * @throws X TBD
      */
-    boolean noneMatch(DoublePredicate predicate);
+    boolean noneMatch(DoublePredicate predicate) throws X;
 
     /**
      * Returns an {@link OptionalDouble} describing the first element of this
@@ -890,8 +907,9 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *
      * @return an {@code OptionalDouble} describing the first element of this
      * stream, or an empty {@code OptionalDouble} if the stream is empty
+     * @throws X TBD
      */
-    OptionalDouble findFirst();
+    OptionalDouble findFirst() throws X;
 
     /**
      * Returns an {@link OptionalDouble} describing some element of the stream,
@@ -908,9 +926,10 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      *
      * @return an {@code OptionalDouble} describing some element of this stream,
      * or an empty {@code OptionalDouble} if the stream is empty
+     * @throws X TBD
      * @see #findFirst()
      */
-    OptionalDouble findAny();
+    OptionalDouble findAny() throws X;
 
     /**
      * Returns a {@code Stream} consisting of the elements of this stream,
@@ -922,19 +941,19 @@ public interface DoubleStream extends BaseStream<Double, RuntimeException, Doubl
      * @return a {@code Stream} consistent of the elements of this stream,
      * each boxed to a {@code Double}
      */
-    Stream<Double> boxed();
+    Stream<Double, X> boxed();
 
     @Override
-    DoubleStream sequential();
+    DoubleStream<X> sequential();
 
     @Override
-    DoubleStream parallel();
+    DoubleStream<X> parallel();
 
     @Override
-    PrimitiveIterator.OfDouble iterator();
+    PrimitiveIterator.OfDouble<X> iterator();
 
     @Override
-    Spliterator.OfDouble spliterator();
+    Spliterator.OfDouble<X> spliterator();
 
 
     // Static factories

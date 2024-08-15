@@ -68,7 +68,7 @@ import static java.lang.foreign.ValueLayout.JAVA_BYTE;
  * {@link MappedMemorySegmentImpl}.
  */
 public abstract sealed class AbstractMemorySegmentImpl
-        implements MemorySegment, SegmentAllocator, BiFunction<String, List<Number>, RuntimeException>
+        implements MemorySegment, SegmentAllocator, BiFunction<String, List<Number>, RuntimeException, RuntimeException>
         permits HeapMemorySegmentImpl, NativeMemorySegmentImpl {
 
     private static final ScopedMemoryAccess SCOPED_MEMORY_ACCESS = ScopedMemoryAccess.getScopedMemoryAccess();

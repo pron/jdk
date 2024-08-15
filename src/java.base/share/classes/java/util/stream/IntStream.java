@@ -66,7 +66,7 @@ import java.util.function.Supplier;
  * specification of streams, stream operations, stream pipelines, and
  * parallelism.
  *
- * @param <X> TBD
+ * @param <X> throws
  *
  * @since 1.8
  * @see Stream
@@ -87,7 +87,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      *                  should be included
      * @return the new stream
      */
-    IntStream filter(IntPredicate predicate);
+    IntStream<X> filter(IntPredicate predicate);
 
     /**
      * Returns a stream consisting of the results of applying the given
@@ -101,7 +101,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      *               function to apply to each element
      * @return the new stream
      */
-    IntStream map(IntUnaryOperator mapper);
+    IntStream<X> map(IntUnaryOperator mapper);
 
     /**
      * Returns an object-valued {@code Stream} consisting of the results of
@@ -130,7 +130,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      *               function to apply to each element
      * @return the new stream
      */
-    LongStream mapToLong(IntToLongFunction mapper);
+    LongStream<X> mapToLong(IntToLongFunction mapper);
 
     /**
      * Returns a {@code DoubleStream} consisting of the results of applying the
@@ -144,7 +144,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      *               function to apply to each element
      * @return the new stream
      */
-    DoubleStream mapToDouble(IntToDoubleFunction mapper);
+    DoubleStream<X> mapToDouble(IntToDoubleFunction mapper);
 
     /**
      * Returns a stream consisting of the results of replacing each element of
@@ -164,7 +164,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      * @return the new stream
      * @see Stream#flatMap(Function)
      */
-    IntStream flatMap(IntFunction<? extends IntStream> mapper);
+    IntStream<X> flatMap(IntFunction<? extends IntStream> mapper);
 
     /**
      * Returns a stream consisting of the results of replacing each element of
@@ -194,7 +194,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      * @see Stream#mapMulti Stream.mapMulti
      * @since 16
      */
-    default IntStream mapMulti(IntMapMultiConsumer mapper) {
+    default IntStream<X> mapMulti(IntMapMultiConsumer mapper) {
         Objects.requireNonNull(mapper);
         return flatMap(e -> {
             SpinedBuffer.OfInt buffer = new SpinedBuffer.OfInt();
@@ -258,7 +258,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      *               they are consumed from the stream
      * @return the new stream
      */
-    IntStream peek(IntConsumer action);
+    IntStream<X> peek(IntConsumer action);
 
     /**
      * Returns a stream consisting of the elements of this stream, truncated
@@ -859,7 +859,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      * @return a {@code LongStream} consisting of the elements of this stream,
      * converted to {@code long}
      */
-    LongStream asLongStream();
+    LongStream<X> asLongStream();
 
     /**
      * Returns a {@code DoubleStream} consisting of the elements of this stream,
@@ -871,7 +871,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
      * @return a {@code DoubleStream} consisting of the elements of this stream,
      * converted to {@code double}
      */
-    DoubleStream asDoubleStream();
+    DoubleStream<X> asDoubleStream();
 
     /**
      * Returns a {@code Stream} consisting of the elements of this stream,
@@ -892,7 +892,7 @@ public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>
     IntStream<X> parallel();
 
     @Override
-    PrimitiveIterator.OfInt iterator();
+    PrimitiveIterator.OfInt<X> iterator();
 
     @Override
     Spliterator.OfInt<X> spliterator();

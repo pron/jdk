@@ -52,9 +52,9 @@ import java.util.function.Supplier;
  * @param <E_IN> type of elements in the upstream source
  * @since 1.8
  */
-abstract class LongPipeline<E_IN>
-        extends AbstractPipeline<E_IN, RuntimeException, Long, RuntimeException, RuntimeException, LongStream>
-        implements LongStream {
+abstract class LongPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throws X>
+        extends AbstractPipeline<E_IN, X_IN, Long, X_OUT, X, LongStream<X_OUT>>
+        implements LongStream<X_OUT> {
 
     /**
      * Constructor for the head of a stream pipeline.
@@ -64,7 +64,7 @@ abstract class LongPipeline<E_IN>
      *        {@link StreamOpFlag}
      * @param parallel {@code true} if the pipeline is parallel
      */
-    LongPipeline(Supplier<? extends Spliterator<Long>> source,
+    LongPipeline(Supplier<? extends Spliterator<Long, ?>> source,
                  int sourceFlags, boolean parallel) {
         super(source, sourceFlags, parallel);
     }
@@ -77,7 +77,7 @@ abstract class LongPipeline<E_IN>
      *        {@link StreamOpFlag}
      * @param parallel {@code true} if the pipeline is parallel
      */
-    LongPipeline(Spliterator<Long> source,
+    LongPipeline(Spliterator<Long, ?> source,
                  int sourceFlags, boolean parallel) {
         super(source, sourceFlags, parallel);
     }
@@ -88,7 +88,7 @@ abstract class LongPipeline<E_IN>
      * @param upstream the upstream element source.
      * @param opFlags the operation flags
      */
-    LongPipeline(AbstractPipeline<?, ?, E_IN, RuntimeException, ?, ?> upstream, int opFlags) {
+    LongPipeline(AbstractPipeline<?, ?, E_IN, X_IN, ?, ?> upstream, int opFlags) {
         super(upstream, opFlags);
     }
 
@@ -114,14 +114,15 @@ abstract class LongPipeline<E_IN>
      * The implementation attempts to cast to a Spliterator.OfLong, and throws
      * an exception if this cast is not possible.
      */
-    private static Spliterator.OfLong adapt(Spliterator<Long> s) {
-        if (s instanceof Spliterator.OfLong) {
-            return (Spliterator.OfLong) s;
+    @SuppressWarnings("unchecked")
+    private static <throws X> Spliterator.OfLong<X> adapt(Spliterator<Long, X> s) {
+        if (s instanceof Spliterator.OfLong<?>) {
+            return (Spliterator.OfLong<X>) s;
         } else {
             if (Tripwire.ENABLED)
                 Tripwire.trip(AbstractPipeline.class,
-                              "using LongStream.adapt(Spliterator<Long> s)");
-            throw new UnsupportedOperationException("LongStream.adapt(Spliterator<Long> s)");
+                              "using LongStream.adapt(Spliterator<Long, X> s)");
+            throw new UnsupportedOperationException("LongStream.adapt(Spliterator<Long, X> s)");
         }
     }
 
@@ -135,7 +136,7 @@ abstract class LongPipeline<E_IN>
 
     @Override
     @SuppressWarnings("unchecked")
-    final <P_IN, XIN extends RuntimeException> Node<Long> evaluateToNode(PipelineHelper<Long> helper,
+    final <P_IN, throws XIN extends X_OUT> Node<Long> evaluateToNode(PipelineHelper<Long, X_OUT, X> helper,
                                            Spliterator<P_IN, XIN> spliterator,
                                            boolean flattenTree,
                                            IntFunction<Long[]> generator) {
@@ -143,17 +144,16 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    final <P_IN, XIN extends RuntimeException> Spliterator<Long> wrap(PipelineHelper<Long> ph,
+    final <P_IN, throws XIN extends X_OUT> Spliterator<Long, X_OUT> wrap(PipelineHelper<Long, X_OUT, X> ph,
                                         Supplier<Spliterator<P_IN, XIN>> supplier,
                                         boolean isParallel) {
-        return new StreamSpliterators.LongWrappingSpliterator<>(ph, supplier, isParallel);
+        return new StreamSpliterators.LongWrappingSpliterator<P_IN, X_OUT, X>(ph, supplier, isParallel);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    final Spliterator.OfLong lazySpliterator(Supplier<? extends Spliterator<Long>> supplier) {
-        return new StreamSpliterators.DelegatingSpliterator.OfLong((Supplier<Spliterator.OfLong>) supplier);
+    final Spliterator.OfLong<X_OUT> lazySpliterator(Supplier<? extends Spliterator<Long, X_OUT>> supplier) {
+        return new StreamSpliterators.DelegatingSpliterator.OfLong<>((Supplier<Spliterator.OfLong<X_OUT>>) supplier);
     }
 
     @Override
@@ -170,18 +170,14 @@ abstract class LongPipeline<E_IN>
         return Nodes.longBuilder(exactSizeIfKnown);
     }
 
-    private <U> Stream<U> mapToObj(LongFunction<? extends U> mapper, int opFlags) {
-        return new ReferencePipeline.StatelessOp<Long, RuntimeException, U, RuntimeException>(this, StreamShape.LONG_VALUE, opFlags) {
+    private <U> Stream<U, X_OUT> mapToObj(LongFunction<? extends U> mapper, int opFlags) {
+        return new ReferencePipeline.StatelessOp<Long, X_OUT, U, X_OUT, RuntimeException>(this, StreamShape.LONG_VALUE, opFlags) {
             @Override
             Sink<Long> opWrapSink(int flags, Sink<U> sink) {
                 return new Sink.ChainedLong<U>(sink) {
                     @Override
                     public void accept(long t) {
-                        try {
-                            downstream.accept(mapper.apply(t));
-                        } catch (Exception ex) {
-                            throw CheckedExceptions.wrap(ex);
-                        }
+                        downstream.accept(mapper.apply(t));
                     }
                 };
             }
@@ -191,19 +187,19 @@ abstract class LongPipeline<E_IN>
     // LongStream
 
     @Override
-    public final PrimitiveIterator.OfLong iterator() {
+    public final PrimitiveIterator.OfLong<X_OUT> iterator() {
         return Spliterators.iterator(spliterator());
     }
 
     @Override
-    public final Spliterator.OfLong spliterator() {
+    public final Spliterator.OfLong<X_OUT> spliterator() {
         return adapt(super.spliterator());
     }
 
     // Stateless intermediate ops from LongStream
 
     @Override
-    public final DoubleStream asDoubleStream() {
+    public final DoubleStream<X_OUT> asDoubleStream() {
         return new DoublePipeline.StatelessOp<>(this, StreamShape.LONG_VALUE, StreamOpFlag.NOT_DISTINCT) {
             @Override
             Sink<Long> opWrapSink(int flags, Sink<Double> sink) {
@@ -218,12 +214,12 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public final Stream<Long> boxed() {
+    public final Stream<Long, X_OUT> boxed() {
         return mapToObj(Long::valueOf, 0);
     }
 
     @Override
-    public final LongStream map(LongUnaryOperator mapper) {
+    public final LongStream<X_OUT> map(LongUnaryOperator mapper) {
         Objects.requireNonNull(mapper);
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -240,13 +236,13 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public final <U> Stream<U> mapToObj(LongFunction<? extends U> mapper) {
+    public final <U> Stream<U, X_OUT> mapToObj(LongFunction<? extends U> mapper) {
         Objects.requireNonNull(mapper);
         return mapToObj(mapper, StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT);
     }
 
     @Override
-    public final IntStream mapToInt(LongToIntFunction mapper) {
+    public final IntStream<X_OUT> mapToInt(LongToIntFunction mapper) {
         Objects.requireNonNull(mapper);
         return new IntPipeline.StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -263,7 +259,7 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public final DoubleStream mapToDouble(LongToDoubleFunction mapper) {
+    public final DoubleStream<X_OUT> mapToDouble(LongToDoubleFunction mapper) {
         Objects.requireNonNull(mapper);
         return new DoublePipeline.StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -280,7 +276,7 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public final LongStream flatMap(LongFunction<? extends LongStream> mapper) {
+    public final LongStream<X_OUT> flatMap(LongFunction<? extends LongStream> mapper) {
         Objects.requireNonNull(mapper);
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -297,7 +293,7 @@ abstract class LongPipeline<E_IN>
 
                     @Override public void begin(long size) { sink.begin(-1); }
                     @Override public void end() { 
-                        try { sink.end(); } catch (Exception ex) { throw new RuntimeException(ex); } // RON TODO
+                        sink.end();
                     }
 
                     @Override
@@ -333,7 +329,7 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public final LongStream mapMulti(LongMapMultiConsumer mapper) {
+    public final LongStream<X_OUT> mapMulti(LongMapMultiConsumer mapper) {
         Objects.requireNonNull(mapper);
         return new LongPipeline.StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -357,7 +353,7 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public LongStream unordered() {
+    public LongStream<X_OUT> unordered() {
         if (!isOrdered())
             return this;
         return new StatelessOp<>(this, StreamShape.LONG_VALUE, StreamOpFlag.NOT_ORDERED) {
@@ -369,7 +365,7 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public final LongStream filter(LongPredicate predicate) {
+    public final LongStream<X_OUT> filter(LongPredicate predicate) {
         Objects.requireNonNull(predicate);
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 StreamOpFlag.NOT_SIZED) {
@@ -392,7 +388,7 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public final LongStream peek(LongConsumer action) {
+    public final LongStream<X_OUT> peek(LongConsumer action) {
         Objects.requireNonNull(action);
         return new StatelessOp<>(this, StreamShape.LONG_VALUE,
                 0) {
@@ -412,14 +408,14 @@ abstract class LongPipeline<E_IN>
     // Stateful intermediate ops from LongStream
 
     @Override
-    public final LongStream limit(long maxSize) {
+    public final LongStream<X_OUT> limit(long maxSize) {
         if (maxSize < 0)
             throw new IllegalArgumentException(Long.toString(maxSize));
         return SliceOps.makeLong(this, 0, maxSize);
     }
 
     @Override
-    public final LongStream skip(long n) {
+    public final LongStream<X_OUT> skip(long n) {
         if (n < 0)
             throw new IllegalArgumentException(Long.toString(n));
         if (n == 0)
@@ -429,22 +425,22 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public final LongStream takeWhile(LongPredicate predicate) {
+    public final LongStream<X_OUT> takeWhile(LongPredicate predicate) {
         return WhileOps.makeTakeWhileLong(this, predicate);
     }
 
     @Override
-    public final LongStream dropWhile(LongPredicate predicate) {
+    public final LongStream<X_OUT> dropWhile(LongPredicate predicate) {
         return WhileOps.makeDropWhileLong(this, predicate);
     }
 
     @Override
-    public final LongStream sorted() {
+    public final LongStream<X_OUT> sorted() {
         return SortedOps.makeLong(this);
     }
 
     @Override
-    public final LongStream distinct() {
+    public final LongStream<X_OUT> distinct() {
         // While functional and quick to implement, this approach is not very efficient.
         // An efficient version requires a long-specific map/set implementation.
         return boxed().distinct().mapToLong(i -> i);
@@ -453,33 +449,33 @@ abstract class LongPipeline<E_IN>
     // Terminal ops from LongStream
 
     @Override
-    public void forEach(LongConsumer action) {
+    public void forEach(LongConsumer action) throws X_OUT {
         evaluate(ForEachOps.makeLong(action, false));
     }
 
     @Override
-    public void forEachOrdered(LongConsumer action) {
+    public void forEachOrdered(LongConsumer action) throws X_OUT {
         evaluate(ForEachOps.makeLong(action, true));
     }
 
     @Override
-    public final long sum() {
+    public final long sum() throws X_OUT {
         // use better algorithm to compensate for intermediate overflow?
         return reduce(0, Long::sum);
     }
 
     @Override
-    public final OptionalLong min() {
+    public final OptionalLong min() throws X_OUT {
         return reduce(Math::min);
     }
 
     @Override
-    public final OptionalLong max() {
+    public final OptionalLong max() throws X_OUT {
         return reduce(Math::max);
     }
 
     @Override
-    public final OptionalDouble average() {
+    public final OptionalDouble average() throws X_OUT {
         long[] avg = collect(() -> new long[2],
                              (ll, i) -> {
                                  ll[0]++;
@@ -495,30 +491,30 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public final long count() {
+    public final long count() throws X_OUT {
         return evaluate(ReduceOps.makeLongCounting());
     }
 
     @Override
-    public final LongSummaryStatistics summaryStatistics() {
+    public final LongSummaryStatistics summaryStatistics() throws X_OUT {
         return collect(LongSummaryStatistics::new, LongSummaryStatistics::accept,
                        LongSummaryStatistics::combine);
     }
 
     @Override
-    public final long reduce(long identity, LongBinaryOperator op) {
+    public final long reduce(long identity, LongBinaryOperator op) throws X_OUT {
         return evaluate(ReduceOps.makeLong(identity, op));
     }
 
     @Override
-    public final OptionalLong reduce(LongBinaryOperator op) {
+    public final OptionalLong reduce(LongBinaryOperator op) throws X_OUT {
         return evaluate(ReduceOps.makeLong(op));
     }
 
     @Override
     public final <R> R collect(Supplier<R> supplier,
                                ObjLongConsumer<R> accumulator,
-                               BiConsumer<R, R> combiner) {
+                               BiConsumer<R, R> combiner) throws X_OUT {
         Objects.requireNonNull(combiner);
         BinaryOperator<R> operator = (left, right) -> {
             combiner.accept(left, right);
@@ -528,32 +524,32 @@ abstract class LongPipeline<E_IN>
     }
 
     @Override
-    public final boolean anyMatch(LongPredicate predicate) {
+    public final boolean anyMatch(LongPredicate predicate) throws X_OUT {
         return evaluate(MatchOps.makeLong(predicate, MatchOps.MatchKind.ANY));
     }
 
     @Override
-    public final boolean allMatch(LongPredicate predicate) {
+    public final boolean allMatch(LongPredicate predicate) throws X_OUT {
         return evaluate(MatchOps.makeLong(predicate, MatchOps.MatchKind.ALL));
     }
 
     @Override
-    public final boolean noneMatch(LongPredicate predicate) {
+    public final boolean noneMatch(LongPredicate predicate) throws X_OUT {
         return evaluate(MatchOps.makeLong(predicate, MatchOps.MatchKind.NONE));
     }
 
     @Override
-    public final OptionalLong findFirst() {
+    public final OptionalLong findFirst() throws X_OUT {
         return evaluate(FindOps.makeLong(true));
     }
 
     @Override
-    public final OptionalLong findAny() {
+    public final OptionalLong findAny() throws X_OUT {
         return evaluate(FindOps.makeLong(false));
     }
 
     @Override
-    public final long[] toArray() {
+    public final long[] toArray() throws X_OUT {
         return Nodes.flattenLong((Node.OfLong) evaluateToArrayNode(Long[]::new))
                 .asPrimitiveArray();
     }
@@ -567,7 +563,7 @@ abstract class LongPipeline<E_IN>
      * @param <E_IN> type of elements in the upstream source
      * @since 1.8
      */
-    static class Head<E_IN> extends LongPipeline<E_IN> {
+    static class Head<E_IN, throws X_OUT> extends LongPipeline<E_IN, X_OUT, X_OUT> {
         /**
          * Constructor for the source stage of a LongStream.
          *
@@ -577,7 +573,7 @@ abstract class LongPipeline<E_IN>
          *                    in {@link StreamOpFlag}
          * @param parallel {@code true} if the pipeline is parallel
          */
-        Head(Supplier<? extends Spliterator<Long>> source,
+        Head(Supplier<? extends Spliterator<Long, X_OUT>> source,
              int sourceFlags, boolean parallel) {
             super(source, sourceFlags, parallel);
         }
@@ -590,7 +586,7 @@ abstract class LongPipeline<E_IN>
          *                    in {@link StreamOpFlag}
          * @param parallel {@code true} if the pipeline is parallel
          */
-        Head(Spliterator<Long> source,
+        Head(Spliterator<Long, X_OUT> source,
              int sourceFlags, boolean parallel) {
             super(source, sourceFlags, parallel);
         }
@@ -608,7 +604,7 @@ abstract class LongPipeline<E_IN>
         // Optimized sequential terminal operations for the head of the pipeline
 
         @Override
-        public void forEach(LongConsumer action) {
+        public void forEach(LongConsumer action) throws X_OUT {
             if (!isParallel()) {
                 adapt(sourceStageSpliterator()).forEachRemaining(action);
             } else {
@@ -617,7 +613,7 @@ abstract class LongPipeline<E_IN>
         }
 
         @Override
-        public void forEachOrdered(LongConsumer action) {
+        public void forEachOrdered(LongConsumer action) throws X_OUT {
             if (!isParallel()) {
                 adapt(sourceStageSpliterator()).forEachRemaining(action);
             } else {
@@ -631,7 +627,8 @@ abstract class LongPipeline<E_IN>
      * @param <E_IN> type of elements in the upstream source
      * @since 1.8
      */
-    abstract static class StatelessOp<E_IN> extends LongPipeline<E_IN> {
+    abstract static class StatelessOp<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throws X>
+        extends LongPipeline<E_IN, X_IN, X_OUT, X> {
         /**
          * Construct a new LongStream by appending a stateless intermediate
          * operation to an existing stream.
@@ -639,7 +636,7 @@ abstract class LongPipeline<E_IN>
          * @param inputShape The stream shape for the upstream pipeline stage
          * @param opFlags Operation flags for the new stage
          */
-        StatelessOp(AbstractPipeline<?, ?, E_IN, RuntimeException, ?, ?> upstream,
+        StatelessOp(AbstractPipeline<?, ?, E_IN, X_IN, ?, ?> upstream,
                     StreamShape inputShape,
                     int opFlags) {
             super(upstream, opFlags);
@@ -658,7 +655,8 @@ abstract class LongPipeline<E_IN>
      * @param <E_IN> type of elements in the upstream source
      * @since 1.8
      */
-    abstract static class StatefulOp<E_IN> extends LongPipeline<E_IN> {
+    abstract static class StatefulOp<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throws X>
+        extends LongPipeline<E_IN, X_IN, X_OUT, X> {
         /**
          * Construct a new LongStream by appending a stateful intermediate
          * operation to an existing stream.
@@ -666,7 +664,7 @@ abstract class LongPipeline<E_IN>
          * @param inputShape The stream shape for the upstream pipeline stage
          * @param opFlags Operation flags for the new stage
          */
-        StatefulOp(AbstractPipeline<?, ?, E_IN, RuntimeException, ?, ?> upstream,
+        StatefulOp(AbstractPipeline<?, ?, E_IN, X_IN, ?, ?> upstream,
                    StreamShape inputShape,
                    int opFlags) {
             super(upstream, opFlags);
@@ -679,8 +677,8 @@ abstract class LongPipeline<E_IN>
         }
 
         @Override
-        abstract <P_IN, XX extends RuntimeException> Node<Long> opEvaluateParallel(PipelineHelper<Long, XX> helper,
-                                                      Spliterator<P_IN, ? extends XX> spliterator,
-                                                      IntFunction<Long[]> generator);
+        abstract <P_IN, throws XX extends X_IN> Node<Long> opEvaluateParallel(PipelineHelper<Long, XX, X> helper,
+                                                      Spliterator<P_IN, XX> spliterator,
+                                                      IntFunction<Long[]> generator) throws X_OUT;
     }
 }

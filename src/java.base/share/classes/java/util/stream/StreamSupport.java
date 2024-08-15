@@ -65,7 +65,7 @@ public final class StreamSupport {
      *        stream.
      * @return a new sequential or parallel {@code Stream}
      */
-    public static <T, X extends Exception> Stream<T, X> stream(Spliterator<T, X> spliterator, boolean parallel) {
+    public static <T, throws X> Stream<T, X> stream(Spliterator<T, X> spliterator, boolean parallel) {
         Objects.requireNonNull(spliterator);
         return new ReferencePipeline.Head<>(spliterator,
                                             StreamOpFlag.fromCharacteristics(spliterator),
@@ -94,6 +94,7 @@ public final class StreamSupport {
      * more details.
      *
      * @param <T> the type of stream elements
+     * @param <X> throws
      * @param supplier a {@code Supplier} of a {@code Spliterator}
      * @param characteristics Spliterator characteristics of the supplied
      *        {@code Spliterator}.  The characteristics must be equal to
@@ -105,7 +106,7 @@ public final class StreamSupport {
      * @return a new sequential or parallel {@code Stream}
      * @see #stream(java.util.Spliterator, boolean)
      */
-    public static <T> Stream<T> stream(Supplier<? extends Spliterator<T>> supplier,
+    public static <T, throws X> Stream<T, X> stream(Supplier<? extends Spliterator<T, X>> supplier,
                                        int characteristics,
                                        boolean parallel) {
         Objects.requireNonNull(supplier);
@@ -134,9 +135,9 @@ public final class StreamSupport {
      *        stream; if {@code false} the returned stream is a sequential
      *        stream.
      * @return a new sequential or parallel {@code IntStream}
-     * @param <X> TBD
+     * @param <X> throws
      */
-    public static <X extends Exception> IntStream<X> intStream(Spliterator.OfInt<X> spliterator, boolean parallel) {
+    public static <throws X> IntStream<X> intStream(Spliterator.OfInt<X> spliterator, boolean parallel) {
         return new IntPipeline.Head<>(spliterator,
                                       StreamOpFlag.fromCharacteristics(spliterator),
                                       parallel);
@@ -172,9 +173,10 @@ public final class StreamSupport {
      *        stream; if {@code false} the returned stream is a sequential
      *        stream.
      * @return a new sequential or parallel {@code IntStream}
+     * @param <X> throws
      * see #intStream(java.util.Spliterator.OfInt, boolean) TODO RON
      */
-    public static IntStream intStream(Supplier<? extends Spliterator.OfInt> supplier,
+    public static <throws X> IntStream<X> intStream(Supplier<? extends Spliterator.OfInt<X>> supplier,
                                       int characteristics,
                                       boolean parallel) {
         return new IntPipeline.Head<>(supplier,
@@ -202,8 +204,9 @@ public final class StreamSupport {
      *        stream; if {@code false} the returned stream is a sequential
      *        stream.
      * @return a new sequential or parallel {@code LongStream}
+     * @param <X> throws
      */
-    public static LongStream longStream(Spliterator.OfLong spliterator,
+    public static <throws X> LongStream<X> longStream(Spliterator.OfLong<X> spliterator,
                                         boolean parallel) {
         return new LongPipeline.Head<>(spliterator,
                                        StreamOpFlag.fromCharacteristics(spliterator),
@@ -240,9 +243,10 @@ public final class StreamSupport {
      *        stream; if {@code false} the returned stream is a sequential
      *        stream.
      * @return a new sequential or parallel {@code LongStream}
+     * @param <X> throws
      * @see #longStream(java.util.Spliterator.OfLong, boolean)
      */
-    public static LongStream longStream(Supplier<? extends Spliterator.OfLong> supplier,
+    public static <throws X> LongStream<X> longStream(Supplier<? extends Spliterator.OfLong<X>> supplier,
                                         int characteristics,
                                         boolean parallel) {
         return new LongPipeline.Head<>(supplier,
@@ -270,8 +274,9 @@ public final class StreamSupport {
      *        stream; if {@code false} the returned stream is a sequential
      *        stream.
      * @return a new sequential or parallel {@code DoubleStream}
+     * @param <X> throws
      */
-    public static DoubleStream doubleStream(Spliterator.OfDouble spliterator,
+    public static <throws X> DoubleStream<X> doubleStream(Spliterator.OfDouble<X> spliterator,
                                             boolean parallel) {
         return new DoublePipeline.Head<>(spliterator,
                                          StreamOpFlag.fromCharacteristics(spliterator),
@@ -308,9 +313,10 @@ public final class StreamSupport {
      *        stream; if {@code false} the returned stream is a sequential
      *        stream.
      * @return a new sequential or parallel {@code DoubleStream}
+     * @param <X> throws
      * @see #doubleStream(java.util.Spliterator.OfDouble, boolean)
      */
-    public static DoubleStream doubleStream(Supplier<? extends Spliterator.OfDouble> supplier,
+    public static <throws X> DoubleStream<X> doubleStream(Supplier<? extends Spliterator.OfDouble<X>> supplier,
                                             int characteristics,
                                             boolean parallel) {
         return new DoublePipeline.Head<>(supplier,

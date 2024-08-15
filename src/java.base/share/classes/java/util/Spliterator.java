@@ -729,19 +729,20 @@ public interface Spliterator<T, throws X> {
 
     /**
      * A Spliterator specialized for {@code long} values.
+     * @param <X> TBD
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public interface OfLong extends OfPrimitive<Long, RuntimeException, LongConsumer, OfLong> {
+    public interface OfLong<throws X> extends OfPrimitive<Long, X, LongConsumer, OfLong<X>> {
 
         @Override
-        OfLong trySplit();
+        OfLong<X> trySplit();
 
         @Override
-        boolean tryAdvance(LongConsumer action);
+        boolean tryAdvance(LongConsumer action) throws X;
 
         @Override
-        default void forEachRemaining(LongConsumer action) {
+        default void forEachRemaining(LongConsumer action) throws X {
             do { } while (tryAdvance(action));
         }
 
@@ -756,7 +757,7 @@ public interface Spliterator<T, throws X> {
          * {@link #tryAdvance(java.util.function.LongConsumer)}.
          */
         @Override
-        default boolean tryAdvance(Consumer<? super Long> action) {
+        default boolean tryAdvance(Consumer<? super Long> action) throws X {
             if (action instanceof LongConsumer) {
                 return tryAdvance((LongConsumer) action);
             }
@@ -779,7 +780,7 @@ public interface Spliterator<T, throws X> {
          * {@link #forEachRemaining(java.util.function.LongConsumer)}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Long> action) {
+        default void forEachRemaining(Consumer<? super Long> action) throws X {
             if (action instanceof LongConsumer) {
                 forEachRemaining((LongConsumer) action);
             }
@@ -794,19 +795,20 @@ public interface Spliterator<T, throws X> {
 
     /**
      * A Spliterator specialized for {@code double} values.
+     * @param <X> TBD
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public interface OfDouble extends OfPrimitive<Double, RuntimeException, DoubleConsumer, OfDouble> {
+    public interface OfDouble<throws X> extends OfPrimitive<Double, X, DoubleConsumer, OfDouble<X>> {
 
         @Override
-        OfDouble trySplit();
+        OfDouble<X> trySplit();
 
         @Override
-        boolean tryAdvance(DoubleConsumer action);
+        boolean tryAdvance(DoubleConsumer action) throws X;
 
         @Override
-        default void forEachRemaining(DoubleConsumer action) {
+        default void forEachRemaining(DoubleConsumer action) throws X {
             do { } while (tryAdvance(action));
         }
 
@@ -821,7 +823,7 @@ public interface Spliterator<T, throws X> {
          * {@link #tryAdvance(java.util.function.DoubleConsumer)}.
          */
         @Override
-        default boolean tryAdvance(Consumer<? super Double> action) {
+        default boolean tryAdvance(Consumer<? super Double> action) throws X {
             if (action instanceof DoubleConsumer) {
                 return tryAdvance((DoubleConsumer) action);
             }
@@ -845,7 +847,7 @@ public interface Spliterator<T, throws X> {
          * {@link #forEachRemaining(java.util.function.DoubleConsumer)}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Double> action) {
+        default void forEachRemaining(Consumer<? super Double> action) throws X {
             if (action instanceof DoubleConsumer) {
                 forEachRemaining((DoubleConsumer) action);
             }

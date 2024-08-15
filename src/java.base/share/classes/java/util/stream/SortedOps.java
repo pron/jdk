@@ -80,20 +80,22 @@ final class SortedOps {
      * Appends a "sorted" operation to the provided stream.
      *
      * @param <T> the type of both input and output elements
+     * @param <X> TBD
      * @param upstream a reference stream with element type T
      */
-    static <T> LongStream makeLong(AbstractPipeline<?, ?, Long, RuntimeException, ?, ?> upstream) {
-        return new OfLong(upstream);
+    static <T, throws X> LongStream<X> makeLong(AbstractPipeline<?, ?, Long, X, ?, ?> upstream) {
+        return new OfLong<>(upstream);
     }
 
     /**
      * Appends a "sorted" operation to the provided stream.
      *
      * @param <T> the type of both input and output elements
+     * @param <X> TBD
      * @param upstream a reference stream with element type T
      */
-    static <T> DoubleStream makeDouble(AbstractPipeline<?, ?, Double, RuntimeException, ?, ?> upstream) {
-        return new OfDouble(upstream);
+    static <T, throws X> DoubleStream<X> makeDouble(AbstractPipeline<?, ?, Double, X, ?, ?> upstream) {
+        return new OfDouble<>(upstream);
     }
 
     /**
@@ -206,8 +208,8 @@ final class SortedOps {
     /**
      * Specialized subtype for sorting long streams.
      */
-    private static final class OfLong extends LongPipeline.StatefulOp<Long> {
-        OfLong(AbstractPipeline<?, ?, Long, RuntimeException, ?, ?> upstream) {
+    private static final class OfLong<throws X> extends LongPipeline.StatefulOp<Long, X, X, RuntimeException> {
+        OfLong(AbstractPipeline<?, ?, Long, X, ?, ?> upstream) {
             super(upstream, StreamShape.LONG_VALUE,
                   StreamOpFlag.IS_ORDERED | StreamOpFlag.IS_SORTED);
         }
@@ -225,9 +227,9 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, throws X_IN extends RuntimeException> Node<Long> opEvaluateParallel(PipelineHelper<Long, X_IN> helper,
+        public <P_IN, throws X_IN extends X> Node<Long> opEvaluateParallel(PipelineHelper<Long, X_IN> helper,
                                                     Spliterator<P_IN, X_IN> spliterator,
-                                                    IntFunction<Long[]> generator) {
+                                                    IntFunction<Long[]> generator) throws X_IN {
             if (StreamOpFlag.SORTED.isKnown(helper.getStreamAndOpFlags())) {
                 return helper.evaluate(spliterator, false, generator);
             }
@@ -245,8 +247,8 @@ final class SortedOps {
     /**
      * Specialized subtype for sorting double streams.
      */
-    private static final class OfDouble extends DoublePipeline.StatefulOp<Double> {
-        OfDouble(AbstractPipeline<?, ?, Double, RuntimeException, ?, ?> upstream) {
+    private static final class OfDouble<throws X> extends DoublePipeline.StatefulOp<Double, X, X, RuntimeException> {
+        OfDouble(AbstractPipeline<?, ?, Double, X, ?, ?> upstream) {
             super(upstream, StreamShape.DOUBLE_VALUE,
                   StreamOpFlag.IS_ORDERED | StreamOpFlag.IS_SORTED);
         }
@@ -264,9 +266,9 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, throws X_IN extends RuntimeException> Node<Double> opEvaluateParallel(PipelineHelper<Double, X_IN> helper,
+        public <P_IN, throws X_IN extends X> Node<Double> opEvaluateParallel(PipelineHelper<Double, X_IN> helper,
                                                       Spliterator<P_IN, X_IN> spliterator,
-                                                      IntFunction<Double[]> generator) {
+                                                      IntFunction<Double[]> generator) throws X_IN {
             if (StreamOpFlag.SORTED.isKnown(helper.getStreamAndOpFlags())) {
                 return helper.evaluate(spliterator, false, generator);
             }

@@ -388,15 +388,15 @@ final class Nodes {
      *                    describing an array before returning
      * @return a {@link Node.OfLong} describing the output elements
      */
-    public static <P_IN> Node.OfLong collectLong(PipelineHelper<Long> helper,
-                                                 Spliterator<P_IN> spliterator,
+    public static <P_IN> Node.OfLong collectLong(PipelineHelper<Long, ?, ?> helper,
+                                                 Spliterator<P_IN, ?> spliterator,
                                                  boolean flattenTree) {
         long size = helper.exactOutputSizeIfKnown(spliterator);
         if (size >= 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
             if (size >= MAX_ARRAY_SIZE)
                 throw new IllegalArgumentException(BAD_SIZE);
             long[] array = new long[(int) size];
-            new SizedCollectorTask.OfLong<>(spliterator, helper, array).invoke();
+            new SizedCollectorTask.OfLong<P_IN>(spliterator, helper, array).invoke();
             return node(array);
         }
         else {
@@ -426,15 +426,15 @@ final class Nodes {
      *                    describing an array before returning
      * @return a {@link Node.OfDouble} describing the output elements
      */
-    public static <P_IN> Node.OfDouble collectDouble(PipelineHelper<Double> helper,
-                                                     Spliterator<P_IN> spliterator,
+    public static <P_IN> Node.OfDouble collectDouble(PipelineHelper<Double, ?, ?> helper,
+                                                     Spliterator<P_IN, ?> spliterator,
                                                      boolean flattenTree) {
         long size = helper.exactOutputSizeIfKnown(spliterator);
         if (size >= 0 && spliterator.hasCharacteristics(Spliterator.SUBSIZED)) {
             if (size >= MAX_ARRAY_SIZE)
                 throw new IllegalArgumentException(BAD_SIZE);
             double[] array = new double[(int) size];
-            new SizedCollectorTask.OfDouble<>(spliterator, helper, array).invoke();
+            new SizedCollectorTask.OfDouble<P_IN>(spliterator, helper, array).invoke();
             return node(array);
         }
         else {
@@ -1976,7 +1976,7 @@ final class Nodes {
                 implements Sink.OfLong {
             private final long[] array;
 
-            OfLong(Spliterator<P_IN, ?> spliterator, PipelineHelper<Long> helper, long[] array) {
+            OfLong(Spliterator<P_IN, ?> spliterator, PipelineHelper<Long, ?, ?> helper, long[] array) {
                 super(spliterator, helper, array.length);
                 this.array = array;
             }
@@ -2008,7 +2008,7 @@ final class Nodes {
                 implements Sink.OfDouble {
             private final double[] array;
 
-            OfDouble(Spliterator<P_IN, ?> spliterator, PipelineHelper<Double> helper, double[] array) {
+            OfDouble(Spliterator<P_IN, ?> spliterator, PipelineHelper<Double, ?, ?> helper, double[] array) {
                 super(spliterator, helper, array.length);
                 this.array = array;
             }
@@ -2225,7 +2225,7 @@ final class Nodes {
         @SuppressWarnings("serial")
         private static final class OfLong<P_IN>
                 extends CollectorTask<P_IN, Long, Node.OfLong, Node.Builder.OfLong> {
-            OfLong(PipelineHelper<Long> helper, Spliterator<P_IN, ?> spliterator) {
+            OfLong(PipelineHelper<Long, ?, ?> helper, Spliterator<P_IN, ?> spliterator) {
                 super(helper, spliterator, Nodes::longBuilder, ConcNode.OfLong::new);
             }
         }
@@ -2233,7 +2233,7 @@ final class Nodes {
         @SuppressWarnings("serial")
         private static final class OfDouble<P_IN>
                 extends CollectorTask<P_IN, Double, Node.OfDouble, Node.Builder.OfDouble> {
-            OfDouble(PipelineHelper<Double> helper, Spliterator<P_IN, ?> spliterator) {
+            OfDouble(PipelineHelper<Double, ?, ?> helper, Spliterator<P_IN, ?> spliterator) {
                 super(helper, spliterator, Nodes::doubleBuilder, ConcNode.OfDouble::new);
             }
         }

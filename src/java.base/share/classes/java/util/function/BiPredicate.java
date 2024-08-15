@@ -35,12 +35,13 @@ import java.util.Objects;
  *
  * @param <T> the type of the first argument to the predicate
  * @param <U> the type of the second argument the predicate
+ * @param <X> throws
  *
  * @see Predicate
  * @since 1.8
  */
 @FunctionalInterface
-public interface BiPredicate<T, U> {
+public interface BiPredicate<T, U, throws X> {
 
     /**
      * Evaluates this predicate on the given arguments.
@@ -49,8 +50,9 @@ public interface BiPredicate<T, U> {
      * @param u the second input argument
      * @return {@code true} if the input arguments match the predicate,
      * otherwise {@code false}
+     * @throws X TBD
      */
-    boolean test(T t, U u);
+    boolean test(T t, U u) throws X;
 
     /**
      * Returns a composed predicate that represents a short-circuiting logical
@@ -67,8 +69,10 @@ public interface BiPredicate<T, U> {
      * @return a composed predicate that represents the short-circuiting logical
      * AND of this predicate and the {@code other} predicate
      * @throws NullPointerException if other is null
+     *
+     * @param <X1> throws
      */
-    default BiPredicate<T, U> and(BiPredicate<? super T, ? super U> other) {
+    default <throws X1> BiPredicate<T, U, X|X1> and(BiPredicate<? super T, ? super U, X1> other) {
         Objects.requireNonNull(other);
         return (T t, U u) -> test(t, u) && other.test(t, u);
     }
@@ -80,7 +84,7 @@ public interface BiPredicate<T, U> {
      * @return a predicate that represents the logical negation of this
      * predicate
      */
-    default BiPredicate<T, U> negate() {
+    default BiPredicate<T, U, X> negate() {
         return (T t, U u) -> !test(t, u);
     }
 
@@ -99,8 +103,10 @@ public interface BiPredicate<T, U> {
      * @return a composed predicate that represents the short-circuiting logical
      * OR of this predicate and the {@code other} predicate
      * @throws NullPointerException if other is null
+     *
+     * @param <X1> throws
      */
-    default BiPredicate<T, U> or(BiPredicate<? super T, ? super U> other) {
+    default <throws X1> BiPredicate<T, U, X|X1> or(BiPredicate<? super T, ? super U, X1> other) {
         Objects.requireNonNull(other);
         return (T t, U u) -> test(t, u) || other.test(t, u);
     }

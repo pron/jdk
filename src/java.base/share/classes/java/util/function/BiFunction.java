@@ -36,12 +36,13 @@ import java.util.Objects;
  * @param <T> the type of the first argument to the function
  * @param <U> the type of the second argument to the function
  * @param <R> the type of the result of the function
+ * @param <X> throws
  *
  * @see Function
  * @since 1.8
  */
 @FunctionalInterface
-public interface BiFunction<T, U, R> {
+public interface BiFunction<T, U, R, throws X> {
 
     /**
      * Applies this function to the given arguments.
@@ -49,8 +50,9 @@ public interface BiFunction<T, U, R> {
      * @param t the first function argument
      * @param u the second function argument
      * @return the function result
+     * @throws X TBD
      */
-    R apply(T t, U u);
+    R apply(T t, U u) throws X;
 
     /**
      * Returns a composed function that first applies this function to
@@ -60,12 +62,13 @@ public interface BiFunction<T, U, R> {
      *
      * @param <V> the type of output of the {@code after} function, and of the
      *           composed function
+     * @param <X1> throws
      * @param after the function to apply after this function is applied
      * @return a composed function that first applies this function and then
      * applies the {@code after} function
      * @throws NullPointerException if after is null
      */
-    default <V> BiFunction<T, U, V> andThen(Function<? super R, ? extends V> after) {
+    default <V, throws X1> BiFunction<T, U, V, X|X1> andThen(Function<? super R, ? extends V, X1> after) {
         Objects.requireNonNull(after);
         return (T t, U u) -> after.apply(apply(t, u));
     }

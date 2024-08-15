@@ -37,13 +37,14 @@ import java.util.Comparator;
  * whose functional method is {@link #apply(Object, Object)}.
  *
  * @param <T> the type of the operands and result of the operator
+ * @param <X> throws
  *
  * @see BiFunction
  * @see UnaryOperator
  * @since 1.8
  */
 @FunctionalInterface
-public interface BinaryOperator<T> extends BiFunction<T,T,T> {
+public interface BinaryOperator<T, throws X> extends BiFunction<T,T,T, X> {
     /**
      * Returns a {@link BinaryOperator} which returns the lesser of two elements
      * according to the specified {@code Comparator}.

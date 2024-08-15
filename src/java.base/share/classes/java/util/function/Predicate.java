@@ -68,7 +68,7 @@ public interface Predicate<T, throws X> {
      *
      * @param <X1> throws
      */
-    default <X1 extends Exception> Predicate<T, ? extends X|X1> and(Predicate<? super T, ? extends X1> other) {
+    default <throws X1> Predicate<T, ? extends X|X1> and(Predicate<? super T, X1> other) {
         Objects.requireNonNull(other);
         return (t) -> test(t) && other.test(t);
     }
@@ -102,7 +102,7 @@ public interface Predicate<T, throws X> {
      *
      * @param <X1> throws
      */
-    default <X1 extends Exception> Predicate<T, X|X1> or(Predicate<? super T, X1> other) {
+    default <throws X1> Predicate<T, X|X1> or(Predicate<? super T, X1> other) {
         Objects.requireNonNull(other);
         return (t) -> test(t) || other.test(t);
     }

@@ -294,7 +294,7 @@ class StreamSpliterators {
         }
 
         @Override
-        void initPartialTraversalState() throws X_OUT {
+        void initPartialTraversalState() {
             SpinedBuffer<P_OUT> b = new SpinedBuffer<>();
             buffer = b;
             bufferSink = ph.wrapSink(b::accept);
@@ -351,7 +351,7 @@ class StreamSpliterators {
         }
 
         @Override
-        void initPartialTraversalState() throws X_OUT {
+        void initPartialTraversalState() {
             SpinedBuffer.OfInt b = new SpinedBuffer.OfInt();
             buffer = b;
             bufferSink = ph.wrapSink((Sink.OfInt) b::accept);
@@ -391,24 +391,24 @@ class StreamSpliterators {
         }
     }
 
-    static final class LongWrappingSpliterator<P_IN>
-            extends AbstractWrappingSpliterator<P_IN, Long, RuntimeException, RuntimeException, SpinedBuffer.OfLong>
-            implements Spliterator.OfLong {
+    static final class LongWrappingSpliterator<P_IN, throws X_OUT, throws X extends X_OUT>
+            extends AbstractWrappingSpliterator<P_IN, Long, X_OUT, X, SpinedBuffer.OfLong>
+            implements Spliterator.OfLong<X_OUT> {
 
-        LongWrappingSpliterator(PipelineHelper<Long> ph,
-                                Supplier<? extends Spliterator<P_IN>> supplier,
+        LongWrappingSpliterator(PipelineHelper<Long, X_OUT, X> ph,
+                                Supplier<? extends Spliterator<P_IN, X_OUT>> supplier,
                                 boolean parallel) {
             super(ph, supplier, parallel);
         }
 
-        LongWrappingSpliterator(PipelineHelper<Long> ph,
-                                Spliterator<P_IN> spliterator,
+        LongWrappingSpliterator(PipelineHelper<Long, X_OUT, X> ph,
+                                Spliterator<P_IN, X_OUT> spliterator,
                                 boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        AbstractWrappingSpliterator<P_IN, Long, RuntimeException, ?, ?> wrap(Spliterator<P_IN> s) {
+        AbstractWrappingSpliterator<P_IN, Long, X_OUT, X, ?> wrap(Spliterator<P_IN, X_OUT> s) {
             return new LongWrappingSpliterator<>(ph, s, isParallel);
         }
 
@@ -417,16 +417,20 @@ class StreamSpliterators {
             SpinedBuffer.OfLong b = new SpinedBuffer.OfLong();
             buffer = b;
             bufferSink = ph.wrapSink((Sink.OfLong) b::accept);
-            pusher = () -> spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+            pusher = () -> {
+                try {
+                    return spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+                } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
+            };
         }
 
         @Override
-        public Spliterator.OfLong trySplit() {
-            return (Spliterator.OfLong) super.trySplit();
+        public Spliterator.OfLong<X_OUT> trySplit() {
+            return (Spliterator.OfLong<X_OUT>) super.trySplit();
         }
 
         @Override
-        public boolean tryAdvance(LongConsumer consumer) {
+        public boolean tryAdvance(LongConsumer consumer) throws X_OUT {
             Objects.requireNonNull(consumer);
             boolean hasNext = doAdvance();
             if (hasNext)
@@ -435,7 +439,7 @@ class StreamSpliterators {
         }
 
         @Override
-        public void forEachRemaining(LongConsumer consumer) {
+        public void forEachRemaining(LongConsumer consumer) throws X_OUT {
             if (buffer == null && !finished) {
                 Objects.requireNonNull(consumer);
                 init();
@@ -449,24 +453,24 @@ class StreamSpliterators {
         }
     }
 
-    static final class DoubleWrappingSpliterator<P_IN>
-            extends AbstractWrappingSpliterator<P_IN, Double, RuntimeException, RuntimeException, SpinedBuffer.OfDouble>
-            implements Spliterator.OfDouble {
+    static final class DoubleWrappingSpliterator<P_IN, throws X_OUT, throws X extends X_OUT>
+            extends AbstractWrappingSpliterator<P_IN, Double, X_OUT, X, SpinedBuffer.OfDouble>
+            implements Spliterator.OfDouble<X_OUT> {
 
-        DoubleWrappingSpliterator(PipelineHelper<Double> ph,
-                                  Supplier<? extends Spliterator<P_IN>> supplier,
+        DoubleWrappingSpliterator(PipelineHelper<Double, X_OUT, X> ph,
+                                  Supplier<? extends Spliterator<P_IN, X_OUT>> supplier,
                                   boolean parallel) {
             super(ph, supplier, parallel);
         }
 
-        DoubleWrappingSpliterator(PipelineHelper<Double> ph,
-                                  Spliterator<P_IN> spliterator,
+        DoubleWrappingSpliterator(PipelineHelper<Double, X_OUT, X> ph,
+                                  Spliterator<P_IN, X_OUT> spliterator,
                                   boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        AbstractWrappingSpliterator<P_IN, Double, RuntimeException, ?, ?> wrap(Spliterator<P_IN> s) {
+        AbstractWrappingSpliterator<P_IN, Double, X_OUT, X, ?> wrap(Spliterator<P_IN, X_OUT> s) {
             return new DoubleWrappingSpliterator<>(ph, s, isParallel);
         }
 
@@ -475,16 +479,20 @@ class StreamSpliterators {
             SpinedBuffer.OfDouble b = new SpinedBuffer.OfDouble();
             buffer = b;
             bufferSink = ph.wrapSink((Sink.OfDouble) b::accept);
-            pusher = () -> spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+            pusher = () -> {
+                try {
+                    return spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+                } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
+            };
         }
 
         @Override
-        public Spliterator.OfDouble trySplit() {
-            return (Spliterator.OfDouble) super.trySplit();
+        public Spliterator.OfDouble<X_OUT> trySplit() {
+            return (Spliterator.OfDouble<X_OUT>) super.trySplit();
         }
 
         @Override
-        public boolean tryAdvance(DoubleConsumer consumer) {
+        public boolean tryAdvance(DoubleConsumer consumer) throws X_OUT {
             Objects.requireNonNull(consumer);
             boolean hasNext = doAdvance();
             if (hasNext)
@@ -493,7 +501,7 @@ class StreamSpliterators {
         }
 
         @Override
-        public void forEachRemaining(DoubleConsumer consumer) {
+        public void forEachRemaining(DoubleConsumer consumer) throws X_OUT {
             if (buffer == null && !finished) {
                 Objects.requireNonNull(consumer);
                 init();
@@ -594,27 +602,27 @@ class StreamSpliterators {
                 extends OfPrimitive<Integer, X, IntConsumer, Spliterator.OfInt<X>>
                 implements Spliterator.OfInt<X> {
 
-            OfInt(Supplier<? extends Spliterator.OfInt<X>> supplier) {
+            OfInt(Supplier<Spliterator.OfInt<X>> supplier) {
                 super(supplier);
             }
         }
 
         @SuppressWarnings("overloads")
-        static final class OfLong
-                extends OfPrimitive<Long, RuntimeException, LongConsumer, Spliterator.OfLong>
-                implements Spliterator.OfLong {
+        static final class OfLong<throws X>
+                extends OfPrimitive<Long, X, LongConsumer, Spliterator.OfLong<X>>
+                implements Spliterator.OfLong<X> {
 
-            OfLong(Supplier<Spliterator.OfLong> supplier) {
+            OfLong(Supplier<Spliterator.OfLong<X>> supplier) {
                 super(supplier);
             }
         }
 
         @SuppressWarnings("overloads")
-        static final class OfDouble
-                extends OfPrimitive<Double, RuntimeException, DoubleConsumer, Spliterator.OfDouble>
-                implements Spliterator.OfDouble {
+        static final class OfDouble<throws X>
+                extends OfPrimitive<Double, X, DoubleConsumer, Spliterator.OfDouble<X>>
+                implements Spliterator.OfDouble<X> {
 
-            OfDouble(Supplier<Spliterator.OfDouble> supplier) {
+            OfDouble(Supplier<Spliterator.OfDouble<X>> supplier) {
                 super(supplier);
             }
         }
@@ -861,22 +869,22 @@ class StreamSpliterators {
         }
 
         @SuppressWarnings("overloads")
-        static final class OfLong extends OfPrimitive<Long, RuntimeException, Spliterator.OfLong, LongConsumer>
-                implements Spliterator.OfLong {
-            OfLong(Spliterator.OfLong s, long sliceOrigin, long sliceFence) {
+        static final class OfLong<throws X> extends OfPrimitive<Long, X, Spliterator.OfLong<X>, LongConsumer>
+                implements Spliterator.OfLong<X> {
+            OfLong(Spliterator.OfLong<X> s, long sliceOrigin, long sliceFence) {
                 super(s, sliceOrigin, sliceFence);
             }
 
-            OfLong(Spliterator.OfLong s,
+            OfLong(Spliterator.OfLong<X> s,
                    long sliceOrigin, long sliceFence, long origin, long fence) {
                 super(s, sliceOrigin, sliceFence, origin, fence);
             }
 
             @Override
-            protected Spliterator.OfLong makeSpliterator(Spliterator.OfLong s,
+            protected Spliterator.OfLong<X> makeSpliterator(Spliterator.OfLong<X> s,
                                                          long sliceOrigin, long sliceFence,
                                                          long origin, long fence) {
-                return new SliceSpliterator.OfLong(s, sliceOrigin, sliceFence, origin, fence);
+                return new SliceSpliterator.OfLong<>(s, sliceOrigin, sliceFence, origin, fence);
             }
 
             @Override
@@ -886,22 +894,22 @@ class StreamSpliterators {
         }
 
         @SuppressWarnings("overloads")
-        static final class OfDouble extends OfPrimitive<Double, RuntimeException, Spliterator.OfDouble, DoubleConsumer>
-                implements Spliterator.OfDouble {
-            OfDouble(Spliterator.OfDouble s, long sliceOrigin, long sliceFence) {
+        static final class OfDouble<throws X> extends OfPrimitive<Double, X, Spliterator.OfDouble<X>, DoubleConsumer>
+                implements Spliterator.OfDouble<X> {
+            OfDouble(Spliterator.OfDouble<X> s, long sliceOrigin, long sliceFence) {
                 super(s, sliceOrigin, sliceFence);
             }
 
-            OfDouble(Spliterator.OfDouble s,
+            OfDouble(Spliterator.OfDouble<X> s,
                      long sliceOrigin, long sliceFence, long origin, long fence) {
                 super(s, sliceOrigin, sliceFence, origin, fence);
             }
 
             @Override
-            protected Spliterator.OfDouble makeSpliterator(Spliterator.OfDouble s,
+            protected Spliterator.OfDouble<X> makeSpliterator(Spliterator.OfDouble<X> s,
                                                            long sliceOrigin, long sliceFence,
                                                            long origin, long fence) {
-                return new SliceSpliterator.OfDouble(s, sliceOrigin, sliceFence, origin, fence);
+                return new SliceSpliterator.OfDouble<>(s, sliceOrigin, sliceFence, origin, fence);
             }
 
             @Override
@@ -1189,17 +1197,17 @@ class StreamSpliterators {
         }
 
         @SuppressWarnings("overloads")
-        static final class OfLong
-                extends OfPrimitive<Long, RuntimeException, LongConsumer, ArrayBuffer.OfLong, Spliterator.OfLong>
-                implements Spliterator.OfLong, LongConsumer {
+        static final class OfLong<throws X>
+                extends OfPrimitive<Long, X, LongConsumer, ArrayBuffer.OfLong, Spliterator.OfLong<X>>
+                implements Spliterator.OfLong<X>, LongConsumer {
 
             long tmpValue;
 
-            OfLong(Spliterator.OfLong s, long skip, long limit) {
+            OfLong(Spliterator.OfLong<X> s, long skip, long limit) {
                 super(s, skip, limit);
             }
 
-            OfLong(Spliterator.OfLong s, UnorderedSliceSpliterator.OfLong parent) {
+            OfLong(Spliterator.OfLong<X> s, UnorderedSliceSpliterator.OfLong<X> parent) {
                 super(s, parent);
             }
 
@@ -1219,23 +1227,23 @@ class StreamSpliterators {
             }
 
             @Override
-            protected Spliterator.OfLong makeSpliterator(Spliterator.OfLong s) {
-                return new UnorderedSliceSpliterator.OfLong(s, this);
+            protected Spliterator.OfLong<X> makeSpliterator(Spliterator.OfLong<X> s) {
+                return new UnorderedSliceSpliterator.OfLong<>(s, this);
             }
         }
 
         @SuppressWarnings("overloads")
-        static final class OfDouble
-                extends OfPrimitive<Double, RuntimeException, DoubleConsumer, ArrayBuffer.OfDouble, Spliterator.OfDouble>
-                implements Spliterator.OfDouble, DoubleConsumer {
+        static final class OfDouble<throws X>
+                extends OfPrimitive<Double, X, DoubleConsumer, ArrayBuffer.OfDouble, Spliterator.OfDouble<X>>
+                implements Spliterator.OfDouble<X>, DoubleConsumer {
 
             double tmpValue;
 
-            OfDouble(Spliterator.OfDouble s, long skip, long limit) {
+            OfDouble(Spliterator.OfDouble<X> s, long skip, long limit) {
                 super(s, skip, limit);
             }
 
-            OfDouble(Spliterator.OfDouble s, UnorderedSliceSpliterator.OfDouble parent) {
+            OfDouble(Spliterator.OfDouble<X> s, UnorderedSliceSpliterator.OfDouble<X> parent) {
                 super(s, parent);
             }
 
@@ -1255,8 +1263,8 @@ class StreamSpliterators {
             }
 
             @Override
-            protected Spliterator.OfDouble makeSpliterator(Spliterator.OfDouble s) {
-                return new UnorderedSliceSpliterator.OfDouble(s, this);
+            protected Spliterator.OfDouble<X> makeSpliterator(Spliterator.OfDouble<X> s) {
+                return new UnorderedSliceSpliterator.OfDouble<>(s, this);
             }
         }
     }

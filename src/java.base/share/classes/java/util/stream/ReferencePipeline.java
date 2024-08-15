@@ -157,7 +157,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     // BaseStream
 
     @Override
-    public final Iterator<P_OUT> iterator() { // TODO
+    public final Iterator<P_OUT, X_OUT> iterator() {
         return Spliterators.iterator(spliterator());
     }
 
@@ -246,7 +246,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final LongStream mapToLong(ToLongFunction<? super P_OUT> mapper) {
+    public final LongStream<X_OUT> mapToLong(ToLongFunction<? super P_OUT> mapper) {
         Objects.requireNonNull(mapper);
         return new LongPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                       StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -263,7 +263,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final DoubleStream mapToDouble(ToDoubleFunction<? super P_OUT> mapper) {
+    public final DoubleStream<X_OUT> mapToDouble(ToDoubleFunction<? super P_OUT> mapper) {
         Objects.requireNonNull(mapper);
         return new DoublePipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                         StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -329,7 +329,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final IntStream flatMapToInt(Function<? super P_OUT, ? extends IntStream> mapper) {
+    public final IntStream<X_OUT> flatMapToInt(Function<? super P_OUT, ? extends IntStream> mapper) {
         Objects.requireNonNull(mapper);
         return new IntPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                               StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -380,7 +380,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final DoubleStream flatMapToDouble(Function<? super P_OUT, ? extends DoubleStream> mapper) {
+    public final DoubleStream<X_OUT> flatMapToDouble(Function<? super P_OUT, ? extends DoubleStream> mapper) {
         Objects.requireNonNull(mapper);
         return new DoublePipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                                      StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -431,7 +431,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final LongStream flatMapToLong(Function<? super P_OUT, ? extends LongStream> mapper) {
+    public final LongStream<X_OUT> flatMapToLong(Function<? super P_OUT, ? extends LongStream> mapper) {
         Objects.requireNonNull(mapper);
         // We can do better than this, by polling cancellationRequested when stream is infinite
         return new LongPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
@@ -508,7 +508,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final IntStream mapMultiToInt(BiConsumer<? super P_OUT, ? super IntConsumer> mapper) {
+    public final IntStream<X_OUT> mapMultiToInt(BiConsumer<? super P_OUT, ? super IntConsumer> mapper) {
         Objects.requireNonNull(mapper);
         return new IntPipeline.StatelessOp<>(eraseException(), StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -532,7 +532,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final LongStream mapMultiToLong(BiConsumer<? super P_OUT, ? super LongConsumer> mapper) {
+    public final LongStream<X_OUT> mapMultiToLong(BiConsumer<? super P_OUT, ? super LongConsumer> mapper) {
         Objects.requireNonNull(mapper);
         return new LongPipeline.StatelessOp<>(eraseException(), StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -557,7 +557,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
 
 
     @Override
-    public final DoubleStream mapMultiToDouble(BiConsumer<? super P_OUT, ? super DoubleConsumer> mapper) {
+    public final DoubleStream<X_OUT> mapMultiToDouble(BiConsumer<? super P_OUT, ? super DoubleConsumer> mapper) {
         Objects.requireNonNull(mapper);
         return new DoublePipeline.StatelessOp<>(eraseException(), StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {

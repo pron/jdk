@@ -69,8 +69,10 @@ import java.util.function.Supplier;
  * @since 1.8
  * @see Stream
  * @see <a href="package-summary.html">java.util.stream</a>
+ *
+ * @param <X> throws
  */
-public interface LongStream extends BaseStream<Long, RuntimeException, LongStream> {
+public interface LongStream<throws X> extends BaseStream<Long, X, LongStream<X>> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match
@@ -85,7 +87,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *                  should be included
      * @return the new stream
      */
-    LongStream filter(LongPredicate predicate);
+    LongStream<X> filter(LongPredicate predicate);
 
     /**
      * Returns a stream consisting of the results of applying the given
@@ -99,7 +101,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *               function to apply to each element
      * @return the new stream
      */
-    LongStream map(LongUnaryOperator mapper);
+    LongStream<X> map(LongUnaryOperator mapper);
 
     /**
      * Returns an object-valued {@code Stream} consisting of the results of
@@ -114,7 +116,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *               function to apply to each element
      * @return the new stream
      */
-    <U> Stream<U> mapToObj(LongFunction<? extends U> mapper);
+    <U> Stream<U, X> mapToObj(LongFunction<? extends U> mapper);
 
     /**
      * Returns an {@code IntStream} consisting of the results of applying the
@@ -128,7 +130,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *               function to apply to each element
      * @return the new stream
      */
-    IntStream mapToInt(LongToIntFunction mapper);
+    IntStream<X> mapToInt(LongToIntFunction mapper);
 
     /**
      * Returns a {@code DoubleStream} consisting of the results of applying the
@@ -142,7 +144,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *               function to apply to each element
      * @return the new stream
      */
-    DoubleStream mapToDouble(LongToDoubleFunction mapper);
+    DoubleStream<X> mapToDouble(LongToDoubleFunction mapper);
 
     /**
      * Returns a stream consisting of the results of replacing each element of
@@ -162,7 +164,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * @return the new stream
      * @see Stream#flatMap(Function)
      */
-    LongStream flatMap(LongFunction<? extends LongStream> mapper);
+    LongStream<X> flatMap(LongFunction<? extends LongStream> mapper);
 
     /**
      * Returns a stream consisting of the results of replacing each element of
@@ -192,7 +194,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * @see Stream#mapMulti Stream.mapMulti
      * @since 16
      */
-    default LongStream mapMulti(LongMapMultiConsumer mapper) {
+    default LongStream<X> mapMulti(LongMapMultiConsumer mapper) {
         Objects.requireNonNull(mapper);
         return flatMap(e -> {
             SpinedBuffer.OfLong buffer = new SpinedBuffer.OfLong();
@@ -209,7 +211,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *
      * @return the new stream
      */
-    LongStream distinct();
+    LongStream<X> distinct();
 
     /**
      * Returns a stream consisting of the elements of this stream in sorted
@@ -220,7 +222,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *
      * @return the new stream
      */
-    LongStream sorted();
+    LongStream<X> sorted();
 
     /**
      * Returns a stream consisting of the elements of this stream, additionally
@@ -256,7 +258,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *               they are consumed from the stream
      * @return the new stream
      */
-    LongStream peek(LongConsumer action);
+    LongStream<X> peek(LongConsumer action);
 
     /**
      * Returns a stream consisting of the elements of this stream, truncated
@@ -283,7 +285,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * @return the new stream
      * @throws IllegalArgumentException if {@code maxSize} is negative
      */
-    LongStream limit(long maxSize);
+    LongStream<X> limit(long maxSize);
 
     /**
      * Returns a stream consisting of the remaining elements of this stream
@@ -312,7 +314,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * @return the new stream
      * @throws IllegalArgumentException if {@code n} is negative
      */
-    LongStream skip(long n);
+    LongStream<X> skip(long n);
 
     /**
      * Returns, if this stream is ordered, a stream consisting of the longest
@@ -371,12 +373,12 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * @return the new stream
      * @since 9
      */
-    default LongStream takeWhile(LongPredicate predicate) {
+    default LongStream<X> takeWhile(LongPredicate predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
         return StreamSupport.longStream(
-                new WhileOps.UnorderedWhileSpliterator.OfLong.Taking(spliterator(), true, predicate),
+                new WhileOps.UnorderedWhileSpliterator.OfLong.Taking<>(spliterator(), true, predicate),
                 isParallel()).onClose(this::close);
     }
 
@@ -438,12 +440,12 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * @return the new stream
      * @since 9
      */
-    default LongStream dropWhile(LongPredicate predicate) {
+    default LongStream<X> dropWhile(LongPredicate predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
         return StreamSupport.longStream(
-                new WhileOps.UnorderedWhileSpliterator.OfLong.Dropping(spliterator(), true, predicate),
+                new WhileOps.UnorderedWhileSpliterator.OfLong.Dropping<>(spliterator(), true, predicate),
                 isParallel()).onClose(this::close);
     }
 
@@ -462,8 +464,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *
      * @param action a <a href="package-summary.html#NonInterference">
      *               non-interfering</a> action to perform on the elements
+     * @throws X TBD
      */
-    void forEach(LongConsumer action);
+    void forEach(LongConsumer action) throws X;
 
     /**
      * Performs an action for each element of this stream, guaranteeing that
@@ -475,9 +478,10 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *
      * @param action a <a href="package-summary.html#NonInterference">
      *               non-interfering</a> action to perform on the elements
+     * @throws X TBD
      * @see #forEach(LongConsumer)
      */
-    void forEachOrdered(LongConsumer action);
+    void forEachOrdered(LongConsumer action) throws X;
 
     /**
      * Returns an array containing the elements of this stream.
@@ -486,8 +490,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * operation</a>.
      *
      * @return an array containing the elements of this stream
+     * @throws X TBD
      */
-    long[] toArray();
+    long[] toArray() throws X;
 
     /**
      * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
@@ -537,12 +542,13 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *           <a href="package-summary.html#Statelessness">stateless</a>
      *           function for combining two values
      * @return the result of the reduction
+     * @throws X TBD
      * @see #sum()
      * @see #min()
      * @see #max()
      * @see #average()
      */
-    long reduce(long identity, LongBinaryOperator op);
+    long reduce(long identity, LongBinaryOperator op) throws X;
 
     /**
      * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
@@ -577,9 +583,10 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *           <a href="package-summary.html#Statelessness">stateless</a>
      *           function for combining two values
      * @return the result of the reduction
+     * @throws X TBD
      * @see #reduce(long, LongBinaryOperator)
      */
-    OptionalLong reduce(LongBinaryOperator op);
+    OptionalLong reduce(LongBinaryOperator op) throws X;
 
     /**
      * Performs a <a href="package-summary.html#MutableReduction">mutable
@@ -619,11 +626,12 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *                    the elements from the second result container into the
      *                    first result container.
      * @return the result of the reduction
+     * @throws X TBD
      * @see Stream#collect(Supplier, BiConsumer, BiConsumer)
      */
     <R> R collect(Supplier<R> supplier,
                   ObjLongConsumer<R> accumulator,
-                  BiConsumer<R, R> combiner);
+                  BiConsumer<R, R> combiner) throws X;
 
     /**
      * Returns the sum of elements in this stream.  This is a special case
@@ -637,8 +645,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * operation</a>.
      *
      * @return the sum of elements in this stream
+     * @throws X TBD
      */
-    long sum();
+    long sum() throws X;
 
     /**
      * Returns an {@code OptionalLong} describing the minimum element of this
@@ -653,8 +662,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *
      * @return an {@code OptionalLong} containing the minimum element of this
      * stream, or an empty {@code OptionalLong} if the stream is empty
+     * @throws X TBD
      */
-    OptionalLong min();
+    OptionalLong min() throws X;
 
     /**
      * Returns an {@code OptionalLong} describing the maximum element of this
@@ -670,8 +680,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *
      * @return an {@code OptionalLong} containing the maximum element of this
      * stream, or an empty {@code OptionalLong} if the stream is empty
+     * @throws X TBD
      */
-    OptionalLong max();
+    OptionalLong max() throws X;
 
     /**
      * Returns the count of elements in this stream.  This is a special case of
@@ -702,8 +713,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * execute the pipeline and, as a side-effect, print out the elements.
      *
      * @return the count of elements in this stream
+     * @throws X TBD
      */
-    long count();
+    long count() throws X;
 
     /**
      * Returns an {@code OptionalDouble} describing the arithmetic mean of elements of
@@ -716,8 +728,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *
      * @return an {@code OptionalDouble} containing the average element of this
      * stream, or an empty optional if the stream is empty
+     * @throws X TBD
      */
-    OptionalDouble average();
+    OptionalDouble average() throws X;
 
     /**
      * Returns a {@code LongSummaryStatistics} describing various summary data
@@ -729,8 +742,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *
      * @return a {@code LongSummaryStatistics} describing various summary data
      * about the elements of this stream
+     * @throws X TBD
      */
-    LongSummaryStatistics summaryStatistics();
+    LongSummaryStatistics summaryStatistics() throws X;
 
     /**
      * Returns whether any elements of this stream match the provided
@@ -750,8 +764,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *                  predicate to apply to elements of this stream
      * @return {@code true} if any elements of the stream match the provided
      * predicate, otherwise {@code false}
+     * @throws X TBD
      */
-    boolean anyMatch(LongPredicate predicate);
+    boolean anyMatch(LongPredicate predicate) throws X;
 
     /**
      * Returns whether all elements of this stream match the provided predicate.
@@ -773,8 +788,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *                  predicate to apply to elements of this stream
      * @return {@code true} if either all elements of the stream match the
      * provided predicate or the stream is empty, otherwise {@code false}
+     * @throws X TBD
      */
-    boolean allMatch(LongPredicate predicate);
+    boolean allMatch(LongPredicate predicate) throws X;
 
     /**
      * Returns whether no elements of this stream match the provided predicate.
@@ -796,8 +812,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *                  predicate to apply to elements of this stream
      * @return {@code true} if either no elements of the stream match the
      * provided predicate or the stream is empty, otherwise {@code false}
+     * @throws X TBD
      */
-    boolean noneMatch(LongPredicate predicate);
+    boolean noneMatch(LongPredicate predicate) throws X;
 
     /**
      * Returns an {@link OptionalLong} describing the first element of this
@@ -809,8 +826,9 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *
      * @return an {@code OptionalLong} describing the first element of this
      * stream, or an empty {@code OptionalLong} if the stream is empty
+     * @throws X TBD
      */
-    OptionalLong findFirst();
+    OptionalLong findFirst() throws X;
 
     /**
      * Returns an {@link OptionalLong} describing some element of the stream, or
@@ -827,9 +845,10 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      *
      * @return an {@code OptionalLong} describing some element of this stream,
      * or an empty {@code OptionalLong} if the stream is empty
+     * @throws X TBD
      * @see #findFirst()
      */
-    OptionalLong findAny();
+    OptionalLong findAny() throws X;
 
     /**
      * Returns a {@code DoubleStream} consisting of the elements of this stream,
@@ -841,7 +860,7 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * @return a {@code DoubleStream} consisting of the elements of this stream,
      * converted to {@code double}
      */
-    DoubleStream asDoubleStream();
+    DoubleStream<X> asDoubleStream();
 
     /**
      * Returns a {@code Stream} consisting of the elements of this stream,
@@ -853,19 +872,19 @@ public interface LongStream extends BaseStream<Long, RuntimeException, LongStrea
      * @return a {@code Stream} consistent of the elements of this stream,
      * each boxed to {@code Long}
      */
-    Stream<Long> boxed();
+    Stream<Long, X> boxed();
 
     @Override
-    LongStream sequential();
+    LongStream<X> sequential();
 
     @Override
-    LongStream parallel();
+    LongStream<X> parallel();
 
     @Override
-    PrimitiveIterator.OfLong iterator();
+    PrimitiveIterator.OfLong<X> iterator();
 
     @Override
-    Spliterator.OfLong spliterator();
+    Spliterator.OfLong<X> spliterator();
 
     // Static factories
 

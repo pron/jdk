@@ -227,7 +227,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      *               function to apply to each element
      * @return the new stream
      */
-    LongStream mapToLong(ToLongFunction<? super T> mapper);
+    LongStream<X> mapToLong(ToLongFunction<? super T> mapper);
 
     /**
      * Returns a {@code DoubleStream} consisting of the results of applying the
@@ -241,7 +241,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      *               function to apply to each element
      * @return the new stream
      */
-    DoubleStream mapToDouble(ToDoubleFunction<? super T> mapper);
+    DoubleStream<X> mapToDouble(ToDoubleFunction<? super T> mapper);
 
     /**
      * Returns a stream consisting of the results of replacing each element of
@@ -309,7 +309,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      * @return the new stream
      * @see #flatMap flatMap
      */
-    IntStream flatMapToInt(Function<? super T, ? extends IntStream> mapper);
+    IntStream<X> flatMapToInt(Function<? super T, ? extends IntStream> mapper);
 
     /**
      * Returns an {@code LongStream} consisting of the results of replacing each
@@ -329,7 +329,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      * @return the new stream
      * @see #flatMap flatMap
      */
-    LongStream flatMapToLong(Function<? super T, ? extends LongStream> mapper);
+    LongStream<X> flatMapToLong(Function<? super T, ? extends LongStream> mapper);
 
     /**
      * Returns an {@code DoubleStream} consisting of the results of replacing
@@ -349,7 +349,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      * @return the new stream
      * @see #flatMap flatMap
      */
-    DoubleStream flatMapToDouble(Function<? super T, ? extends DoubleStream> mapper);
+    DoubleStream<X> flatMapToDouble(Function<? super T, ? extends DoubleStream> mapper);
 
     // THE EXAMPLES USED IN THE JAVADOC MUST BE IN SYNC WITH THEIR CORRESPONDING
     // TEST IN test/jdk/java/util/stream/examples/JavadocExamples.java.
@@ -474,7 +474,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      * @see #mapMulti mapMulti
      * @since 16
      */
-    default IntStream mapMultiToInt(BiConsumer<? super T, ? super IntConsumer> mapper) {
+    default IntStream<X> mapMultiToInt(BiConsumer<? super T, ? super IntConsumer> mapper) {
         Objects.requireNonNull(mapper);
         return flatMapToInt(e -> {
             SpinedBuffer.OfInt buffer = new SpinedBuffer.OfInt();
@@ -512,7 +512,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      * @see #mapMulti mapMulti
      * @since 16
      */
-    default LongStream mapMultiToLong(BiConsumer<? super T, ? super LongConsumer> mapper) {
+    default LongStream<X> mapMultiToLong(BiConsumer<? super T, ? super LongConsumer> mapper) {
         Objects.requireNonNull(mapper);
         return flatMapToLong(e -> {
             SpinedBuffer.OfLong buffer = new SpinedBuffer.OfLong();
@@ -550,7 +550,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      * @see #mapMulti mapMulti
      * @since 16
      */
-    default DoubleStream mapMultiToDouble(BiConsumer<? super T, ? super DoubleConsumer> mapper) {
+    default DoubleStream<X> mapMultiToDouble(BiConsumer<? super T, ? super DoubleConsumer> mapper) {
         Objects.requireNonNull(mapper);
         return flatMapToDouble(e -> {
             SpinedBuffer.OfDouble buffer = new SpinedBuffer.OfDouble();

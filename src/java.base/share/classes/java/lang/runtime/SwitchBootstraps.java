@@ -353,7 +353,7 @@ public class SwitchBootstraps {
         return enumMap.map[value.ordinal()];
     }
 
-    private static final class ResolvedEnumLabels implements BiPredicate<Integer, Object> {
+    private static final class ResolvedEnumLabels implements BiPredicate<Integer, Object, RuntimeException> {
 
         private final MethodHandles.Lookup lookup;
         private final EnumDesc<?>[] enumDescs;
