@@ -3508,23 +3508,26 @@ public class Types {
 
     private boolean isThrowsParam(Type t) {
         TypeVar tv = (TypeVar)t;
-        if (tv.isThrowsParam())
-            return true;
-        ////
-        Type b = topBound(tv);
-        if (b == null) return false;
-        return isSameType(b, syms.throwableType) || isSameType(b, syms.exceptionType);
+        return tv.isThrowsParam();
+
+//        if (tv.isThrowsParam())
+//            return true;
+//        Type b = topBound(tv);
+//        if (b == null) return false;
+//        return isSameType(b, syms.throwableType) || isSameType(b, syms.exceptionType);
     }
 
     private Type defaultThrows0(Type t) {
         TypeVar tv = (TypeVar)t;
-        if (tv.isThrowsParam()) {
-            Assert.check(tv.getThrowsDefault() != null);
-            return tv.getThrowsDefault();
-        }
-        ///
-        Assert.check(isThrowsParam(t));
-        return syms.runtimeExceptionType;
+        Assert.check(tv.getThrowsDefault() != null);
+        return tv.getThrowsDefault();
+
+//        if (tv.isThrowsParam()) {
+//            Assert.check(tv.getThrowsDefault() != null);
+//            return tv.getThrowsDefault();
+//        }
+//        Assert.check(isThrowsParam(t));
+//        return syms.runtimeExceptionType;
     }
 
     public Type defaultUpperBoundForThrows() {
