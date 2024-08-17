@@ -52,7 +52,7 @@ import java.util.function.IntFunction;
  * @param <P_OUT> type of output elements from the pipeline
  * @since 1.8
  */
-abstract class PipelineHelper<P_OUT, X_OUT extends Exception, X extends Exception> {
+abstract class PipelineHelper<P_OUT, throws X_OUT, throws X> {
 
     /**
      * Gets the stream shape for the source of the pipeline segment.
@@ -105,7 +105,7 @@ abstract class PipelineHelper<P_OUT, X_OUT extends Exception, X extends Exceptio
      * @param sink the {@code Sink} to receive the results
      * @param spliterator the spliterator describing the source input to process
      */
-    abstract <P_IN, X_IN extends Exception, S extends Sink<P_OUT>>
+    abstract <P_IN, throws X_IN, S extends Sink<P_OUT>>
     S wrapAndCopyInto(S sink, Spliterator<P_IN, X_IN> spliterator) throws X_IN, X;
 
     /**
@@ -123,7 +123,7 @@ abstract class PipelineHelper<P_OUT, X_OUT extends Exception, X extends Exceptio
      * @param wrappedSink the destination {@code Sink}
      * @param spliterator the source {@code Spliterator}
      */
-    abstract <P_IN, X_IN extends Exception>
+    abstract <P_IN, throws X_IN>
     void copyInto(Sink<P_IN> wrappedSink, Spliterator<P_IN, X_IN> spliterator) throws X_IN;
 
     /**
@@ -141,7 +141,7 @@ abstract class PipelineHelper<P_OUT, X_OUT extends Exception, X extends Exceptio
      * @param spliterator the source {@code Spliterator}
      * @return true if the cancellation was requested
      */
-    abstract <P_IN, X_IN extends Exception>
+    abstract <P_IN, throws X_IN>
     boolean copyIntoWithCancel(Sink<P_IN> wrappedSink, Spliterator<P_IN, X_IN> spliterator) throws X_IN;
 
     /**
@@ -163,8 +163,8 @@ abstract class PipelineHelper<P_OUT, X_OUT extends Exception, X extends Exceptio
      * @param <P_IN>
      * @return
      */
-    abstract<P_IN, X_IN extends X_OUT>
-    Spliterator<P_OUT, ? extends X_OUT> wrapSpliterator(Spliterator<P_IN, X_IN> spliterator);
+    abstract<P_IN, throws X_IN extends X_OUT>
+    Spliterator<P_OUT, X_OUT> wrapSpliterator(Spliterator<P_IN, X_IN> spliterator);
 
     /**
      * Constructs a {@link Node.Builder} compatible with the output shape of
@@ -203,7 +203,7 @@ abstract class PipelineHelper<P_OUT, X_OUT extends Exception, X extends Exceptio
      * @param generator a factory function for array instances
      * @return the {@code Node} containing all output elements
      */
-    abstract<P_IN> Node<P_OUT> evaluate(Spliterator<P_IN, ? extends X_OUT> spliterator,
+    abstract<P_IN> Node<P_OUT> evaluate(Spliterator<P_IN, X_OUT> spliterator,
                                         boolean flatten,
                                         IntFunction<P_OUT[]> generator) throws X_OUT;
 }
