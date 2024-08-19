@@ -25,12 +25,9 @@
 
 package java.util.stream;
 
+import java.util.Iterator;
 import java.util.Spliterator;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 final class CheckedExceptions {
     private CheckedExceptions() {}
@@ -50,85 +47,74 @@ final class CheckedExceptions {
         return new WrappedException(ex);
     }
 
-    public static <X extends Exception> X unwrap(RuntimeException ex) {
+    @SuppressWarnings("unchecked")
+    public static <throws X> X unwrap(RuntimeException ex) {
         if (ex instanceof WrappedException) {
-            @SuppressWarnings("unchecked")
-            var unwrapped = (X)ex.getCause();
-            return unwrapped;
+            return (X)ex.getCause();
         }
         throw ex;
     }
 
-
-    public static <T, X extends Exception> T unwrap(Supplier<T> s) throws X {
-        try {
-            return s.get();
-        } catch (WrappedException ex) {
-            @SuppressWarnings("unchecked")
-            var unwrapped = (X)ex.getCause();
-            throw unwrapped;
-        }
-    }
-
-    public static <X extends Exception> void unwrap(Runnable r) throws X {
+    @SuppressWarnings("unchecked")
+    public static <throws X> void unwrap(Runnable r) throws X {
         try {
             r.run();
         } catch (WrappedException ex) {
-            @SuppressWarnings("unchecked")
-            var unwrapped = (X)ex.getCause();
-            throw unwrapped;
+            throw (X) ex.getCause();
         }
     }
 
     @SuppressWarnings("unchecked")
-    public static <T, X extends Exception> Spliterator<T> wrap(Spliterator<T, X> s) {
-        return (Spliterator<T>)(Object)new StreamSpliterators.DelegatingSpliterator<T, X, Spliterator<T, X>>(() -> s) {
-            @Override
-            public boolean tryAdvance(Consumer<? super T> consumer) {
-                try {
-                    return get().tryAdvance(consumer);
-                } catch (Exception ex) {
-                    throw CheckedExceptions.wrap(ex);
-                }
-            }
-
-            @Override
-            public void forEachRemaining(Consumer<? super T> consumer) {
-                try {
-                    get().forEachRemaining(consumer);
-                } catch (Exception ex) {
-                    throw CheckedExceptions.wrap(ex);
-                }
-            }
-        };
+    public static <T, throws X> T unwrap(Supplier<T> s) throws X {
+        try {
+            return s.get();
+        } catch (WrappedException ex) {
+            throw (X) ex.getCause();
+        }
     }
 
-    @SuppressWarnings("overloads")
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T, U> BiConsumer<T, U> eraseException(BiConsumer<T, U, ?> x) { return (BiConsumer<T, U>)x; }
+
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T, U, R> BiFunction<T, U, R> eraseException(BiFunction<T, U, R, ?> x) { return (BiFunction<T, U, R>)x; }
+
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T> BinaryOperator<T> eraseException(BinaryOperator<T, ?> x) { return (BinaryOperator<T>)x; }
+
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T, U> BiPredicate<T, U> eraseException(BiPredicate<T, U, ?> x) { return (BiPredicate<T, U>)x; }
+
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T> Consumer<T> eraseException(Consumer<T, ?> x) { return (Consumer<T>)x; }
+
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T, R> Function<T, R> eraseException(Function<T, R, ?> x) { return (Function<T, R>)x; }
+
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T> Predicate<T> eraseException(Predicate<T, ?> x) { return (Predicate<T>)x; }
+
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T> Supplier<T> eraseException(Supplier<T, ?> x) { return (Supplier<T>)x; }
+
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T> UnaryOperator<T> eraseException(UnaryOperator<T, ?> x) { return (UnaryOperator<T>)x; }
+
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T> Iterator<T> eraseException(Iterator<T, ?> x) { return (Iterator<T>)x; }
+
+    @SuppressWarnings({"unchecked", "overloads"})
+    public static <T> Spliterator<T> eraseException(Spliterator<T, ?> x) { return (Spliterator<T>)x; }
+
     public static <T> Consumer<T> wrap(Consumer<T, ?> c) {
         return t -> {
             try { c.accept(t); } catch (Exception ex) { throw wrap(ex); }
         };
     }
 
-    @SuppressWarnings("overloads")
     public static <T> Supplier<T> wrap(Supplier<T, ?> s) {
         return () -> {
             try { return s.get(); } catch (Exception ex) { throw wrap(ex); }
         };
     }
-
-    @SuppressWarnings("overloads")
-    public static <T> Predicate<T> wrap(Predicate<T, ?> p) {
-        return t -> {
-            try { return p.test(t); } catch (Exception ex) { throw wrap(ex); }
-        };
-    }
-
-    @SuppressWarnings("overloads")
-    public static <T, R> Function<T, R> wrap(Function<T, R, ?> f) {
-        return x -> {
-            try { return f.apply(x); } catch (Exception ex) { throw wrap(ex); }
-        };
-    }
-
 }

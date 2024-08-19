@@ -154,7 +154,7 @@ public final class StreamSupport {
      * <p>For spliterators that report a characteristic of {@code IMMUTABLE}
      * or {@code CONCURRENT}, or that are
      * <a href="../Spliterator.html#binding">late-binding</a>, it is likely
-     * more efficient to use {link #intStream(java.util.Spliterator.OfInt, boolean)} TODO RON
+     * more efficient to use {@link #intStream(java.util.Spliterator.OfInt, boolean)}
      * instead.
      * <p>The use of a {@code Supplier} in this form provides a level of
      * indirection that reduces the scope of potential interference with the
@@ -174,7 +174,7 @@ public final class StreamSupport {
      *        stream.
      * @return a new sequential or parallel {@code IntStream}
      * @param <X> throws
-     * see #intStream(java.util.Spliterator.OfInt, boolean) TODO RON
+     * @see #intStream(java.util.Spliterator.OfInt, boolean)
      */
     public static <throws X> IntStream<X> intStream(Supplier<? extends Spliterator.OfInt<X>> supplier,
                                       int characteristics,
