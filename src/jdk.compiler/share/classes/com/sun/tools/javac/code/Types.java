@@ -3621,6 +3621,21 @@ public class Types {
         }
     }
 
+    private boolean differOnlyByThrows(List<Type> ts, List<Type> ss) {
+        while (ts.nonEmpty() && ss.nonEmpty()) {
+            if (!ts.head.hasTag(WILDCARD) || !ss.head.hasTag(WILDCARD))
+                return false;
+            WildcardType a = (WildcardType)ts.head;
+            WildcardType b = (WildcardType)ss.head;
+            if (!(containsType(a, b)
+                    || (a.bound.isThrowsParam() && isSubtype(a.getExtendsBound(), b.bound.getUpperBound()))))
+                break;
+            ts = ts.tail;
+            ss = ss.tail;
+        }
+        return ts.isEmpty() && ss.isEmpty();
+    }
+
     private List<Type> eraseDefaultThrowable(List<Type> ts) {
         var suffix = suffixThrowsParams(ts);
         var newSuffix = suffix.map(t -> suffix.any(s -> s.equalsIgnoreMetadata(t)) ? defaultThrows(t, false) : t);
@@ -3642,6 +3657,29 @@ public class Types {
                                 ? defaultThrows(org, false)
                                 : ersd);
         return erased;
+    }
+
+    public Type eraseThrowsParam(Type t) {
+        return t.map(new EraseThrowsParam());
+    }
+
+    private class EraseThrowsParam extends StructuralTypeMapping<Void> {
+        @Override
+        public Type visitClassType(ClassType t, Void ignored) {
+            Type outer = t.getEnclosingType();
+            Type outer1 = visit(outer, ignored);
+            List<Type> typarams = t.getTypeArguments();
+            List<Type> formals = t.tsym.type.allparams();
+            List<Type> typarams1 = typarams.mapTwo(formals,
+                    (tp, f) ->
+                        isThrowsParam(f) ? defaultThrows(f, true): tp);
+            typarams1 = visit(typarams1, ignored);
+
+            if (outer1 == outer && typarams1 == typarams) return t;
+            else return new ClassType(outer1, typarams1, t.tsym, t.metadata) {
+                @Override protected boolean needsStripping() { return true; }
+            };
+        }
     }
 
     /**
@@ -4981,21 +5019,6 @@ public class Types {
             }
         }
         return false;
-    }
-
-    private boolean differOnlyByThrows(List<Type> ts, List<Type> ss) {
-        while (ts.nonEmpty() && ss.nonEmpty()) {
-            if (!ts.head.hasTag(WILDCARD) || !ss.head.hasTag(WILDCARD))
-                return false;
-            WildcardType a = (WildcardType)ts.head;
-            WildcardType b = (WildcardType)ss.head;
-            if (!(containsType(a, b)
-                || (a.bound.isThrowsParam() && isSubtype(a.getExtendsBound(), b.bound.getUpperBound()))))
-                break;
-            ts = ts.tail;
-            ss = ss.tail;
-        }
-        return ts.isEmpty() && ss.isEmpty();
     }
 
     private List<Type> superClosure(Type t, Type s) {

@@ -2156,7 +2156,7 @@ public abstract class Symbol extends AnnoConstruct implements PoolConstant, Elem
                 types.asSuper(owner.type, other.owner) != null) {
                 Type mt = types.memberType(owner.type, this);
                 Type ot = types.memberType(owner.type, other);
-                if (types.isSubSignature(mt, ot)) {
+                if (types.isSubSignature(mt, ot) || types.isSubSignature(mt, types.eraseThrowsParam(ot))) {
                     if (!checkResult)
                         return true;
                     if (types.returnTypeSubstitutable(mt, ot))
@@ -2174,8 +2174,7 @@ public abstract class Symbol extends AnnoConstruct implements PoolConstant, Elem
             // assert types.asSuper(origin.type, other.owner) != null;
             Type mt = types.memberType(origin.type, this);
             Type ot = types.memberType(origin.type, other);
-            return
-                types.isSubSignature(mt, ot) &&
+            return (types.isSubSignature(mt, ot) || types.isSubSignature(mt, types.eraseThrowsParam(ot))) &&
                 (!checkResult || types.resultSubtype(mt, ot, types.noWarnings));
         }
 

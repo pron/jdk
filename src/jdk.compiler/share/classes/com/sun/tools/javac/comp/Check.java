@@ -2624,9 +2624,13 @@ public class Check {
                         types.hasSameArgs(m2.erasure(types), m1.erasure(types))) {
                     sym.flags_field |= CLASH;
                     if (m1 == sym) {
-                        log.error(pos, Errors.NameClashSameErasureNoOverride(
-                            m1.name, types.memberType(site, m1).asMethodType().getParameterTypes(), m1.location(),
-                            m2.name, types.memberType(site, m2).asMethodType().getParameterTypes(), m2.location()));
+                        if (types.isSubSignature(sym.type, types.eraseThrowsParam(types.memberType(site, m2))))
+                            warnUnchecked(pos, // TreeInfo.diagnosticPositionFor(m1, tree),
+                                    Warnings.OverrideUncheckedThrown(cannotOverride((MethodSymbol)m1, (MethodSymbol)m2), null)); // TODO RON: different warning
+                        else
+                            log.error(pos, Errors.NameClashSameErasureNoOverride(
+                                m1.name, types.memberType(site, m1).asMethodType().getParameterTypes(), m1.location(),
+                                m2.name, types.memberType(site, m2).asMethodType().getParameterTypes(), m2.location()));
                     } else {
                         ClassType ct = (ClassType)site;
                         String kind = ct.isInterface() ? "interface" : "class";
