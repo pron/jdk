@@ -2099,7 +2099,9 @@ public class Check {
                         (s2.flags() & SYNTHETIC) != 0) continue;
                 if (st1 == null) st1 = types.memberType(t1, s1);
                 Type st2 = types.memberType(t2, s2);
-                if (types.overrideEquivalent(st1, st2)) {
+                if (types.overrideEquivalent(st1, st2)
+                        || types.overrideEquivalent(types.eraseThrowsParam(st1), st2)
+                        || types.overrideEquivalent(st1, types.eraseThrowsParam(st2))) {
                     List<Type> tvars1 = st1.getTypeArguments();
                     List<Type> tvars2 = st2.getTypeArguments();
                     Type rt1 = st1.getReturnType();

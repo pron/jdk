@@ -3501,7 +3501,8 @@ public class Types {
                             s.name == msym.name &&
                             (s.flags() & SYNTHETIC) == 0 &&
                             s.isInheritedIn(site.tsym, Types.this) &&
-                            overrideEquivalent(memberType(site, s), memberType(site, msym));
+                            (overrideEquivalent(memberType(site, s), memberType(site, msym)) ||
+                                    overrideEquivalent(memberType(site, s), eraseThrowsParam(memberType(site, msym))));
                 }
             }
     // </editor-fold>
