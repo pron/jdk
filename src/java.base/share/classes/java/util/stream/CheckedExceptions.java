@@ -41,6 +41,12 @@ final class CheckedExceptions {
         }
     }
 
+    public static <X extends Throwable> X rethrowUncheckedException(X x) {
+        if (x instanceof Error er) throw er;
+        if (x instanceof RuntimeException rex) throw rex;
+        return x;
+    }
+
     public static RuntimeException wrap(Exception ex) {
         if (ex instanceof RuntimeException re)
             return re;
@@ -71,6 +77,12 @@ final class CheckedExceptions {
         } catch (WrappedException ex) {
             throw (X) ex.getCause();
         }
+    }
+
+    public static <T> Consumer<T> wrap(Consumer<T, ?> c) {
+        return t -> {
+            try { c.accept(t); } catch (Exception ex) { throw wrap(ex); }
+        };
     }
 
     @SuppressWarnings({"unchecked", "overloads"})
@@ -105,16 +117,4 @@ final class CheckedExceptions {
 
     @SuppressWarnings({"unchecked", "overloads"})
     public static <T> Spliterator<T> eraseException(Spliterator<T, ?> x) { return (Spliterator<T>)x; }
-
-    public static <T> Consumer<T> wrap(Consumer<T, ?> c) {
-        return t -> {
-            try { c.accept(t); } catch (Exception ex) { throw wrap(ex); }
-        };
-    }
-
-    public static <T> Supplier<T> wrap(Supplier<T, ?> s) {
-        return () -> {
-            try { return s.get(); } catch (Exception ex) { throw wrap(ex); }
-        };
-    }
 }

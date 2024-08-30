@@ -67,7 +67,7 @@ final class ForEachOps {
      * @param <T> the type of the stream elements
      * @return the {@code TerminalOp} instance
      */
-    public static <T, throws X1> TerminalOp<T, Void> makeRef(Consumer<? super T, X1> action,
+    public static <T, throws XT> TerminalOp<T, Void, XT> makeRef(Consumer<? super T, XT> action,
                                                   boolean ordered) {
         Objects.requireNonNull(action);
         return new ForEachOp.OfRef<>(action, ordered);
@@ -130,8 +130,8 @@ final class ForEachOps {
      *
      * @param <T> the output type of the stream pipeline
      */
-    abstract static class ForEachOp<T>
-            implements TerminalOp<T, Void>, TerminalSink<T, Void> {
+    abstract static class ForEachOp<T, throws XT>
+            implements TerminalOp<T, Void, XT>, TerminalSink<T, Void> {
         private final boolean ordered;
 
         protected ForEachOp(boolean ordered) {
@@ -147,13 +147,13 @@ final class ForEachOps {
 
         @Override
         public <S, throws X_IN, throws X> Void evaluateSequential(PipelineHelper<T, X_IN, X> helper,
-                                           Spliterator<S, X_IN> spliterator) throws X_IN, X {
+                                           Spliterator<S, X_IN> spliterator) throws X_IN, X, XT {
             return helper.wrapAndCopyInto(this, spliterator).get();
         }
 
         @Override
         public <S, throws X_IN, throws X> Void evaluateParallel(PipelineHelper<T, X_IN, X> helper,
-                                         Spliterator<S, X_IN> spliterator) throws X_IN, X {
+                                         Spliterator<S, X_IN> spliterator) throws X_IN, X, XT {
             if (ordered)
                 new ForEachOrderedTask<>(helper, spliterator, this).invoke();
             else
@@ -171,17 +171,21 @@ final class ForEachOps {
         // Implementations
 
         /** Implementation class for reference streams */
-        static final class OfRef<T> extends ForEachOp<T> {
-            final Consumer<? super T> consumer;
+        static final class OfRef<T, throws XT> extends ForEachOp<T, XT> {
+            final Consumer<? super T, XT> consumer;
 
-            OfRef(Consumer<? super T, ?> consumer, boolean ordered) {
+            OfRef(Consumer<? super T, XT> consumer, boolean ordered) {
                 super(ordered);
-                this.consumer = CheckedExceptions.wrap(consumer);
+                this.consumer = consumer;
             }
 
             @Override
             public void accept(T t) {
-                consumer.accept(t);
+                try {
+                    consumer.accept(t);
+                } catch(Exception ex) {
+                    throw CheckedExceptions.wrap(ex);
+                }
             }
         }
 
@@ -505,7 +509,7 @@ final class ForEachOps {
         public void onCompletion(CountedCompleter<?> caller) {
             if (node != null) {
                 // Dump buffered elements from this leaf into the sink
-                node.forEach(CheckedExceptions.wrap(action));
+                node.forEach(action);
                 node = null;
             }
             else if (spliterator != null) {

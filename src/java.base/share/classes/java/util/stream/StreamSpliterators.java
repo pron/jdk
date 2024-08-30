@@ -300,7 +300,7 @@ class StreamSpliterators {
             bufferSink = ph.wrapSink(b::accept);
             pusher = () -> {
                 try {
-                    return spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+                    return spliterator.tryAdvance(bufferSink);
                 } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
             };
         }
@@ -357,7 +357,7 @@ class StreamSpliterators {
             bufferSink = ph.wrapSink((Sink.OfInt) b::accept);
             pusher = () -> {
                 try {
-                    return spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+                    return spliterator.tryAdvance(bufferSink);
                 } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
             };
         }
@@ -419,7 +419,7 @@ class StreamSpliterators {
             bufferSink = ph.wrapSink((Sink.OfLong) b::accept);
             pusher = () -> {
                 try {
-                    return spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+                    return spliterator.tryAdvance(bufferSink);
                 } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
             };
         }
@@ -481,7 +481,7 @@ class StreamSpliterators {
             bufferSink = ph.wrapSink((Sink.OfDouble) b::accept);
             pusher = () -> {
                 try {
-                    return spliterator.tryAdvance(CheckedExceptions.wrap(bufferSink));
+                    return spliterator.tryAdvance(bufferSink);
                 } catch (Exception ex) { throw CheckedExceptions.wrap(ex); }
             };
         }

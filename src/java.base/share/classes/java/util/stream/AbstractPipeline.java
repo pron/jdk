@@ -26,6 +26,7 @@ package java.util.stream;
 
 import java.util.Objects;
 import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -255,7 +256,7 @@ abstract class AbstractPipeline<E_IN, throws X_IN, E_OUT, throws X_OUT extends X
      * @param terminalOp the terminal operation to be applied to the pipeline.
      * @return the result
      */
-    final <R> R evaluate(TerminalOp<E_OUT, R> terminalOp) throws X_OUT {
+    final <R, throws XT> R evaluate(TerminalOp<E_OUT, R, XT> terminalOp) throws X_OUT, XT {
         assert getOutputShape() == terminalOp.inputShape();
         if (linkedOrConsumed)
             throw new IllegalStateException(MSG_STREAM_LINKED);
@@ -397,7 +398,7 @@ abstract class AbstractPipeline<E_IN, throws X_IN, E_OUT, throws X_OUT extends X
             }
         }
         else {
-            return wrap(this, CheckedExceptions.wrap(() -> sourceSpliterator(0)), isParallel());
+            return wrap(this, () -> sourceSpliterator(0), isParallel());
         }
     }
 
@@ -456,9 +457,9 @@ abstract class AbstractPipeline<E_IN, throws X_IN, E_OUT, throws X_OUT extends X
      * operation.
      */
     @SuppressWarnings("unchecked")
-    protected Spliterator<?> sourceSpliterator(int terminalFlags) throws X_OUT {
+    protected Spliterator<?, X_OUT> sourceSpliterator(int terminalFlags) {
         // Get the source spliterator of the pipeline
-        Spliterator<?> spliterator = null;
+        Spliterator<?, X_OUT> spliterator = null;
         if (sourceStage.sourceSpliterator != null) {
             spliterator = sourceStage.sourceSpliterator;
             sourceStage.sourceSpliterator = null;
@@ -493,7 +494,12 @@ abstract class AbstractPipeline<E_IN, throws X_IN, E_OUT, throws X_OUT extends X
                         thisOpFlags = thisOpFlags & ~StreamOpFlag.IS_SHORT_CIRCUIT;
                     }
 
-                    spliterator = p.opEvaluateParallelLazy(u, spliterator);
+                    try {
+                        spliterator = p.opEvaluateParallelLazy(u,spliterator);
+                    } catch (Exception ex) {
+                        CheckedExceptions.rethrowUncheckedException(ex);
+                        spliterator = Spliterators.throwingSpliterator((X_OUT)ex);
+                    }
 
                     // Inject or clear SIZED on the source pipeline stage
                     // based on the stage's spliterator
@@ -571,7 +577,7 @@ abstract class AbstractPipeline<E_IN, throws X_IN, E_OUT, throws X_OUT extends X
         try {
             if (!StreamOpFlag.SHORT_CIRCUIT.isKnown(getStreamAndOpFlags())) {
                 wrappedSink.begin(spliterator.getExactSizeIfKnown());
-                spliterator.forEachRemaining(CheckedExceptions.wrap(wrappedSink));
+                spliterator.forEachRemaining(wrappedSink);
                 wrappedSink.end();
             } else {
                 copyIntoWithCancel(wrappedSink, spliterator);

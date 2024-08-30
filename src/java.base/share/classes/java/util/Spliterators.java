@@ -99,6 +99,49 @@ public final class Spliterators {
         return EmptySpliterator.OfDouble.EMPTY_DOUBLE_SPLITERATOR;
     }
 
+    // Throwing spliterators
+
+    /**
+     * TBD
+     * @param <T> Type of elements
+     * @param <X> throws
+     * @param ex the exception
+     * @return TBD
+     */
+    public static <T, throws X> Spliterator<T, X> throwingSpliterator(X ex) {
+        return new ThrowingSpliterator.OfRef<>(ex);
+    }
+
+    /**
+     * TBD
+     * @param <X> throws
+     * @param ex the exception
+     * @return TBD
+     */
+    public static <throws X> Spliterator.OfInt<X> throwingIntSpliterator(X ex) {
+        return new ThrowingSpliterator.OfInt<>(ex);
+    }
+
+    /**
+     * TBD
+     * @param <X> throws
+     * @param ex the exception
+     * @return TBD
+     */
+    public static <throws X> Spliterator.OfLong<X> throwingLongSpliterator(X ex) {
+        return new ThrowingSpliterator.OfLong<>(ex);
+    }
+
+    /**
+     * TBD
+     * @param <X> throws
+     * @param ex the exception
+     * @return TBD
+     */
+    public static <throws X> Spliterator.OfDouble<X> throwingDoubleSpliterator(X ex) {
+        return new ThrowingSpliterator.OfDouble<>(ex);
+    }
+
     // Array-based spliterators
 
     /**

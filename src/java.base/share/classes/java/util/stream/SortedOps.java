@@ -397,7 +397,7 @@ final class SortedOps {
             list.sort(comparator);
             downstream.begin(list.size());
             if (!cancellationRequestedCalled) {
-                list.forEach(CheckedExceptions.wrap((Consumer<T, ?>)downstream::accept));
+                list.forEach(downstream::accept);
             }
             else {
                 for (T t : list) {
