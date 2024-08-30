@@ -1237,7 +1237,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
             return e;
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             final ReentrantLock lock = ArrayBlockingQueue.this.lock;
             lock.lock();
@@ -1445,7 +1445,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     /**
      * @throws NullPointerException {@inheritDoc}
      */
-    public void forEach(Consumer<? super E> action) {
+    public <throws X> void forEach(Consumer<? super E, X> action) throws X {
         Objects.requireNonNull(action);
         final ReentrantLock lock = this.lock;
         lock.lock();

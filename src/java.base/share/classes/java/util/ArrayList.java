@@ -1074,7 +1074,7 @@ public class ArrayList<E> extends AbstractList<E>
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             final int size = ArrayList.this.size;
             int i = cursor;
@@ -1406,7 +1406,7 @@ public class ArrayList<E> extends AbstractList<E>
                     return (E) elementData[offset + (lastRet = i)];
                 }
 
-                public void forEachRemaining(Consumer<? super E> action) {
+                public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
                     Objects.requireNonNull(action);
                     final int size = SubList.this.size;
                     int i = cursor;
@@ -1535,7 +1535,7 @@ public class ArrayList<E> extends AbstractList<E>
                         root.new ArrayListSpliterator(lo, index = mid, expectedModCount);
                 }
 
-                public boolean tryAdvance(Consumer<? super E> action) {
+                public <throws X> boolean tryAdvance(Consumer<? super E, X> action) throws X {
                     Objects.requireNonNull(action);
                     int hi = getFence(), i = index;
                     if (i < hi) {
@@ -1549,7 +1549,7 @@ public class ArrayList<E> extends AbstractList<E>
                     return false;
                 }
 
-                public void forEachRemaining(Consumer<? super E> action) {
+                public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
                     Objects.requireNonNull(action);
                     int i, hi, mc; // hoist accesses and checks from loop
                     ArrayList<E> lst = root;
@@ -1588,7 +1588,7 @@ public class ArrayList<E> extends AbstractList<E>
      * @throws NullPointerException {@inheritDoc}
      */
     @Override
-    public void forEach(Consumer<? super E> action) {
+    public <throws X> void forEach(Consumer<? super E, X> action) throws X {
         Objects.requireNonNull(action);
         final int expectedModCount = modCount;
         final Object[] es = elementData;
@@ -1676,7 +1676,7 @@ public class ArrayList<E> extends AbstractList<E>
                 new ArrayListSpliterator(lo, index = mid, expectedModCount);
         }
 
-        public boolean tryAdvance(Consumer<? super E> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super E, X> action) throws X {
             if (action == null)
                 throw new NullPointerException();
             int hi = getFence(), i = index;
@@ -1691,7 +1691,7 @@ public class ArrayList<E> extends AbstractList<E>
             return false;
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             int i, hi, mc; // hoist accesses and checks from loop
             Object[] a;
             if (action == null)

@@ -1599,7 +1599,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         return (v = get(key)) == null ? defaultValue : v;
     }
 
-    public void forEach(BiConsumer<? super K, ? super V> action) {
+    public <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
         if (action == null) throw new NullPointerException();
         Node<K,V>[] t;
         if ((t = table) != null) {
@@ -3572,13 +3572,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                         f, est >>>= 1);
         }
 
-        public void forEachRemaining(Consumer<? super K> action) {
+        public <throws X> void forEachRemaining(Consumer<? super K, X> action) throws X {
             if (action == null) throw new NullPointerException();
             for (Node<K,V> p; (p = advance()) != null;)
                 action.accept(p.key);
         }
 
-        public boolean tryAdvance(Consumer<? super K> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super K, X> action) throws X {
             if (action == null) throw new NullPointerException();
             Node<K,V> p;
             if ((p = advance()) == null)
@@ -3611,13 +3611,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                           f, est >>>= 1);
         }
 
-        public void forEachRemaining(Consumer<? super V> action) {
+        public <throws X> void forEachRemaining(Consumer<? super V, X> action) throws X {
             if (action == null) throw new NullPointerException();
             for (Node<K,V> p; (p = advance()) != null;)
                 action.accept(p.val);
         }
 
-        public boolean tryAdvance(Consumer<? super V> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super V, X> action) throws X {
             if (action == null) throw new NullPointerException();
             Node<K,V> p;
             if ((p = advance()) == null)
@@ -3651,13 +3651,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                           f, est >>>= 1, map);
         }
 
-        public void forEachRemaining(Consumer<? super Map.Entry<K,V>> action) {
+        public <throws X> void forEachRemaining(Consumer<? super Map.Entry<K,V>, X> action) throws X {
             if (action == null) throw new NullPointerException();
             for (Node<K,V> p; (p = advance()) != null; )
                 action.accept(new MapEntry<K,V>(p.key, p.val, map));
         }
 
-        public boolean tryAdvance(Consumer<? super Map.Entry<K,V>> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super Map.Entry<K,V>, X> action) throws X {
             if (action == null) throw new NullPointerException();
             Node<K,V> p;
             if ((p = advance()) == null)
@@ -4705,7 +4705,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             return new KeySpliterator<K,V>(t, f, 0, f, n < 0L ? 0L : n);
         }
 
-        public void forEach(Consumer<? super K> action) {
+        public <throws X> void forEach(Consumer<? super K, X> action) throws X {
             if (action == null) throw new NullPointerException();
             Node<K,V>[] t;
             if ((t = map.table) != null) {
@@ -4779,7 +4779,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             return new ValueSpliterator<K,V>(t, f, 0, f, n < 0L ? 0L : n);
         }
 
-        public void forEach(Consumer<? super V> action) {
+        public <throws X> void forEach(Consumer<? super V, X> action) throws X {
             if (action == null) throw new NullPointerException();
             Node<K,V>[] t;
             if ((t = map.table) != null) {
@@ -4871,7 +4871,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             return new EntrySpliterator<K,V>(t, f, 0, f, n < 0L ? 0L : n, m);
         }
 
-        public void forEach(Consumer<? super Map.Entry<K,V>> action) {
+        public <throws X> void forEach(Consumer<? super Map.Entry<K,V>, X> action) throws X {
             if (action == null) throw new NullPointerException();
             Node<K,V>[] t;
             if ((t = map.table) != null) {

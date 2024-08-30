@@ -310,8 +310,10 @@ public interface Spliterator<T, throws X> {
      * upon entry to this method, else {@code true}.
      * @throws NullPointerException if the specified action is null
      * @throws X throws
+     * @throws X1 throws
+     * @param <X1> TBD
      */
-     boolean tryAdvance(Consumer<? super T> action) throws X;
+     <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X, X1;
 
     /**
      * Performs the given action for each remaining element, sequentially in
@@ -330,8 +332,10 @@ public interface Spliterator<T, throws X> {
      * @param action The action
      * @throws NullPointerException if the specified action is null
      * @throws X throws
+     * @throws X1 throws
+     * @param <X1> TBD
      */
-    default void forEachRemaining(Consumer<? super T> action) throws X {
+    default <throws X1> void forEachRemaining(Consumer<? super T, X1> action) throws X, X1 {
         do { } while (tryAdvance(action));
     }
 
@@ -691,7 +695,7 @@ public interface Spliterator<T, throws X> {
          * {@link #tryAdvance(java.util.function.IntConsumer)}.
          */
         @Override
-        default boolean tryAdvance(Consumer<? super Integer> action) throws X {
+        default <throws X1> boolean tryAdvance(Consumer<? super Integer, X1> action) throws X, X1 {
             if (action instanceof IntConsumer) {
                 return tryAdvance((IntConsumer) action);
             }
@@ -699,7 +703,7 @@ public interface Spliterator<T, throws X> {
                 if (Tripwire.ENABLED)
                     Tripwire.trip(getClass(),
                                   "{0} calling Spliterator.OfInt.tryAdvance((IntConsumer) action::accept)");
-                return tryAdvance((IntConsumer) action::accept);
+                return tryAdvance((IntConsumer) wrapException(action)::accept);
             }
         }
 
@@ -714,7 +718,7 @@ public interface Spliterator<T, throws X> {
          * {@link #forEachRemaining(java.util.function.IntConsumer)}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Integer> action) throws X {
+        default <throws X1> void forEachRemaining(Consumer<? super Integer, X1> action) throws X, X1 {
             if (action instanceof IntConsumer) {
                 forEachRemaining((IntConsumer) action);
             }
@@ -722,7 +726,7 @@ public interface Spliterator<T, throws X> {
                 if (Tripwire.ENABLED)
                     Tripwire.trip(getClass(),
                                   "{0} calling Spliterator.OfInt.forEachRemaining((IntConsumer) action::accept)");
-                forEachRemaining((IntConsumer) action::accept);
+                forEachRemaining((IntConsumer) wrapException(action)::accept);
             }
         }
     }
@@ -757,7 +761,7 @@ public interface Spliterator<T, throws X> {
          * {@link #tryAdvance(java.util.function.LongConsumer)}.
          */
         @Override
-        default boolean tryAdvance(Consumer<? super Long> action) throws X {
+        default <throws X1> boolean tryAdvance(Consumer<? super Long, X1> action) throws X, X1 {
             if (action instanceof LongConsumer) {
                 return tryAdvance((LongConsumer) action);
             }
@@ -765,7 +769,7 @@ public interface Spliterator<T, throws X> {
                 if (Tripwire.ENABLED)
                     Tripwire.trip(getClass(),
                                   "{0} calling Spliterator.OfLong.tryAdvance((LongConsumer) action::accept)");
-                return tryAdvance((LongConsumer) action::accept);
+                return tryAdvance((LongConsumer) wrapException(action)::accept);
             }
         }
 
@@ -780,7 +784,7 @@ public interface Spliterator<T, throws X> {
          * {@link #forEachRemaining(java.util.function.LongConsumer)}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Long> action) throws X {
+        default <throws X1> void forEachRemaining(Consumer<? super Long, X1> action) throws X, X1 {
             if (action instanceof LongConsumer) {
                 forEachRemaining((LongConsumer) action);
             }
@@ -788,7 +792,7 @@ public interface Spliterator<T, throws X> {
                 if (Tripwire.ENABLED)
                     Tripwire.trip(getClass(),
                                   "{0} calling Spliterator.OfLong.forEachRemaining((LongConsumer) action::accept)");
-                forEachRemaining((LongConsumer) action::accept);
+                forEachRemaining((LongConsumer) wrapException(action)::accept);
             }
         }
     }
@@ -823,7 +827,7 @@ public interface Spliterator<T, throws X> {
          * {@link #tryAdvance(java.util.function.DoubleConsumer)}.
          */
         @Override
-        default boolean tryAdvance(Consumer<? super Double> action) throws X {
+        default <throws X1> boolean tryAdvance(Consumer<? super Double, X1> action) throws X, X1 {
             if (action instanceof DoubleConsumer) {
                 return tryAdvance((DoubleConsumer) action);
             }
@@ -831,7 +835,7 @@ public interface Spliterator<T, throws X> {
                 if (Tripwire.ENABLED)
                     Tripwire.trip(getClass(),
                                   "{0} calling Spliterator.OfDouble.tryAdvance((DoubleConsumer) action::accept)");
-                return tryAdvance((DoubleConsumer) action::accept);
+                return tryAdvance((DoubleConsumer) wrapException(action)::accept);
             }
         }
 
@@ -847,7 +851,7 @@ public interface Spliterator<T, throws X> {
          * {@link #forEachRemaining(java.util.function.DoubleConsumer)}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Double> action) throws X {
+        default <throws X1> void forEachRemaining(Consumer<? super Double, X1> action) throws X, X1 {
             if (action instanceof DoubleConsumer) {
                 forEachRemaining((DoubleConsumer) action);
             }
@@ -855,8 +859,19 @@ public interface Spliterator<T, throws X> {
                 if (Tripwire.ENABLED)
                     Tripwire.trip(getClass(),
                                   "{0} calling Spliterator.OfDouble.forEachRemaining((DoubleConsumer) action::accept)");
-                forEachRemaining((DoubleConsumer) action::accept);
+                forEachRemaining((DoubleConsumer) wrapException(action)::accept);
             }
         }
+    }
+
+    private static <T, throws X> Consumer<T> wrapException(Consumer<T, X> c) {
+        return x -> {
+            try {
+                c.accept(x);
+            } catch (Exception ex) {
+                if (ex instanceof RuntimeException rex) throw rex;
+                throw new RuntimeException(ex);
+            }
+        };
     }
 }

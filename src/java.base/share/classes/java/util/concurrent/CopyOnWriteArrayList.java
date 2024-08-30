@@ -884,7 +884,7 @@ public class CopyOnWriteArrayList<E>
     /**
      * @throws NullPointerException {@inheritDoc}
      */
-    public void forEach(Consumer<? super E> action) {
+    public <throws X> void forEach(Consumer<? super E, X> action) throws X {
         Objects.requireNonNull(action);
         for (Object x : getArray()) {
             @SuppressWarnings("unchecked") E e = (E) x;
@@ -1227,7 +1227,7 @@ public class CopyOnWriteArrayList<E>
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             final int size = snapshot.length;
             int i = cursor;
@@ -1593,7 +1593,7 @@ public class CopyOnWriteArrayList<E>
             }
         }
 
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             int i, end; final Object[] es;
             synchronized (lock) {
@@ -1714,7 +1714,7 @@ public class CopyOnWriteArrayList<E>
 
         @Override
         @SuppressWarnings("unchecked")
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             while (hasNext()) {
                 action.accept(it.next());
@@ -1812,7 +1812,7 @@ public class CopyOnWriteArrayList<E>
 
         // ========== Iterable ==========
 
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {
             for (E e : this)
                 action.accept(e);
         }

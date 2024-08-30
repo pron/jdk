@@ -167,7 +167,7 @@ public final class CodeImpl
     }
 
     @Override
-    public void forEach(Consumer<? super CodeElement> consumer) {
+    public <throws X> void forEach(Consumer<? super CodeElement, X> consumer) throws X {
         Objects.requireNonNull(consumer);
         inflateMetadata();
         boolean doLineNumbers = (lineNumbers != null);
@@ -331,7 +331,7 @@ public final class CodeImpl
         findAttribute(Attributes.runtimeInvisibleTypeAnnotations()).ifPresent(RuntimeInvisibleTypeAnnotationsAttribute::annotations);
     }
 
-    private void generateCatchTargets(Consumer<? super CodeElement> consumer) {
+    private <throws X> void generateCatchTargets(Consumer<? super CodeElement, X> consumer) throws X {
         // We attach all catch targets to bci zero, because trying to attach them
         // to their range could subtly affect the order of exception processing
         iterateExceptionHandlers(new ExceptionHandlerAction() {
@@ -340,12 +340,14 @@ public final class CodeImpl
                 ClassEntry catchType = c == 0
                                                     ? null
                                                     : classReader.entryByIndex(c, ClassEntry.class);
-                consumer.accept(new AbstractPseudoInstruction.ExceptionCatchImpl(getLabel(h), getLabel(s), getLabel(e), catchType));
+                @SuppressWarnings("unchecked")
+                var consumer0 = (Consumer<? super CodeElement>)consumer; // erase exception
+                consumer0.accept(new AbstractPseudoInstruction.ExceptionCatchImpl(getLabel(h), getLabel(s), getLabel(e), catchType));
             }
         });
     }
 
-    private void generateDebugElements(Consumer<? super CodeElement> consumer) {
+    private <throws X> void generateDebugElements(Consumer<? super CodeElement, X> consumer) throws X {
         for (Attribute<?> a : attributes()) {
             if (a.attributeMapper() == Attributes.characterRangeTable()) {
                 var attr = (BoundCharacterRangeTableAttribute) a;

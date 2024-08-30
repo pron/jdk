@@ -172,8 +172,10 @@ public final class Optional<T> {
      * @param action the action to be performed, if a value is present
      * @throws NullPointerException if value is present and the given action is
      *         {@code null}
+     * @throws X TBD
+     * @param <X> throws
      */
-    public void ifPresent(Consumer<? super T> action) {
+    public <throws X> void ifPresent(Consumer<? super T, X> action) throws X {
         if (value != null) {
             action.accept(value);
         }
@@ -189,9 +191,11 @@ public final class Optional<T> {
      * @throws NullPointerException if a value is present and the given action
      *         is {@code null}, or no value is present and the given empty-based
      *         action is {@code null}.
+     * @throws X TBD
+     * @param <X> throws
      * @since 9
      */
-    public void ifPresentOrElse(Consumer<? super T> action, Runnable emptyAction) {
+    public <throws X> void ifPresentOrElse(Consumer<? super T, X> action, Runnable emptyAction) throws X {
         if (value != null) {
             action.accept(value);
         } else {
@@ -209,8 +213,10 @@ public final class Optional<T> {
      *         {@code Optional}, if a value is present and the value matches the
      *         given predicate, otherwise an empty {@code Optional}
      * @throws NullPointerException if the predicate is {@code null}
+     * @throws X TBD
+     * @param <X> throws
      */
-    public Optional<T> filter(Predicate<? super T> predicate) {
+    public <throws X> Optional<T> filter(Predicate<? super T, X> predicate) throws X {
         Objects.requireNonNull(predicate);
         if (isEmpty()) {
             return this;
@@ -251,8 +257,10 @@ public final class Optional<T> {
      *         function to the value of this {@code Optional}, if a value is
      *         present, otherwise an empty {@code Optional}
      * @throws NullPointerException if the mapping function is {@code null}
+     * @throws X TBD
+     * @param <X> throws
      */
-    public <U> Optional<U> map(Function<? super T, ? extends U> mapper) {
+    public <U, throws X> Optional<U> map(Function<? super T, ? extends U, X> mapper) throws X {
         Objects.requireNonNull(mapper);
         if (isEmpty()) {
             return empty();
@@ -279,8 +287,10 @@ public final class Optional<T> {
      *         present, otherwise an empty {@code Optional}
      * @throws NullPointerException if the mapping function is {@code null} or
      *         returns a {@code null} result
+     * @throws X TBD
+     * @param <X> throws
      */
-    public <U> Optional<U> flatMap(Function<? super T, ? extends Optional<? extends U>> mapper) {
+    public <U, throws X> Optional<U> flatMap(Function<? super T, ? extends Optional<? extends U>, X> mapper) throws X {
         Objects.requireNonNull(mapper);
         if (isEmpty()) {
             return empty();
@@ -302,9 +312,11 @@ public final class Optional<T> {
      *         {@code Optional} produced by the supplying function.
      * @throws NullPointerException if the supplying function is {@code null} or
      *         produces a {@code null} result
+     * @throws X TBD
+     * @param <X> throws
      * @since 9
      */
-    public Optional<T> or(Supplier<? extends Optional<? extends T>> supplier) {
+    public <throws X> Optional<T> or(Supplier<? extends Optional<? extends T>, X> supplier) throws X {
         Objects.requireNonNull(supplier);
         if (isPresent()) {
             return this;
@@ -359,8 +371,10 @@ public final class Optional<T> {
      *         supplying function
      * @throws NullPointerException if no value is present and the supplying
      *         function is {@code null}
+     * @throws X TBD
+     * @param <X> throws
      */
-    public T orElseGet(Supplier<? extends T> supplier) {
+    public <throws X> T orElseGet(Supplier<? extends T, X> supplier) throws X {
         return value != null ? value : supplier.get();
     }
 

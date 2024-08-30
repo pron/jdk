@@ -1006,7 +1006,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             return keysToArray(prepareArray(a));
         }
 
-        public final void forEach(Consumer<? super K> action) {
+        public final <throws X> void forEach(Consumer<? super K, X> action) throws X {
             Node<K,V>[] tab;
             if (action == null)
                 throw new NullPointerException();
@@ -1063,7 +1063,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             return valuesToArray(prepareArray(a));
         }
 
-        public final void forEach(Consumer<? super V> action) {
+        public final <throws X> void forEach(Consumer<? super V, X> action) throws X {
             Node<K,V>[] tab;
             if (action == null)
                 throw new NullPointerException();
@@ -1124,7 +1124,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         public final Spliterator<Map.Entry<K,V>> spliterator() {
             return new EntrySpliterator<>(HashMap.this, 0, -1, 0, 0);
         }
-        public final void forEach(Consumer<? super Map.Entry<K,V>> action) {
+        public final <throws X> void forEach(Consumer<? super Map.Entry<K,V>, X> action) throws X {
             Node<K,V>[] tab;
             if (action == null)
                 throw new NullPointerException();
@@ -1419,7 +1419,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     }
 
     @Override
-    public void forEach(BiConsumer<? super K, ? super V> action) {
+    public <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
         Node<K,V>[] tab;
         if (action == null)
             throw new NullPointerException();
@@ -1693,7 +1693,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                         expectedModCount);
         }
 
-        public void forEachRemaining(Consumer<? super K> action) {
+        public <throws X> void forEachRemaining(Consumer<? super K, X> action) throws X {
             int i, hi, mc;
             if (action == null)
                 throw new NullPointerException();
@@ -1722,7 +1722,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             }
         }
 
-        public boolean tryAdvance(Consumer<? super K> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super K, X> action) throws X {
             int hi;
             if (action == null)
                 throw new NullPointerException();
@@ -1765,7 +1765,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                           expectedModCount);
         }
 
-        public void forEachRemaining(Consumer<? super V> action) {
+        public <throws X> void forEachRemaining(Consumer<? super V, X> action) throws X {
             int i, hi, mc;
             if (action == null)
                 throw new NullPointerException();
@@ -1794,7 +1794,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             }
         }
 
-        public boolean tryAdvance(Consumer<? super V> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super V, X> action) throws X {
             int hi;
             if (action == null)
                 throw new NullPointerException();
@@ -1836,7 +1836,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                           expectedModCount);
         }
 
-        public void forEachRemaining(Consumer<? super Map.Entry<K,V>> action) {
+        public <throws X> void forEachRemaining(Consumer<? super Map.Entry<K,V>, X> action) throws X {
             int i, hi, mc;
             if (action == null)
                 throw new NullPointerException();
@@ -1865,7 +1865,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             }
         }
 
-        public boolean tryAdvance(Consumer<? super Map.Entry<K,V>> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super Map.Entry<K,V>, X> action) throws X {
             int hi;
             if (action == null)
                 throw new NullPointerException();

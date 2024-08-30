@@ -2864,7 +2864,7 @@ public final class Scanner implements Iterator<String>, Closeable {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super String> cons) {
+        public <throws X> boolean tryAdvance(Consumer<? super String, X> cons) throws X {
             if (expectedCount >= 0 && expectedCount != modCount) {
                 throw new ConcurrentModificationException();
             }
@@ -2976,7 +2976,7 @@ public final class Scanner implements Iterator<String>, Closeable {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super MatchResult> cons) {
+        public <throws X> boolean tryAdvance(Consumer<? super MatchResult, X> cons) throws X {
             ensureOpen();
             if (expectedCount >= 0) {
                 if (expectedCount != modCount) {

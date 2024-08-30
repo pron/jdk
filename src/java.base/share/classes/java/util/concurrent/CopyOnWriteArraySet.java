@@ -421,7 +421,7 @@ public class CopyOnWriteArraySet<E> extends AbstractSet<E>
     /**
      * @throws NullPointerException {@inheritDoc}
      */
-    public void forEach(Consumer<? super E> action) {
+    public <throws X> void forEach(Consumer<? super E, X> action) throws X {
         al.forEach(action);
     }
 

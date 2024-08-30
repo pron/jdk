@@ -390,7 +390,7 @@ final class Streams {
         // count == -2 for one element held by first
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> action) {
+        public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X1 {
             Objects.requireNonNull(action);
 
             if (count == -2) {
@@ -404,7 +404,7 @@ final class Streams {
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super T> action) {
+        public <throws X1> void forEachRemaining(Consumer<? super T, X1> action) throws X1 {
             Objects.requireNonNull(action);
 
             if (count == -2) {
@@ -714,7 +714,7 @@ final class Streams {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> consumer) throws X {
+        public <throws X1> boolean tryAdvance(Consumer<? super T, X1> consumer) throws X, X1 {
             boolean hasNext;
             if (beforeSplit) {
                 hasNext = aSpliterator.tryAdvance(consumer);
@@ -729,7 +729,7 @@ final class Streams {
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super T> consumer) throws X {
+        public <throws X1> void forEachRemaining(Consumer<? super T, X1> consumer) throws X, X1 {
             if (beforeSplit)
                 aSpliterator.forEachRemaining(consumer);
             bSpliterator.forEachRemaining(consumer);

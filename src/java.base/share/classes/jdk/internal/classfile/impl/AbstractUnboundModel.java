@@ -46,7 +46,7 @@ public abstract sealed class AbstractUnboundModel<E extends ClassFileElement>
     }
 
     @Override
-    public void forEach(Consumer<? super E> consumer) {
+    public <throws X> void forEach(Consumer<? super E, X> consumer) throws X {
         elements.forEach(consumer);
     }
 

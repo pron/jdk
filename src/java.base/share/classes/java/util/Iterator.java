@@ -129,9 +129,11 @@ public interface Iterator<E, throws X> {
      * @param action The action to be performed for each element
      * @throws NullPointerException if the specified action is null
      * @throws X TBD
+     * @throws X1 TBD
+     * @param <X1> throws
      * @since 1.8
      */
-    default void forEachRemaining(Consumer<? super E> action) throws X {
+    default <throws X1> void forEachRemaining(Consumer<? super E, X1> action) throws X, X1 {
         Objects.requireNonNull(action);
         while (hasNext())
             action.accept(next());

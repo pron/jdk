@@ -885,7 +885,7 @@ public class ConcurrentLinkedQueue<E> extends AbstractQueue<E>
                                                    Spliterator.CONCURRENT));
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             final Node<E> p;
             if ((p = current()) != null) {
@@ -895,7 +895,7 @@ public class ConcurrentLinkedQueue<E> extends AbstractQueue<E>
             }
         }
 
-        public boolean tryAdvance(Consumer<? super E> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             Node<E> p;
             if ((p = current()) != null) {
@@ -1029,7 +1029,7 @@ public class ConcurrentLinkedQueue<E> extends AbstractQueue<E>
      * Runs action on each element found during a traversal starting at p.
      * If p is null, the action is not run.
      */
-    void forEachFrom(Consumer<? super E> action, Node<E> p) {
+    <throws X> void forEachFrom(Consumer<? super E, X> action, Node<E> p) throws X {
         for (Node<E> pred = null; p != null; ) {
             Node<E> q = p.next;
             final E item;
@@ -1049,7 +1049,7 @@ public class ConcurrentLinkedQueue<E> extends AbstractQueue<E>
     /**
      * @throws NullPointerException {@inheritDoc}
      */
-    public void forEach(Consumer<? super E> action) {
+    public <throws X> void forEach(Consumer<? super E, X> action) throws X {
         Objects.requireNonNull(action);
         forEachFrom(action, head);
     }

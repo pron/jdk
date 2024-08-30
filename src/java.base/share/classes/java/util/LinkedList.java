@@ -962,7 +962,7 @@ public class LinkedList<E>
             expectedModCount++;
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             while (modCount == expectedModCount && nextIndex < size) {
                 action.accept(next.item);
@@ -1238,7 +1238,7 @@ public class LinkedList<E>
             return null;
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Node<E> p; int n;
             if (action == null) throw new NullPointerException();
             if ((n = getEst()) > 0 && (p = current) != null) {
@@ -1254,7 +1254,7 @@ public class LinkedList<E>
                 throw new ConcurrentModificationException();
         }
 
-        public boolean tryAdvance(Consumer<? super E> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super E, X> action) throws X {
             Node<E> p;
             if (action == null) throw new NullPointerException();
             if (getEst() > 0 && (p = current) != null) {
@@ -1337,7 +1337,7 @@ public class LinkedList<E>
             return rlist.toArray(generator);
         }
 
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {
             rlist.forEach(action);
         }
 

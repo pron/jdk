@@ -109,7 +109,7 @@ public final class FieldImpl
     }
 
     @Override
-    public void forEach(Consumer<? super FieldElement> consumer) {
+    public <throws X> void forEach(Consumer<? super FieldElement, X> consumer) throws X {
         consumer.accept(flags());
         for (Attribute<?> attr : attributes()) {
             if (attr instanceof FieldElement e)

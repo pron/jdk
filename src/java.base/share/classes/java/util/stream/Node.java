@@ -76,7 +76,7 @@ interface Node<T> {
      * @param consumer a {@code Consumer} that is to be invoked with each
      *        element in this {@code Node}
      */
-    void forEach(Consumer<? super T> consumer);
+    <throws X> void forEach(Consumer<? super T, X> consumer) throws X;
 
     /**
      * Returns the number of child nodes of this node.
@@ -326,7 +326,7 @@ interface Node<T> {
          *        elements may be processed without boxing.
          */
         @Override
-        default void forEach(Consumer<? super Integer> consumer) {
+        default <throws X> void forEach(Consumer<? super Integer, X> consumer) throws X {
             if (consumer instanceof IntConsumer) {
                 forEach((IntConsumer) consumer);
             }
@@ -404,7 +404,7 @@ interface Node<T> {
          *        the elements may be processed without boxing.
          */
         @Override
-        default void forEach(Consumer<? super Long> consumer) {
+        default <throws X> void forEach(Consumer<? super Long, X> consumer) throws X {
             if (consumer instanceof LongConsumer) {
                 forEach((LongConsumer) consumer);
             }
@@ -482,7 +482,7 @@ interface Node<T> {
          *        so the elements may be processed without boxing.
          */
         @Override
-        default void forEach(Consumer<? super Double> consumer) {
+        default <throws X> void forEach(Consumer<? super Double, X> consumer) throws X {
             if (consumer instanceof DoubleConsumer) {
                 forEach((DoubleConsumer) consumer);
             }

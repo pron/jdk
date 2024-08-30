@@ -736,7 +736,7 @@ public final class Spliterators {
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super T> action) throws X {
+            public <throws X1> void forEachRemaining(Consumer<? super T, X1> action) throws X, X1 {
                 Objects.requireNonNull(action);
                 if (valueReady) {
                     valueReady = false;
@@ -1133,7 +1133,7 @@ public final class Spliterators {
 
         @SuppressWarnings("unchecked")
         @Override
-        public void forEachRemaining(Consumer<? super T> action) {
+        public <throws X> void forEachRemaining(Consumer<? super T, X> action) throws X {
             Object[] a; int i, hi; // hoist accesses and checks from loop
             if (action == null)
                 throw new NullPointerException();
@@ -1144,7 +1144,7 @@ public final class Spliterators {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super T, X> action) throws X {
             if (action == null)
                 throw new NullPointerException();
             if (index >= 0 && index < fence) {
@@ -2055,7 +2055,7 @@ public final class Spliterators {
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super T> action) throws X {
+        public <throws X1> void forEachRemaining(Consumer<? super T, X1> action) throws X, X1 {
             if (action == null) throw new NullPointerException();
             Iterator<? extends T, X> i;
             if ((i = it) == null) {
@@ -2066,7 +2066,7 @@ public final class Spliterators {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> action) throws X {
+        public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X, X1 {
             if (action == null) throw new NullPointerException();
             if (it == null) {
                 it = collection.iterator();

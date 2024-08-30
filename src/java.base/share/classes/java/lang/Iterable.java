@@ -67,9 +67,11 @@ public interface Iterable<T> {
      *
      * @param action The action to be performed for each element
      * @throws NullPointerException if the specified action is null
+     * @throws X1 TBD
+     * @param <X1> throws
      * @since 1.8
      */
-    default void forEach(Consumer<? super T> action) {
+    default <throws X1> void forEach(Consumer<? super T, X1> action) throws X1 {
         Objects.requireNonNull(action);
         for (T t : this) {
             action.accept(t);

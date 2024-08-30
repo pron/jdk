@@ -584,7 +584,7 @@ public class ZipFile implements ZipConstants, Closeable {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super T, X> action) throws X {
             if (action == null)
                 throw new NullPointerException();
             if (index >= 0 && index < fence) {

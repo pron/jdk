@@ -1544,7 +1544,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
             boolean started;
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> action) {
+            public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X1 {
                 Objects.requireNonNull(action);
                 T t;
                 if (started)
@@ -1607,7 +1607,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
             boolean started, finished;
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> action) {
+            public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X1 {
                 Objects.requireNonNull(action);
                 if (finished)
                     return false;
@@ -1628,7 +1628,7 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super T> action) {
+            public <throws X1> void forEachRemaining(Consumer<? super T, X1> action) throws X1 {
                 Objects.requireNonNull(action);
                 if (finished)
                     return;

@@ -1114,7 +1114,7 @@ public class LinkedBlockingDeque<E>
             return x;
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             // A variant of forEachFrom
             Objects.requireNonNull(action);
             Node<E> p;
@@ -1233,7 +1233,7 @@ public class LinkedBlockingDeque<E>
             return null;
         }
 
-        public boolean tryAdvance(Consumer<? super E> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             if (!exhausted) {
                 E e = null;
@@ -1259,7 +1259,7 @@ public class LinkedBlockingDeque<E>
             return false;
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             if (!exhausted) {
                 exhausted = true;
@@ -1299,7 +1299,7 @@ public class LinkedBlockingDeque<E>
     /**
      * @throws NullPointerException {@inheritDoc}
      */
-    public void forEach(Consumer<? super E> action) {
+    public <throws X> void forEach(Consumer<? super E, X> action) throws X {
         Objects.requireNonNull(action);
         forEachFrom(action, null);
     }
@@ -1308,7 +1308,7 @@ public class LinkedBlockingDeque<E>
      * Runs action on each element found during a traversal starting at p.
      * If p is null, traversal starts at head.
      */
-    void forEachFrom(Consumer<? super E> action, Node<E> p) {
+    <throws X> void forEachFrom(Consumer<? super E, X> action, Node<E> p) throws X {
         // Extract batches of elements while holding the lock; then
         // run the action on the elements while not
         final ReentrantLock lock = this.lock;

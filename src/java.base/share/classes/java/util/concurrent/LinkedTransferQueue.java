@@ -941,7 +941,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
             return e;
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             DualNode q = null;
             for (DualNode p; (p = nextNode) != null; advance(q = p))
@@ -1027,7 +1027,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
                                                    Spliterator.CONCURRENT));
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             final DualNode p;
             if ((p = current()) != null) {
@@ -1038,7 +1038,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         }
 
         @SuppressWarnings("unchecked")
-        public boolean tryAdvance(Consumer<? super E> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             DualNode p;
             if ((p = current()) != null) {
@@ -1586,7 +1586,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
      * If p is null, the action is not run.
      */
     @SuppressWarnings("unchecked")
-    void forEachFrom(Consumer<? super E> action, DualNode p) {
+    <throws X> void forEachFrom(Consumer<? super E, X> action, DualNode p) throws X {
         for (DualNode pred = null; p != null; ) {
             boolean isData = p.isData;
             Object item = p.item;
@@ -1611,7 +1611,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
     /**
      * @throws NullPointerException {@inheritDoc}
      */
-    public void forEach(Consumer<? super E> action) {
+    public <throws X> void forEach(Consumer<? super E, X> action) throws X {
         Objects.requireNonNull(action);
         forEachFrom(action, head);
     }

@@ -1373,7 +1373,7 @@ public final class Matcher implements MatchResult {
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super MatchResult> action) {
+            public <throws X> void forEachRemaining(Consumer<? super MatchResult, X> action) throws X {
                 if (expectedCount >= 0 && expectedCount != modCount)
                     throw new ConcurrentModificationException();
 

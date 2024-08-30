@@ -681,7 +681,7 @@ final class Nodes {
         }
 
         @Override
-        public void forEach(Consumer<? super T> consumer) {
+        public <throws X> void forEach(Consumer<? super T, X> consumer) throws X {
             for (int i = 0; i < curSize; i++) {
                 consumer.accept(array[i]);
             }
@@ -729,7 +729,7 @@ final class Nodes {
         }
 
         @Override
-        public void forEach(Consumer<? super T> consumer) {
+        public <throws X> void forEach(Consumer<? super T, X> consumer) throws X {
             c.forEach(consumer);
         }
 
@@ -810,7 +810,7 @@ final class Nodes {
         }
 
         @Override
-        public void forEach(Consumer<? super T> consumer) {
+        public <throws X> void forEach(Consumer<? super T, X> consumer) throws X {
             left.forEach(consumer);
             right.forEach(consumer);
         }
@@ -1069,7 +1069,7 @@ final class Nodes {
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> consumer) {
+            public <throws X> boolean tryAdvance(Consumer<? super T, X> consumer) throws X {
                 if (!initTryAdvance())
                     return false;
 
@@ -1091,7 +1091,7 @@ final class Nodes {
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super T> consumer) {
+            public <throws X> void forEachRemaining(Consumer<? super T, X> consumer) throws X {
                 if (curNode == null)
                     return;
 
@@ -1266,7 +1266,7 @@ final class Nodes {
         }
 
         @Override
-        public void forEach(Consumer<? super T> consumer) {
+        public <throws X> void forEach(Consumer<? super T, X> consumer) throws X {
             assert !building : "during building";
             super.forEach(consumer);
         }

@@ -4260,7 +4260,7 @@ public final class Arrays {
         }
 
         @Override
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             for (E e : a) {
                 action.accept(e);

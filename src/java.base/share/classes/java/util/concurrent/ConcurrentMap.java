@@ -104,10 +104,12 @@ public interface ConcurrentMap<K,V> extends Map<K,V> {
      * be processed. Operation continues for subsequent entries.
      *
      * @throws NullPointerException {@inheritDoc}
+     * @throws X TBD
+     * @param <X> throws
      * @since 1.8
      */
     @Override
-    default void forEach(BiConsumer<? super K, ? super V> action) {
+    default <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
         Objects.requireNonNull(action);
         for (Map.Entry<K,V> entry : entrySet()) {
             K k;

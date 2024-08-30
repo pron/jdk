@@ -880,7 +880,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
         public void clear() { view().clear(); }
         public boolean contains(Object o) { return view().contains(o); }
         public boolean containsAll(Collection<?> c) { return view().containsAll(c); }
-        public void forEach(Consumer<? super E> c) { view().forEach(c); }
+        public <throws X> void forEach(Consumer<? super E, X> c) throws X { view().forEach(c); }
         public boolean isEmpty() { return view().isEmpty(); }
         public Iterator<E> iterator() { return view().iterator(); }
         public Stream<E> parallelStream() { return view().parallelStream(); }

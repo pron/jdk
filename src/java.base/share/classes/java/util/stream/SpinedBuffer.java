@@ -239,7 +239,7 @@ class SpinedBuffer<E>
     }
 
     @Override
-    public void forEach(Consumer<? super E> consumer) {
+    public <throws X> void forEach(Consumer<? super E, X> consumer) throws X {
         // completed chunks, if any
         for (int j = 0; j < spineIndex; j++)
             for (E t : spine[j])
@@ -324,7 +324,7 @@ class SpinedBuffer<E>
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super E> consumer) {
+            public <throws X> boolean tryAdvance(Consumer<? super E, X> consumer) throws X {
                 Objects.requireNonNull(consumer);
 
                 if (splSpineIndex < lastSpineIndex
@@ -343,7 +343,7 @@ class SpinedBuffer<E>
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super E> consumer) {
+            public <throws X> void forEachRemaining(Consumer<? super E, X> consumer) throws X {
                 Objects.requireNonNull(consumer);
 
                 if (splSpineIndex < lastSpineIndex
@@ -465,7 +465,7 @@ class SpinedBuffer<E>
         public abstract Iterator<E> iterator();
 
         @Override
-        public abstract void forEach(Consumer<? super E> consumer);
+        public abstract <throws X> void forEach(Consumer<? super E, X> consumer) throws X;
 
         /** Create a new array-of-array of the proper type and size */
         protected abstract T_ARR[] newArrayArray(int size);
@@ -730,7 +730,7 @@ class SpinedBuffer<E>
         }
 
         @Override
-        public void forEach(Consumer<? super Integer> consumer) {
+        public <throws X> void forEach(Consumer<? super Integer, X> consumer) throws X {
             if (consumer instanceof IntConsumer) {
                 forEach((IntConsumer) consumer);
             }
@@ -845,7 +845,7 @@ class SpinedBuffer<E>
         }
 
         @Override
-        public void forEach(Consumer<? super Long> consumer) {
+        public <throws X> void forEach(Consumer<? super Long, X> consumer) throws X {
             if (consumer instanceof LongConsumer) {
                 forEach((LongConsumer) consumer);
             }
@@ -962,7 +962,7 @@ class SpinedBuffer<E>
         }
 
         @Override
-        public void forEach(Consumer<? super Double> consumer) {
+        public <throws X> void forEach(Consumer<? super Double, X> consumer) throws X {
             if (consumer instanceof DoubleConsumer) {
                 forEach((DoubleConsumer) consumer);
             }
@@ -1062,6 +1062,17 @@ class SpinedBuffer<E>
                                      spineIndex, Arrays.toString(array2));
             }
         }
+    }
+
+    private static <T, throws X> Consumer<T> wrapException(Consumer<T, X> c) {
+        return x -> {
+            try {
+                c.accept(x);
+            } catch (Exception ex) {
+                if (ex instanceof RuntimeException rex) throw rex;
+                throw new RuntimeException(ex);
+            }
+        };
     }
 }
 

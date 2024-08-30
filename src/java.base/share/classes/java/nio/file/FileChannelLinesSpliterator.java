@@ -113,7 +113,7 @@ final class FileChannelLinesSpliterator implements Spliterator<String> {
     }
 
     @Override
-    public boolean tryAdvance(Consumer<? super String> action) {
+    public <throws X> boolean tryAdvance(Consumer<? super String, X> action) throws X {
         String line = readLine();
         if (line != null) {
             action.accept(line);
@@ -124,7 +124,7 @@ final class FileChannelLinesSpliterator implements Spliterator<String> {
     }
 
     @Override
-    public void forEachRemaining(Consumer<? super String> action) {
+    public <throws X> void forEachRemaining(Consumer<? super String, X> action) throws X {
         String line;
         while ((line = readLine()) != null) {
             action.accept(line);

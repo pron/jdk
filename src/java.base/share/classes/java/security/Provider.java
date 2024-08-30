@@ -785,8 +785,8 @@ public abstract class Provider extends Properties {
      * @since 1.8
      */
     @Override
-    public synchronized void forEach(BiConsumer<? super Object, ? super Object>
-            action) {
+    public synchronized <throws X> void forEach(BiConsumer<? super Object, ? super Object, X>
+            action) throws X {
         checkInitialized();
         super.forEach(action);
     }

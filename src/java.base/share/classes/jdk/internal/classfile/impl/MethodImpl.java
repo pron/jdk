@@ -122,7 +122,7 @@ public final class MethodImpl
     }
 
     @Override
-    public void forEach(Consumer<? super MethodElement> consumer) {
+    public <throws X> void forEach(Consumer<? super MethodElement, X> consumer) throws X {
         consumer.accept(flags());
         for (Attribute<?> attr : attributes()) {
             if (attr instanceof MethodElement e)

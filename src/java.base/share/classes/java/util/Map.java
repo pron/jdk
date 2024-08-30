@@ -716,9 +716,11 @@ public interface Map<K, V> {
      * @throws NullPointerException if the specified action is null
      * @throws ConcurrentModificationException if an entry is found to be
      * removed during iteration
+     * @throws X TBD
+     * @param <X> throwws
      * @since 1.8
      */
-    default void forEach(BiConsumer<? super K, ? super V> action) {
+    default <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
         Objects.requireNonNull(action);
         for (Map.Entry<K, V> entry : entrySet()) {
             K k;

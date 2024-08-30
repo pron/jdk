@@ -101,7 +101,7 @@ class ReverseOrderSortedSetView<E> implements SortedSet<E> {
 
     // ========== Iterable ==========
 
-    public void forEach(Consumer<? super E> action) {
+    public <throws X> void forEach(Consumer<? super E, X> action) throws X {
         for (E e : this)
             action.accept(e);
     }

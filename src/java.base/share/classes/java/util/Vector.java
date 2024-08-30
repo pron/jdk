@@ -1267,7 +1267,7 @@ public class Vector<E>
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             synchronized (Vector.this) {
                 final int size = elementCount;
@@ -1350,7 +1350,7 @@ public class Vector<E>
      * @throws NullPointerException {@inheritDoc}
      */
     @Override
-    public synchronized void forEach(Consumer<? super E> action) {
+    public synchronized <throws X> void forEach(Consumer<? super E, X> action) throws X {
         Objects.requireNonNull(action);
         final int expectedModCount = modCount;
         final Object[] es = elementData;

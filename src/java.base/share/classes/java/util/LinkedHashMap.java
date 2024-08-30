@@ -718,7 +718,7 @@ public class LinkedHashMap<K,V>
             return keysToArray(prepareArray(a), reversed);
         }
 
-        public final void forEach(Consumer<? super K> action) {
+        public final <throws X> void forEach(Consumer<? super K, X> action) throws X {
             if (action == null)
                 throw new NullPointerException();
             int mc = modCount;
@@ -822,7 +822,7 @@ public class LinkedHashMap<K,V>
             return valuesToArray(prepareArray(a), reversed);
         }
 
-        public final void forEach(Consumer<? super V> action) {
+        public final <throws X> void forEach(Consumer<? super V, X> action) throws X {
             if (action == null)
                 throw new NullPointerException();
             int mc = modCount;
@@ -934,7 +934,7 @@ public class LinkedHashMap<K,V>
                                             Spliterator.ORDERED |
                                             Spliterator.DISTINCT);
         }
-        public final void forEach(Consumer<? super Map.Entry<K,V>> action) {
+        public final <throws X> void forEach(Consumer<? super Map.Entry<K,V>, X> action) throws X {
             if (action == null)
                 throw new NullPointerException();
             int mc = modCount;
@@ -979,7 +979,7 @@ public class LinkedHashMap<K,V>
 
     // Map overrides
 
-    public void forEach(BiConsumer<? super K, ? super V> action) {
+    public <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
         if (action == null)
             throw new NullPointerException();
         int mc = modCount;
@@ -1168,7 +1168,7 @@ public class LinkedHashMap<K,V>
             return base.getOrDefault(key, defaultValue);
         }
 
-        public void forEach(BiConsumer<? super K, ? super V> action) {
+        public <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
             if (action == null)
                 throw new NullPointerException();
             int mc = base.modCount;

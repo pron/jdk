@@ -1081,7 +1081,7 @@ public class Collections {
                     throw new UnsupportedOperationException();
                 }
                 @Override
-                public void forEachRemaining(Consumer<? super E> action) {
+                public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
                     // Use backing collection version
                     i.forEachRemaining(action);
                 }
@@ -1113,7 +1113,7 @@ public class Collections {
 
         // Override default methods in Collection
         @Override
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {
             c.forEach(action);
         }
         @Override
@@ -1549,7 +1549,7 @@ public class Collections {
                 }
 
                 @Override
-                public void forEachRemaining(Consumer<? super E> action) {
+                public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
                     i.forEachRemaining(action);
                 }
             };
@@ -1704,7 +1704,7 @@ public class Collections {
         }
 
         @Override
-        public void forEach(BiConsumer<? super K, ? super V> action) {
+        public <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
             m.forEach(action);
         }
 
@@ -1774,12 +1774,12 @@ public class Collections {
                 super((Set<Map.Entry<K, V>>)s);
             }
 
-            static <K, V> Consumer<Map.Entry<? extends K, ? extends V>> entryConsumer(
-                    Consumer<? super Entry<K, V>> action) {
+            static <K, V, throws X> Consumer<Map.Entry<? extends K, ? extends V>, X> entryConsumer(
+                    Consumer<? super Entry<K, V>, X> action) {
                 return e -> action.accept(new UnmodifiableEntry<>(e));
             }
 
-            public void forEach(Consumer<? super Entry<K, V>> action) {
+            public <throws X> void forEach(Consumer<? super Entry<K, V>, X> action) throws X {
                 Objects.requireNonNull(action);
                 c.forEach(entryConsumer(action));
             }
@@ -1793,13 +1793,13 @@ public class Collections {
                 }
 
                 @Override
-                public boolean tryAdvance(Consumer<? super Entry<K, V>> action) {
+                public <throws X> boolean tryAdvance(Consumer<? super Entry<K, V>, X> action) throws X {
                     Objects.requireNonNull(action);
                     return s.tryAdvance(entryConsumer(action));
                 }
 
                 @Override
-                public void forEachRemaining(Consumer<? super Entry<K, V>> action) {
+                public <throws X> void forEachRemaining(Consumer<? super Entry<K, V>, X> action) throws X {
                     Objects.requireNonNull(action);
                     s.forEachRemaining(entryConsumer(action));
                 }
@@ -1867,7 +1867,7 @@ public class Collections {
                     public void remove() {
                         throw new UnsupportedOperationException();
                     }
-                    public void forEachRemaining(Consumer<? super Map.Entry<K, V>> action) {
+                    public <throws X> void forEachRemaining(Consumer<? super Map.Entry<K, V>, X> action) throws X {
                         Objects.requireNonNull(action);
                         i.forEachRemaining(entryConsumer(action));
                     }
@@ -2348,7 +2348,7 @@ public class Collections {
         }
         // Override default methods in Collection
         @Override
-        public void forEach(Consumer<? super E> consumer) {
+        public <throws X> void forEach(Consumer<? super E, X> consumer) throws X {
             synchronized (mutex) {c.forEach(consumer);}
         }
         @Override
@@ -2952,7 +2952,7 @@ public class Collections {
             synchronized (mutex) {return m.getOrDefault(k, defaultValue);}
         }
         @Override
-        public void forEach(BiConsumer<? super K, ? super V> action) {
+        public <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
             synchronized (mutex) {m.forEach(action);}
         }
         @Override
@@ -3395,7 +3395,7 @@ public class Collections {
                 public boolean hasNext() { return it.hasNext(); }
                 public E next()          { return it.next(); }
                 public void remove()     {        it.remove(); }
-                public void forEachRemaining(Consumer<? super E> action) {
+                public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
                     it.forEachRemaining(action);
                 }
             };
@@ -3444,7 +3444,7 @@ public class Collections {
 
         // Override default methods in Collection
         @Override
-        public void forEach(Consumer<? super E> action) {c.forEach(action);}
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {c.forEach(action);}
         @Override
         public boolean removeIf(Predicate<? super E> filter) {
             return c.removeIf(filter);
@@ -3800,7 +3800,7 @@ public class Collections {
                 }
 
                 @Override
-                public void forEachRemaining(Consumer<? super E> action) {
+                public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
                     i.forEachRemaining(action);
                 }
             };
@@ -3991,7 +3991,7 @@ public class Collections {
 
         // Override default methods in Map
         @Override
-        public void forEach(BiConsumer<? super K, ? super V> action) {
+        public <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
             m.forEach(action);
         }
 
@@ -4099,7 +4099,7 @@ public class Collections {
                         return checkedEntry(i.next(), valueType);
                     }
 
-                    public void forEachRemaining(Consumer<? super Entry<K, V>> action) {
+                    public <throws X> void forEachRemaining(Consumer<? super Entry<K, V>, X> action) throws X {
                         Objects.requireNonNull(action);
                         i.forEachRemaining(
                             e -> action.accept(checkedEntry(e, valueType)));
@@ -4533,7 +4533,7 @@ public class Collections {
         public E next() { throw new NoSuchElementException(); }
         public void remove() { throw new IllegalStateException(); }
         @Override
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) {
             Objects.requireNonNull(action);
         }
     }
@@ -4676,7 +4676,7 @@ public class Collections {
 
         // Override default methods in Collection
         @Override
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) {
             Objects.requireNonNull(action);
         }
         @Override
@@ -4830,7 +4830,7 @@ public class Collections {
 
         // Override default methods in Collection
         @Override
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) {
             Objects.requireNonNull(action);
         }
 
@@ -4951,7 +4951,7 @@ public class Collections {
         }
 
         @Override
-        public void forEach(BiConsumer<? super K, ? super V> action) {
+        public <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) {
             Objects.requireNonNull(action);
         }
 
@@ -5042,7 +5042,7 @@ public class Collections {
                 throw new UnsupportedOperationException();
             }
             @Override
-            public void forEachRemaining(Consumer<? super E> action) {
+            public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
                 Objects.requireNonNull(action);
                 if (hasNext) {
                     hasNext = false;
@@ -5068,7 +5068,7 @@ public class Collections {
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> consumer) {
+            public <throws X> boolean tryAdvance(Consumer<? super T, X> consumer) throws X {
                 Objects.requireNonNull(consumer);
                 if (est > 0) {
                     est--;
@@ -5079,7 +5079,7 @@ public class Collections {
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super T> consumer) {
+            public <throws X> void forEachRemaining(Consumer<? super T, X> consumer) throws X {
                 tryAdvance(consumer);
             }
 
@@ -5123,7 +5123,7 @@ public class Collections {
 
         // Override default methods for Collection
         @Override
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {
             action.accept(element);
         }
         @Override
@@ -5184,7 +5184,7 @@ public class Collections {
 
         // Override default methods for Collection
         @Override
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {
             action.accept(element);
         }
         @Override
@@ -5279,7 +5279,7 @@ public class Collections {
         }
 
         @Override
-        public void forEach(BiConsumer<? super K, ? super V> action) {
+        public <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
             action.accept(k, v);
         }
 
@@ -5405,7 +5405,7 @@ public class Collections {
         }
 
         @Override
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             int n = this.n;
             E element = this.element;
@@ -5942,7 +5942,7 @@ public class Collections {
 
         // Override default methods in Collection
         @Override
-        public void forEach(Consumer<? super E> action) {
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {
             s.forEach(action);
         }
         @Override
@@ -6114,7 +6114,7 @@ public class Collections {
 
         // Override default methods in Collection
         @Override
-        public void forEach(Consumer<? super E> action) {q.forEach(action);}
+        public <throws X> void forEach(Consumer<? super E, X> action) throws X {q.forEach(action);}
         @Override
         public boolean removeIf(Predicate<? super E> filter) {
             return q.removeIf(filter);

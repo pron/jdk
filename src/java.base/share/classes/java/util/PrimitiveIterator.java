@@ -144,7 +144,7 @@ public interface PrimitiveIterator<T, T_CONS, throws X> extends Iterator<T, X> {
          * and then passed to {@link #forEachRemaining}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Integer> action) throws X {
+        default <throws X1> void forEachRemaining(Consumer<? super Integer, X1> action) throws X, X1 {
             if (action instanceof IntConsumer) {
                 forEachRemaining((IntConsumer) action);
             }
@@ -153,7 +153,7 @@ public interface PrimitiveIterator<T, T_CONS, throws X> extends Iterator<T, X> {
                 Objects.requireNonNull(action);
                 if (Tripwire.ENABLED)
                     Tripwire.trip(getClass(), "{0} calling PrimitiveIterator.OfInt.forEachRemainingInt(action::accept)");
-                forEachRemaining((IntConsumer) action::accept);
+                forEachRemaining((IntConsumer) wrapException(action)::accept);
             }
         }
 
@@ -214,7 +214,7 @@ public interface PrimitiveIterator<T, T_CONS, throws X> extends Iterator<T, X> {
          * and then passed to {@link #forEachRemaining}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Long> action) throws X {
+        default <throws X1> void forEachRemaining(Consumer<? super Long, X1> action) throws X, X1 {
             if (action instanceof LongConsumer) {
                 forEachRemaining((LongConsumer) action);
             }
@@ -223,7 +223,7 @@ public interface PrimitiveIterator<T, T_CONS, throws X> extends Iterator<T, X> {
                 Objects.requireNonNull(action);
                 if (Tripwire.ENABLED)
                     Tripwire.trip(getClass(), "{0} calling PrimitiveIterator.OfLong.forEachRemainingLong(action::accept)");
-                forEachRemaining((LongConsumer) action::accept);
+                forEachRemaining((LongConsumer) wrapException(action)::accept);
             }
         }
     }
@@ -284,7 +284,7 @@ public interface PrimitiveIterator<T, T_CONS, throws X> extends Iterator<T, X> {
          * {@link #forEachRemaining}.
          */
         @Override
-        default void forEachRemaining(Consumer<? super Double> action) throws X {
+        default <throws X1> void forEachRemaining(Consumer<? super Double, X1> action) throws X, X1 {
             if (action instanceof DoubleConsumer) {
                 forEachRemaining((DoubleConsumer) action);
             }
@@ -293,8 +293,19 @@ public interface PrimitiveIterator<T, T_CONS, throws X> extends Iterator<T, X> {
                 Objects.requireNonNull(action);
                 if (Tripwire.ENABLED)
                     Tripwire.trip(getClass(), "{0} calling PrimitiveIterator.OfDouble.forEachRemainingDouble(action::accept)");
-                forEachRemaining((DoubleConsumer) action::accept);
+                forEachRemaining((DoubleConsumer) wrapException(action)::accept);
             }
         }
+    }
+
+    private static <T, throws X> Consumer<T> wrapException(Consumer<T, X> c) {
+        return x -> {
+            try {
+                c.accept(x);
+            } catch (Exception ex) {
+                if (ex instanceof RuntimeException rex) throw rex;
+                throw new RuntimeException(ex);
+            }
+        };
     }
 }

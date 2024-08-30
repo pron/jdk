@@ -743,7 +743,7 @@ final class WhileOps {
                 }
 
                 @Override
-                public boolean tryAdvance(Consumer<? super T> action) throws X {
+                public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X, X1 {
                     boolean test = true;
                     if (takeOrDrop &&               // If can take
                         checkCancelOnCount() && // and if not cancelled
@@ -785,7 +785,7 @@ final class WhileOps {
                 }
 
                 @Override
-                public boolean tryAdvance(Consumer<? super T> action) throws X {
+                public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X, X1 {
                     if (takeOrDrop) {
                         takeOrDrop = false;
                         boolean adv;

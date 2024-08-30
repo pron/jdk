@@ -772,7 +772,7 @@ final class StringLatin1 {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super String> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super String, X> action) throws X {
             if (action == null) {
                 throw new NullPointerException("tryAdvance action missing");
             }
@@ -784,7 +784,7 @@ final class StringLatin1 {
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super String> action) {
+        public <throws X> void forEachRemaining(Consumer<? super String, X> action) throws X {
             if (action == null) {
                 throw new NullPointerException("forEachRemaining action missing");
             }

@@ -715,7 +715,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
             lastRet = -1;
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             int r;
             if ((r = remaining) <= 0)
@@ -756,7 +756,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
                 cursor = inc(cursor, elements.length);
         }
 
-        public final void forEachRemaining(Consumer<? super E> action) {
+        public final <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             int r;
             if ((r = remaining) <= 0)
@@ -832,7 +832,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
                 : new DeqSpliterator(i, cursor = inc(i, n, es.length));
         }
 
-        public void forEachRemaining(Consumer<? super E> action) {
+        public <throws X> void forEachRemaining(Consumer<? super E, X> action) throws X {
             if (action == null)
                 throw new NullPointerException();
             final int end = getFence(), cursor = this.cursor;
@@ -851,7 +851,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
             }
         }
 
-        public boolean tryAdvance(Consumer<? super E> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super E, X> action) throws X {
             Objects.requireNonNull(action);
             final Object[] es = elements;
             if (fence < 0) { fence = tail; cursor = head; } // late-binding
@@ -879,7 +879,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
     /**
      * @throws NullPointerException {@inheritDoc}
      */
-    public void forEach(Consumer<? super E> action) {
+    public <throws X> void forEach(Consumer<? super E, X> action) throws X {
         Objects.requireNonNull(action);
         final Object[] es = elements;
         for (int i = head, end = tail, to = (i <= end) ? end : es.length;

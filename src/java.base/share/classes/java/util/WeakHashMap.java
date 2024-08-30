@@ -1117,7 +1117,7 @@ public class WeakHashMap<K,V>
                                      expectedModCount);
         }
 
-        public void forEachRemaining(Consumer<? super K> action) {
+        public <throws X> void forEachRemaining(Consumer<? super K, X> action) throws X {
             int i, hi, mc;
             if (action == null)
                 throw new NullPointerException();
@@ -1151,7 +1151,7 @@ public class WeakHashMap<K,V>
                 throw new ConcurrentModificationException();
         }
 
-        public boolean tryAdvance(Consumer<? super K> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super K, X> action) throws X {
             int hi;
             if (action == null)
                 throw new NullPointerException();
@@ -1197,7 +1197,7 @@ public class WeakHashMap<K,V>
                                        expectedModCount);
         }
 
-        public void forEachRemaining(Consumer<? super V> action) {
+        public <throws X> void forEachRemaining(Consumer<? super V, X> action) throws X {
             int i, hi, mc;
             if (action == null)
                 throw new NullPointerException();
@@ -1229,7 +1229,7 @@ public class WeakHashMap<K,V>
                 throw new ConcurrentModificationException();
         }
 
-        public boolean tryAdvance(Consumer<? super V> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super V, X> action) throws X {
             int hi;
             if (action == null)
                 throw new NullPointerException();
@@ -1275,7 +1275,7 @@ public class WeakHashMap<K,V>
         }
 
 
-        public void forEachRemaining(Consumer<? super Map.Entry<K, V>> action) {
+        public <throws X> void forEachRemaining(Consumer<? super Map.Entry<K, V>, X> action) throws X {
             int i, hi, mc;
             if (action == null)
                 throw new NullPointerException();
@@ -1311,7 +1311,7 @@ public class WeakHashMap<K,V>
                 throw new ConcurrentModificationException();
         }
 
-        public boolean tryAdvance(Consumer<? super Map.Entry<K,V>> action) {
+        public <throws X> boolean tryAdvance(Consumer<? super Map.Entry<K,V>, X> action) throws X {
             int hi;
             if (action == null)
                 throw new NullPointerException();

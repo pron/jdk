@@ -57,7 +57,7 @@ public sealed interface CompoundElement<E extends ClassFileElement>
      * @param consumer the handler
      */
     @Override
-    void forEach(Consumer<? super E> consumer);
+    <throws X> void forEach(Consumer<? super E, X> consumer) throws X;
 
     /**
      * {@return an {@link Iterator} describing all the elements contained in this
@@ -85,7 +85,7 @@ public sealed interface CompoundElement<E extends ClassFileElement>
      */
     default List<E> elementList() {
         List<E> list = new ArrayList<>();
-        forEach(new Consumer<>() {
+        forEach(new Consumer<E>() {
             @Override
             public void accept(E e) {
                 list.add(e);

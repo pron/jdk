@@ -883,7 +883,7 @@ public class Hashtable<K,V>
 
     @SuppressWarnings("unchecked")
     @Override
-    public synchronized void forEach(BiConsumer<? super K, ? super V> action) {
+    public synchronized <throws X> void forEach(BiConsumer<? super K, ? super V, X> action) throws X {
         Objects.requireNonNull(action);     // explicit check required in case
                                             // table is empty.
         final int expectedModCount = modCount;

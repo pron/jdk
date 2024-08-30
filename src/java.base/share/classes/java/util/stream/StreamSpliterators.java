@@ -306,7 +306,7 @@ class StreamSpliterators {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super P_OUT> consumer) throws X_OUT {
+        public <throws X1> boolean tryAdvance(Consumer<? super P_OUT, X1> consumer) throws X_OUT, X1 {
             Objects.requireNonNull(consumer);
             boolean hasNext = doAdvance();
             if (hasNext)
@@ -315,12 +315,12 @@ class StreamSpliterators {
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super P_OUT> consumer) throws X_OUT {
+        public <throws X1> void forEachRemaining(Consumer<? super P_OUT, X1> consumer) throws X_OUT, X1 {
             if (buffer == null && !finished) {
                 Objects.requireNonNull(consumer);
                 init();
 
-                ph.wrapAndCopyInto(consumer::accept, spliterator);
+                ph.wrapAndCopyInto(CheckedExceptions.eraseException(consumer)::accept, spliterator);
                 finished = true;
             }
             else {
@@ -545,12 +545,12 @@ class StreamSpliterators {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> consumer) throws X {
+        public <throws X1> boolean tryAdvance(Consumer<? super T, X1> consumer) throws X, X1 {
             return get().tryAdvance(consumer);
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super T> consumer) throws X {
+        public <throws X1> void forEachRemaining(Consumer<? super T, X1> consumer) throws X, X1 {
             get().forEachRemaining(consumer);
         }
 
@@ -733,7 +733,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> action) throws X {
+            public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X, X1 {
                 Objects.requireNonNull(action);
 
                 if (sliceOrigin >= fence)
@@ -752,7 +752,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super T> action) throws X {
+            public <throws X1> void forEachRemaining(Consumer<? super T, X1> action) throws X, X1 {
                 Objects.requireNonNull(action);
 
                 if (sliceOrigin >= fence)
@@ -1039,7 +1039,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> action) throws X {
+            public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X, X1 {
                 Objects.requireNonNull(action);
 
                 while (permitStatus() != PermitStatus.NO_MORE) {
@@ -1055,7 +1055,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public void forEachRemaining(Consumer<? super T> action) throws X {
+            public <throws X1> void forEachRemaining(Consumer<? super T, X1> action) throws X, X1 {
                 Objects.requireNonNull(action);
 
                 ArrayBuffer.OfRef<T> sb = null;
@@ -1307,7 +1307,7 @@ class StreamSpliterators {
         }
 
         @Override
-        public boolean tryAdvance(Consumer<? super T> action) throws X {
+        public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X, X1 {
             while (s.tryAdvance(this)) {
                 if (seen.putIfAbsent(mapNull(tmpSlot), Boolean.TRUE) == null) {
                     action.accept(tmpSlot);
@@ -1319,7 +1319,7 @@ class StreamSpliterators {
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super T> action) throws X {
+        public <throws X1> void forEachRemaining(Consumer<? super T, X1> action) throws X, X1  {
             s.forEachRemaining(t -> {
                 if (seen.putIfAbsent(mapNull(t), Boolean.TRUE) == null) {
                     action.accept(t);
@@ -1387,7 +1387,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> action) throws X {
+            public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X1 {
                 Objects.requireNonNull(action);
 
                 action.accept(s.get());
@@ -1498,7 +1498,7 @@ class StreamSpliterators {
                 array[index++] = t;
             }
 
-            public void forEach(Consumer<? super T> action, long fence) {
+            public <throws X1> void forEach(Consumer<? super T, X1> action, long fence) throws X1 {
                 for (int i = 0; i < fence; i++) {
                     @SuppressWarnings("unchecked")
                     T t = (T) array[i];
