@@ -32,7 +32,7 @@ import java.lang.classfile.constantpool.ConstantPoolBuilder;
 import java.lang.classfile.constantpool.Utf8Entry;
 
 public final class ChainedClassBuilder
-        implements ClassBuilder, Consumer<ClassElement> {
+        implements ClassBuilder, Consumer<ClassElement, RuntimeException> { // TODO RON
     private final DirectClassBuilder terminal;
     private final Consumer<ClassElement> consumer;
 
