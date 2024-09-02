@@ -1379,15 +1379,15 @@ class StreamSpliterators {
         }
 
         static final class OfRef<T, throws X> extends InfiniteSupplyingSpliterator<T, X> {
-            final Supplier<? extends T> s;
+            final Supplier<? extends T, X> s;
 
-            OfRef(long size, Supplier<? extends T> s) {
+            OfRef(long size, Supplier<? extends T, X> s) {
                 super(size);
                 this.s = s;
             }
 
             @Override
-            public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X1 {
+            public <throws X1> boolean tryAdvance(Consumer<? super T, X1> action) throws X, X1 {
                 Objects.requireNonNull(action);
 
                 action.accept(s.get());
@@ -1402,8 +1402,8 @@ class StreamSpliterators {
             }
         }
 
-        static final class OfInt<throws X> extends InfiniteSupplyingSpliterator<Integer, X>
-                implements Spliterator.OfInt<X> {
+        static final class OfInt extends InfiniteSupplyingSpliterator<Integer>
+                implements Spliterator.OfInt {
             final IntSupplier s;
 
             OfInt(long size, IntSupplier s) {
@@ -1412,7 +1412,7 @@ class StreamSpliterators {
             }
 
             @Override
-            public boolean tryAdvance(IntConsumer action) throws X {
+            public boolean tryAdvance(IntConsumer action) {
                 Objects.requireNonNull(action);
 
                 action.accept(s.getAsInt());
@@ -1420,10 +1420,10 @@ class StreamSpliterators {
             }
 
             @Override
-            public Spliterator.OfInt<X> trySplit() {
+            public Spliterator.OfInt trySplit() {
                 if (estimate == 0)
                     return null;
-                return new InfiniteSupplyingSpliterator.OfInt<X>(estimate = estimate >>> 1, s);
+                return new InfiniteSupplyingSpliterator.OfInt(estimate = estimate >>> 1, s);
             }
         }
 

@@ -1650,10 +1650,11 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      * generating constant streams, streams of random elements, etc.
      *
      * @param <T> the type of stream elements
+     * @param <X> throws
      * @param s the {@code Supplier} of generated elements
      * @return a new infinite sequential unordered {@code Stream}
      */
-    public static<T> Stream<T> generate(Supplier<? extends T> s) {
+    public static <T, throws X> Stream<T, X> generate(Supplier<? extends T, X> s) {
         Objects.requireNonNull(s);
         return StreamSupport.stream(
                 new StreamSpliterators.InfiniteSupplyingSpliterator.OfRef<>(Long.MAX_VALUE, s), false);
