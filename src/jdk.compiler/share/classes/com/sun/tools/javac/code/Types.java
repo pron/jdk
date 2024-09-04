@@ -252,10 +252,14 @@ public class Types {
         @Override
         public Type visitClassType(ClassType t, ProjectionKind pkind) {
             if (t.isCompound()) {
-                List<Type> components = directSupertypes(t);
+                List<Type> components = t instanceof ThrowableUnionClassType tu
+                    ? tu.alternatives()
+                    : directSupertypes(t);
                 List<Type> components1 = components.map(c -> c.map(this, pkind));
                 if (components == components1) return t;
-                else return makeIntersectionType(components1);
+                else return t instanceof ThrowableUnionClassType
+                        ? makeThrowableUnionType(components1)
+                        : makeIntersectionType(components1);
             } else {
                 Type outer = t.getEnclosingType();
                 Type outer1 = visit(outer, pkind);
@@ -451,7 +455,8 @@ public class Types {
         @Override
         public Void visitClassType(ClassType t, Set<Type> seen) {
             if (t.isCompound()) {
-                directSupertypes(t).forEach(s -> visit(s, seen));
+                (t instanceof ThrowableUnionClassType tu ? tu.alternatives() : directSupertypes(t))
+                        .forEach(s -> visit(s, seen));
             } else {
                 t.allparams().forEach(ta -> visit(ta, seen));
             }
