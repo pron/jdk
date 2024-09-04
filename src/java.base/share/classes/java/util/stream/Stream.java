@@ -1693,18 +1693,19 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      * }</pre>
      *
      * @param <T> The type of stream elements
+     * @param <X> throws
      * @param a the first stream
      * @param b the second stream
      * @return the concatenation of the two input streams
      */
-    public static <T> Stream<T> concat(Stream<? extends T> a, Stream<? extends T> b) {
+    public static <T, throws X> Stream<T, X> concat(Stream<? extends T, ? extends X> a, Stream<? extends T, ? extends X> b) {
         Objects.requireNonNull(a);
         Objects.requireNonNull(b);
 
         @SuppressWarnings("unchecked")
-        Spliterator<T> split = new Streams.ConcatSpliterator.OfRef<>(
-                (Spliterator<T>) a.spliterator(), (Spliterator<T>) b.spliterator());
-        Stream<T> stream = StreamSupport.stream(split, a.isParallel() || b.isParallel());
+        Spliterator<T,X> split = new Streams.ConcatSpliterator.OfRef<>(
+                (Spliterator<T,X>) a.spliterator(), (Spliterator<T,X>) b.spliterator());
+        Stream<T,X> stream = StreamSupport.stream(split, a.isParallel() || b.isParallel());
         return stream.onClose(Streams.composedClose(a, b));
     }
 
