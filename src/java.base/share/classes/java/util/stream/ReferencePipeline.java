@@ -633,12 +633,12 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final Stream<P_OUT, X_OUT> takeWhile(Predicate<? super P_OUT> predicate) {
+    public final <throws X1> Stream<P_OUT, X_OUT|X1> takeWhile(Predicate<? super P_OUT, X1> predicate) {
         return WhileOps.makeTakeWhileRef(this, predicate);
     }
 
     @Override
-    public final Stream<P_OUT, X_OUT> dropWhile(Predicate<? super P_OUT> predicate) {
+    public final <throws X1> Stream<P_OUT, X_OUT|X1> dropWhile(Predicate<? super P_OUT, X1> predicate) {
         return WhileOps.makeDropWhileRef(this, predicate);
     }
 

@@ -59,7 +59,7 @@ final class WhileOps {
      * @param predicate the predicate that returns false to halt taking.
      */
     static <T, throws X> Stream<T, X> makeTakeWhileRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream,
-                                                                  Predicate<? super T> predicate) {
+                                                                  Predicate<? super T, X> predicate) {
         Objects.requireNonNull(predicate);
         return new ReferencePipeline.StatefulOp<T, X, T, X>(upstream, StreamShape.REFERENCE, TAKE_FLAGS) {
             @Override
@@ -94,7 +94,7 @@ final class WhileOps {
 
                     @Override
                     public void accept(T t) {
-                        if (take && (take = predicate.test(t))) {
+                        if (take && (take = CheckedExceptions.eraseException(predicate).test(t))) {
                             downstream.accept(t);
                         }
                     }
@@ -325,7 +325,7 @@ final class WhileOps {
      * @param predicate the predicate that returns false to halt dropping.
      */
     static <T, throws X> Stream<T, X> makeDropWhileRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream,
-                                                                  Predicate<? super T> predicate) {
+                                                       Predicate<? super T, X> predicate) {
         Objects.requireNonNull(predicate);
 
         class Op extends ReferencePipeline.StatefulOp<T, X, T, X> implements DropWhileOp<T> {
@@ -370,7 +370,7 @@ final class WhileOps {
 
                     @Override
                     public void accept(T t) {
-                        boolean takeElement = take || (take = !predicate.test(t));
+                        boolean takeElement = take || (take = !CheckedExceptions.eraseException(predicate).test(t));
 
                         // If ordered and element is dropped increment index
                         // for possible future truncation
@@ -714,10 +714,10 @@ final class WhileOps {
         abstract T_SPLITR makeSpliterator(T_SPLITR s);
 
         abstract static class OfRef<T, throws X> extends UnorderedWhileSpliterator<T, X, Spliterator<T, X>> implements Consumer<T> {
-            final Predicate<? super T> p;
+            final Predicate<? super T, X> p;
             T t;
 
-            OfRef(Spliterator<T, X> s, boolean noSplitting, Predicate<? super T> p) {
+            OfRef(Spliterator<T, X> s, boolean noSplitting, Predicate<? super T, X> p) {
                 super(s, noSplitting);
                 this.p = p;
             }
@@ -734,7 +734,7 @@ final class WhileOps {
             }
 
             static final class Taking<T, throws X> extends OfRef<T, X> {
-                Taking(Spliterator<T, X> s, boolean noSplitting, Predicate<? super T> p) {
+                Taking(Spliterator<T, X> s, boolean noSplitting, Predicate<? super T, X> p) {
                     super(s, noSplitting, p);
                 }
 
@@ -776,7 +776,7 @@ final class WhileOps {
             }
 
             static final class Dropping<T, throws X> extends OfRef<T, X> {
-                Dropping(Spliterator<T, X> s, boolean noSplitting, Predicate<? super T> p) {
+                Dropping(Spliterator<T, X> s, boolean noSplitting, Predicate<? super T, X> p) {
                     super(s, noSplitting, p);
                 }
 

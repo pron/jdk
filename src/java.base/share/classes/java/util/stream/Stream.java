@@ -766,10 +766,11 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      *                  <a href="package-summary.html#Statelessness">stateless</a>
      *                  predicate to apply to elements to determine the longest
      *                  prefix of elements.
+     * @param <X1> throws
      * @return the new stream
      * @since 9
      */
-    default Stream<T, X> takeWhile(Predicate<? super T> predicate) {
+    default <throws X1> Stream<T, X|X1> takeWhile(Predicate<? super T, X1> predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
@@ -832,10 +833,11 @@ public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
      *                  <a href="package-summary.html#Statelessness">stateless</a>
      *                  predicate to apply to elements to determine the longest
      *                  prefix of elements.
+     * @param <X1> throws
      * @return the new stream
      * @since 9
      */
-    default Stream<T, X> dropWhile(Predicate<? super T> predicate) {
+    default <throws X1> Stream<T, X|X1> dropWhile(Predicate<? super T, X1> predicate) {
         Objects.requireNonNull(predicate);
         // Reuses the unordered spliterator, which, when encounter is present,
         // is safe to use as long as it configured not to split
