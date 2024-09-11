@@ -484,7 +484,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
 
     @Override
     public final <R, throws X1>
-    Stream<R, ? extends X_OUT|X1> mapMulti(BiConsumer<? super P_OUT, ? super Consumer<R>, X1> mapper) {
+    Stream<R, X_OUT|X1> mapMulti(BiConsumer<? super P_OUT, ? super Consumer<R>, X1> mapper) {
         Objects.requireNonNull(mapper);
         return new StatelessOp<P_OUT, X_OUT, R, X_OUT>(this, StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
