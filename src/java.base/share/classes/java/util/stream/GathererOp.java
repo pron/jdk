@@ -132,16 +132,18 @@ final class GathererOp<T, throws X_IN, A, throws X, R, throws X_OUT extends X_IN
 
     static final class GatherSink<T, throws X, A, R, throws X_OUT extends X> implements Sink<T>, Gatherer.Downstream<R> {
         private final Sink<R> sink;
-        private final Gatherer<T, A, R, X> gatherer;
+        private final Gatherer<T, A, R> gatherer;
         private final Integrator<A, T, R> integrator; // Optimization: reuse
         private A state;
         private boolean proceed = true;
         private boolean downstreamProceed = true;
 
         GatherSink(Gatherer<T, A, R, X> gatherer, Sink<R> sink) {
-            this.gatherer = gatherer;
+            @SuppressWarnings("unchecked")
+            var g = (Gatherer<T, A, R>)gatherer; // erase exception
+            this.gatherer = g;
             this.sink = sink;
-            this.integrator = gatherer.integrator();
+            this.integrator = g.integrator();
         }
 
         // java.util.stream.Sink contract below:
@@ -211,8 +213,8 @@ final class GathererOp<T, throws X_IN, A, throws X, R, throws X_OUT extends X_IN
         }
     }
 
-    private static int opFlagsFor(Integrator<?, ?, ?> integrator) {
-        return integrator instanceof Integrator.Greedy<?, ?, ?>
+    private static int opFlagsFor(Integrator<?, ?, ?, ?> integrator) {
+        return integrator instanceof Integrator.Greedy<?, ?, ?, ?>
                 ? GREEDY_FLAGS : SHORT_CIRCUIT_FLAGS;
     }
 
@@ -367,11 +369,12 @@ final class GathererOp<T, throws X_IN, A, throws X, R, throws X_OUT extends X_IN
 
         // There are two main sections here: sequential and parallel
 
-        final var initializer = gatherer.initializer();
-        final var integrator = gatherer.integrator();
+        final var initializer = CheckedExceptions.eraseException(gatherer.initializer());
+        @SuppressWarnings("unchecked")
+        final var integrator = (Integrator<A, T, R>)gatherer.integrator();
 
         // Optimization
-        final boolean greedy = integrator instanceof Integrator.Greedy<A, T, R>;
+        final boolean greedy = integrator instanceof Integrator.Greedy<A, T, R, X>;
 
         // Sequential evaluation section starts here.
 
@@ -448,7 +451,7 @@ final class GathererOp<T, throws X_IN, A, throws X, R, throws X_OUT extends X_IN
 
         // Parallel section starts here:
 
-        final var combiner = gatherer.combiner();
+        final var combiner = CheckedExceptions.eraseException(gatherer.combiner());
 
         /*
          * The following implementation of hybrid parallel-sequential

@@ -211,7 +211,7 @@ public interface Gatherer<T, A, R, throws X> {
      * @return A function that produces an instance of the intermediate state
      * used for this gathering operation
      */
-    default Supplier<A> initializer() {
+    default Supplier<A, X> initializer() {
         return defaultInitializer();
     };
 
@@ -224,7 +224,7 @@ public interface Gatherer<T, A, R, throws X> {
      *         the provided state, optionally producing output to the provided
      *         Downstream
      */
-    Integrator<A, T, R> integrator();
+    Integrator<A, T, R, X> integrator();
 
     /**
      * A function which accepts two intermediate states and combines them into
@@ -236,7 +236,7 @@ public interface Gatherer<T, A, R, throws X> {
      * @return a function which accepts two intermediate states and combines
      *         them into one
      */
-    default BinaryOperator<A> combiner() {
+    default BinaryOperator<A, X> combiner() {
         return defaultCombiner();
     }
 
@@ -251,7 +251,7 @@ public interface Gatherer<T, A, R, throws X> {
      * @return a function which transforms the intermediate result to the final
      *         result(s) which are then passed on to the provided Downstream
      */
-    default BiConsumer<A, Downstream<? super R>> finisher() {
+    default BiConsumer<A, Downstream<? super R>, X> finisher() {
         return defaultFinisher();
     }
 
@@ -329,11 +329,12 @@ public interface Gatherer<T, A, R, throws X> {
      * @param integrator the integrator function for the new gatherer
      * @param <T> the type of input elements for the new gatherer
      * @param <R> the type of results for the new gatherer
+     * @param <X> throws
      * @throws NullPointerException if the argument is {@code null}
      * @return the new {@code Gatherer}
      */
-    static <T, R> Gatherer<T, Void, R> ofSequential(
-            Integrator<Void, T, R> integrator) {
+    static <T, R, throws X> Gatherer<T, Void, R, X> ofSequential(
+            Integrator<Void, T, R, X> integrator) {
         return of(
                 defaultInitializer(),
                 integrator,
@@ -350,12 +351,13 @@ public interface Gatherer<T, A, R, throws X> {
      * @param finisher the finisher function for the new gatherer
      * @param <T> the type of input elements for the new gatherer
      * @param <R> the type of results for the new gatherer
+     * @param <X> throws
      * @throws NullPointerException if any argument is {@code null}
      * @return the new {@code Gatherer}
      */
-    static <T, R> Gatherer<T, Void, R> ofSequential(
-            Integrator<Void, T, R> integrator,
-            BiConsumer<Void, Downstream<? super R>> finisher) {
+    static <T, R, throws X> Gatherer<T, Void, R, X> ofSequential(
+            Integrator<Void, T, R, X> integrator,
+            BiConsumer<Void, Downstream<? super R>, X> finisher) {
         return of(
                 defaultInitializer(),
                 integrator,
@@ -373,12 +375,13 @@ public interface Gatherer<T, A, R, throws X> {
      * @param <T> the type of input elements for the new gatherer
      * @param <A> the type of state for the new gatherer
      * @param <R> the type of results for the new gatherer
+     * @param <X> throws
      * @throws NullPointerException if any argument is {@code null}
      * @return the new {@code Gatherer}
      */
-    static <T, A, R> Gatherer<T, A, R> ofSequential(
-            Supplier<A> initializer,
-            Integrator<A, T, R> integrator) { // XXXX
+    static <T, A, R, throws X> Gatherer<T, A, R, X> ofSequential(
+            Supplier<A, X> initializer,
+            Integrator<A, T, R, X> integrator) {
         return of(
                 initializer,
                 integrator,
@@ -397,13 +400,14 @@ public interface Gatherer<T, A, R, throws X> {
      * @param <T> the type of input elements for the new gatherer
      * @param <A> the type of state for the new gatherer
      * @param <R> the type of results for the new gatherer
+     * @param <X> throws
      * @throws NullPointerException if any argument is {@code null}
      * @return the new {@code Gatherer}
      */
-    static <T, A, R> Gatherer<T, A, R> ofSequential(
-            Supplier<A> initializer,
-            Integrator<A, T, R> integrator,
-            BiConsumer<A, Downstream<? super R>> finisher) {
+    static <T, A, R, throws X> Gatherer<T, A, R, X> ofSequential(
+            Supplier<A, X> initializer,
+            Integrator<A, T, R, X> integrator,
+            BiConsumer<A, Downstream<? super R>, X> finisher) {
         return of(
                 initializer,
                 integrator,
@@ -419,10 +423,11 @@ public interface Gatherer<T, A, R, throws X> {
      * @param integrator the integrator function for the new gatherer
      * @param <T> the type of input elements for the new gatherer
      * @param <R> the type of results for the new gatherer
+     * @param <X> throws
      * @throws NullPointerException if any argument is {@code null}
      * @return the new {@code Gatherer}
      */
-    static <T, R> Gatherer<T, Void, R> of(Integrator<Void, T, R> integrator) {
+    static <T, R, throws X> Gatherer<T, Void, R, X> of(Integrator<Void, T, R, X> integrator) {
         return of(
                 defaultInitializer(),
                 integrator,
@@ -439,12 +444,13 @@ public interface Gatherer<T, A, R, throws X> {
      * @param finisher the finisher function for the new gatherer
      * @param <T> the type of input elements for the new gatherer
      * @param <R> the type of results for the new gatherer
+     * @param <X> throws
      * @throws NullPointerException if any argument is {@code null}
      * @return the new {@code Gatherer}
      */
-    static <T, R> Gatherer<T, Void, R> of(
-            Integrator<Void, T, R> integrator,
-            BiConsumer<Void, Downstream<? super R>> finisher) {
+    static <T, R, throws X> Gatherer<T, Void, R, X> of(
+            Integrator<Void, T, R, X> integrator,
+            BiConsumer<Void, Downstream<? super R>, X> finisher) {
         return of(
                 defaultInitializer(),
                 integrator,
@@ -465,14 +471,15 @@ public interface Gatherer<T, A, R, throws X> {
      * @param <T> the type of input elements for the new gatherer
      * @param <A> the type of state for the new gatherer
      * @param <R> the type of results for the new gatherer
+     * @param <X> throws
      * @throws NullPointerException if any argument is {@code null}
      * @return the new {@code Gatherer}
      */
-    static <T, A, R> Gatherer<T, A, R> of(
-            Supplier<A> initializer,
-            Integrator<A, T, R> integrator,
-            BinaryOperator<A> combiner,
-            BiConsumer<A, Downstream<? super R>> finisher) { // BiConsumer<A, Downstream<? super R, X1>, X1> finisher
+    static <T, A, R, throws X> Gatherer<T, A, R, X> of(
+            Supplier<A, X> initializer,
+            Integrator<A, T, R, X> integrator,
+            BinaryOperator<A, X> combiner,
+            BiConsumer<A, Downstream<? super R>, X> finisher) { // BiConsumer<A, Downstream<? super R, X1>, X1> finisher
         return new Gatherers.GathererImpl<>(
                 Objects.requireNonNull(initializer),
                 Objects.requireNonNull(integrator),
@@ -528,11 +535,12 @@ public interface Gatherer<T, A, R, throws X> {
      * @param <A> the type of state used by this integrator
      * @param <T> the type of elements this integrator consumes
      * @param <R> the type of results this integrator can produce
+     * @param <X> throws
      * @since 22
      */
     @FunctionalInterface
     @PreviewFeature(feature = PreviewFeature.Feature.STREAM_GATHERERS)
-    interface Integrator<A, T, R> {
+    interface Integrator<A, T, R, throws X> {
         /**
          * Performs an action given: the current state, the next element, and
          * a downstream object; potentially inspecting and/or updating
@@ -544,8 +552,9 @@ public interface Gatherer<T, A, R, throws X> {
          * @param downstream The downstream object of this integration
          * @return {@code true} if subsequent integration is desired,
          *         {@code false} if not
+         * @throws X TBD
          */
-        boolean integrate(A state, T element, Downstream<? super R> downstream);
+        boolean integrate(A state, T element, Downstream<? super R> downstream) throws X;
 
         /**
          * Factory method for turning Integrator-shaped lambdas into
@@ -556,9 +565,10 @@ public interface Gatherer<T, A, R, throws X> {
          * @param <A> the type of state used by this integrator
          * @param <T> the type of elements this integrator receives
          * @param <R> the type of results this integrator can produce
+         * @param <X> throws
          */
         @ForceInline
-        static <A, T, R> Integrator<A, T, R> of(Integrator<A, T, R> integrator) {
+        static <A, T, R, throws X> Integrator<A, T, R, X> of(Integrator<A, T, R, X> integrator) {
             return integrator;
         }
 
@@ -571,9 +581,10 @@ public interface Gatherer<T, A, R, throws X> {
          * @param <A> the type of state used by this integrator
          * @param <T> the type of elements this integrator receives
          * @param <R> the type of results this integrator can produce
+         * @param <X> throws
          */
         @ForceInline
-        static <A, T, R> Greedy<A, T, R> ofGreedy(Greedy<A, T, R> greedy) {
+        static <A, T, R, throws X> Greedy<A, T, R, X> ofGreedy(Greedy<A, T, R, X> greedy) {
             return greedy;
         }
 
@@ -588,10 +599,11 @@ public interface Gatherer<T, A, R, throws X> {
          * @param <A> the type of state used by this integrator
          * @param <T> the type of elements this greedy integrator receives
          * @param <R> the type of results this greedy integrator can produce
+         * @param <X> throws
          * @since 22
          */
         @FunctionalInterface
         @PreviewFeature(feature = PreviewFeature.Feature.STREAM_GATHERERS)
-        interface Greedy<A, T, R> extends Integrator<A, T, R> { }
+        interface Greedy<A, T, R, throws X> extends Integrator<A, T, R, X> { }
     }
 }

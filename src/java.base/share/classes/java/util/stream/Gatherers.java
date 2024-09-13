@@ -484,16 +484,16 @@ public final class Gatherers {
     }
 
     record GathererImpl<T, A, R, throws X>(
-            @Override Supplier<A> initializer,
-            @Override Integrator<A, T, R> integrator,
-            @Override BinaryOperator<A> combiner,
-            @Override BiConsumer<A, Downstream<? super R>> finisher) implements Gatherer<T, A, R, X> {
+            @Override Supplier<A, X> initializer,
+            @Override Integrator<A, T, R, X> integrator,
+            @Override BinaryOperator<A, X> combiner,
+            @Override BiConsumer<A, Downstream<? super R>, X> finisher) implements Gatherer<T, A, R, X> {
 
         static <T, A, R, throws X> GathererImpl<T, A, R, X> of(
-                Supplier<A> initializer,
-                Integrator<A, T, R> integrator,
-                BinaryOperator<A> combiner,
-                BiConsumer<A, Downstream<? super R>> finisher) {
+                Supplier<A, X> initializer,
+                Integrator<A, T, R, X> integrator,
+                BinaryOperator<A, X> combiner,
+                BiConsumer<A, Downstream<? super R>, X> finisher) {
             return new GathererImpl<>(
                     Objects.requireNonNull(initializer,"initializer"),
                     Objects.requireNonNull(integrator, "integrator"),
@@ -503,79 +503,81 @@ public final class Gatherers {
         }
     }
 
-    static final class Composite<T, A, R, AA, RR, throws X1, throws X2, throws X3 extends X1|X2> implements Gatherer<T, Object, RR, X3> {
-        private final Gatherer<T, A, ? extends R, X1> left;
-        private final Gatherer<? super R, AA, ? extends RR, X2> right;
+    static final class Composite<T, A, R, AA, RR, throws X> implements Gatherer<T, Object, RR, X> {
+        private final Gatherer<T, A, ? extends R, X> left;
+        private final Gatherer<? super R, AA, ? extends RR, X> right;
         // FIXME change `impl` to a computed constant when available
-        private GathererImpl<T, Object, RR, X3> impl;
+        private GathererImpl<T, Object, RR, X> impl;
 
-        static <T, A, R, AA, RR, throws XL, throws XR> Composite<T, A, R, AA, RR, XL, XR, XL|XR> of(
-                Gatherer<T, A, ? extends R, XL> left,
-                Gatherer<? super R, AA, ? extends RR, XR> right) {
+        static <T, A, R, AA, RR, throws X> Composite<T, A, R, AA, RR, X> of(
+                Gatherer<T, A, ? extends R, X> left,
+                Gatherer<? super R, AA, ? extends RR, X> right) {
             return new Composite<>(left, right);
         }
 
-        private Composite(Gatherer<T, A, ? extends R, X1> left,
-                          Gatherer<? super R, AA, ? extends RR, X2> right) {
+        private Composite(Gatherer<T, A, ? extends R, X> left,
+                          Gatherer<? super R, AA, ? extends RR, X> right) {
             this.left = left;
             this.right = right;
         }
 
         @SuppressWarnings("unchecked")
-        private GathererImpl<T, Object, RR, X3> impl() {
+        private GathererImpl<T, Object, RR, X> impl() {
             // ATTENTION: this method currently relies on a "benign" data-race
             // as it should deterministically produce the same result even if
             // initialized concurrently on different threads.
             var i = impl;
             return i != null
                      ? i
-                     : (impl = (GathererImpl<T, Object, RR, X3>)impl(left, right));
+                     : (impl = (GathererImpl<T, Object, RR, X>)impl(left, right));
         }
 
-        @Override public Supplier<Object> initializer() {
+        @Override public Supplier<Object, X> initializer() {
             return impl().initializer();
         }
 
-        @Override public Integrator<Object, T, RR> integrator() {
+        @Override public Integrator<Object, T, RR, X> integrator() {
             return impl().integrator();
         }
 
-        @Override public BinaryOperator<Object> combiner() {
+        @Override public BinaryOperator<Object, X> combiner() {
             return impl().combiner();
         }
 
-        @Override public BiConsumer<Object, Downstream<? super RR>> finisher() {
+        @Override public BiConsumer<Object, Downstream<? super RR>, X> finisher() {
             return impl().finisher();
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
-        public <RRR, throws X4> Gatherer<T, ?, RRR, X3|X4> andThen(
-                Gatherer<? super RR, ?, ? extends RRR, X4> that) {
+        public <RRR, throws X2> Gatherer<T, ?, RRR, X|X2> andThen(
+                Gatherer<? super RR, ?, ? extends RRR, X2> that) {
             
-            Gatherer r; // TBD ???
-            Gatherer<T, ?, RRR, X1|X2|X4> x;
+            Gatherer r; // TODO RON ???
+            Gatherer<T, ?, RRR, X|X2> x;
             if (that.getClass() == Composite.class) {
-                final var c = (Composite<? super RR, ?, Object, ?, ? extends RRR, X4, X4, X4>) that;
+                final var c = (Composite<? super RR, ?, Object, ?, ? extends RRR, X2>) that;
                 r = left.andThen(right.andThen(c.left).andThen(c.right)); // x = 
             } else {
                 // Gatherer<? super R, ?, ? extends RRR, X2|X4> y
                 r = left.andThen(right.andThen(that)); // x =
             }
-            return x = (Gatherer<T, ?, RRR, X1|X2|X4>)r;
+            return x = (Gatherer<T, ?, RRR, X|X2>)r;
         }
 
-        static final <T, A, R, AA, RR, throws X1, throws X2, throws X3 extends X1|X2> GathererImpl<T, ?, RR, X3> impl(
-                Gatherer<T, A, R, X1> left, Gatherer<? super R, AA, RR, X2> right) {
-            final var leftInitializer = left.initializer();
-            final var leftIntegrator = left.integrator();
-            final var leftCombiner = left.combiner();
-            final var leftFinisher = left.finisher();
+        static final <T, A, R, AA, RR, throws X> GathererImpl<T, ?, RR, X> impl(
+                Gatherer<T, A, R, X> left, Gatherer<? super R, AA, RR, X> right) {
+            final var leftInitializer = CheckedExceptions.eraseException(left.initializer());
+            @SuppressWarnings("unchecked")
+            final var leftIntegrator = (Integrator<A, T, R>)left.integrator();
+            final var leftCombiner = CheckedExceptions.eraseException(left.combiner());
+            final var leftFinisher = CheckedExceptions.eraseException(left.finisher());
 
-            final var rightInitializer = right.initializer();
-            final var rightIntegrator = right.integrator();
-            final var rightCombiner = right.combiner();
-            final var rightFinisher = right.finisher();
+            final var rightInitializer = CheckedExceptions.eraseException(right.initializer());
+            @SuppressWarnings("unchecked")
+            final var rightIntegrator = (Integrator<AA, ? super R, RR>)right.integrator();
+            final var rightCombiner = CheckedExceptions.eraseException(right.combiner());
+            final var rightFinisher = CheckedExceptions.eraseException(right.finisher());
 
             final var leftStateless = leftInitializer == Gatherer.defaultInitializer();
             final var rightStateless = rightInitializer == Gatherer.defaultInitializer();
@@ -691,7 +693,7 @@ public final class Gatherers {
                     }
                 }
 
-                return new GathererImpl<T, State, RR, X3>(
+                return new GathererImpl<T, State, RR, X>(
                         State::new,
                         (leftGreedy && rightGreedy)
                                 ? Integrator.<State, T, RR>ofGreedy(State::integrate)
