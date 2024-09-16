@@ -3686,6 +3686,35 @@ public class Types {
                 @Override protected boolean needsStripping() { return true; }
             };
         }
+
+        @Override
+        public Type visitForAll(ForAll t, Void ignored) {
+            @SuppressWarnings("unchecked")
+            List<Type> tvars1 = (List<Type>)t.tvars.filter(v -> !isThrowsParam(v));
+            Type qtype1 = visit(t.qtype, ignored);
+            int nvars = t.tvars.length();
+            int nvars1 = tvars1.length();
+
+            if (nvars1 == nvars) {
+                if (qtype1 == t.qtype)
+                    return t;
+                else return new ForAll(t.tvars, qtype1) {
+                    @Override
+                    protected boolean needsStripping() {
+                        return true;
+                    }
+                };
+            } else {
+                if (nvars1 == 0)
+                    return qtype1;
+                else return new ForAll(tvars1, qtype1) {
+                    @Override
+                    protected boolean needsStripping() {
+                        return true;
+                    }
+                };
+            }
+        }
     }
 
     /**
