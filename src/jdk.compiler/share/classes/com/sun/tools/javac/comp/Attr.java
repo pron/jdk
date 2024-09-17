@@ -3155,7 +3155,7 @@ public class Attr extends JCTree.Visitor {
             owntype = new ArrayType(elemtype, syms.arrayClass);
         }
         if (!types.isReifiable(elemtype)) {
-            if (!types.isAllParamsThrows(elemtype))
+            if (!types.isReifiable(types.eraseThrowsParamToWildcard(elemtype)))
                 log.error(tree.pos(), Errors.GenericArrayCreation);
             else
                 chk.warnUnchecked(tree.pos(), Warnings.UncheckedCastToType);

@@ -3666,10 +3666,24 @@ public class Types {
     }
 
     public Type eraseThrowsParam(Type t) {
-        return t.map(new EraseThrowsParam());
+        return t.map(new EraseThrowsParam(false));
+    }
+
+    public Type eraseThrowsParamToWildcard(Type t) {
+        return t.map(new EraseThrowsParam(true));
     }
 
     private class EraseThrowsParam extends StructuralTypeMapping<Void> {
+        private final boolean wildcard;
+
+        EraseThrowsParam(boolean wildcard) { this.wildcard = wildcard; }
+
+        Type eraseTo(Type formal) {
+            return wildcard
+                    ? new WildcardType(syms.objectType, UNBOUND, syms.boundClass)
+                    : defaultThrows(formal, true);
+        }
+
         @Override
         public Type visitClassType(ClassType t, Void ignored) {
             Type outer = t.getEnclosingType();
@@ -3677,8 +3691,7 @@ public class Types {
             List<Type> typarams = t.getTypeArguments();
             List<Type> formals = t.tsym.type.allparams();
             List<Type> typarams1 = typarams.mapTwo(formals,
-                    (tp, f) ->
-                        isThrowsParam(f) ? defaultThrows(f, true): tp);
+                    (tp, f) -> isThrowsParam(f) ? eraseTo(f): tp);
             typarams1 = visit(typarams1, ignored);
 
             if (outer1 == outer && typarams1 == typarams) return t;
