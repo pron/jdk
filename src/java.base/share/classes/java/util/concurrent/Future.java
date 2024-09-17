@@ -164,6 +164,56 @@ public interface Future<V, throws X = Exception> {
         throws InterruptedException, ExecutionException, TimeoutException;
 
     /**
+     * Waits if necessary for the computation to complete, and then
+     * retrieves its result.
+     *
+     * @return the computed result
+     * @throws CancellationException if the computation was cancelled
+     * @throws X if the computation threw an exception
+     * @throws InterruptedException if the current thread was interrupted
+     * while waiting
+     */
+    default V join() throws InterruptedException, X {
+        try {
+            return get();
+        } catch (ExecutionException ex) {
+            Throwable x = ex.getCause();
+            if (x instanceof Error e) throw e;
+            if (x instanceof RuntimeException re) throw re;
+            @SuppressWarnings("unchecked")
+            X x1 = (X)x;
+            throw x1;
+        }
+    }
+
+    /**
+     * Waits if necessary for at most the given time for the computation
+     * to complete, and then retrieves its result, if available.
+     *
+     * @param timeout the maximum time to wait
+     * @param unit the time unit of the timeout argument
+     * @return the computed result
+     * @throws CancellationException if the computation was cancelled
+     * @throws X if the computation threw an exception
+     * @throws InterruptedException if the current thread was interrupted
+     * while waiting
+     * @throws TimeoutException if the wait timed out
+     */
+    default V join(long timeout, TimeUnit unit)
+        throws InterruptedException, X, TimeoutException {
+        try {
+            return get(timeout, unit);
+        } catch (ExecutionException ex) {
+            Throwable x = ex.getCause();
+            if (x instanceof Error e) throw e;
+            if (x instanceof RuntimeException re) throw re;
+            @SuppressWarnings("unchecked")
+            X x1 = (X)x;
+            throw x1;
+        }
+    }
+
+    /**
      * Returns the computed result, without waiting.
      *
      * <p> This method is for cases where the caller knows that the task has
