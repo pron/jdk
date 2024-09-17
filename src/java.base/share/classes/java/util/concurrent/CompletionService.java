@@ -59,10 +59,11 @@ package java.util.concurrent;
  * actions following a successful return from the corresponding {@code take()}.
  *
  * @param <V> the type of values the tasks of this service produce and consume
+ * @param <X> throws
  *
  * @since 1.5
  */
-public interface CompletionService<V> {
+public interface CompletionService<V, throws X = Exception> {
     /**
      * Submits a value-returning task for execution and returns a Future
      * representing the pending results of the task.  Upon completion,
@@ -74,7 +75,7 @@ public interface CompletionService<V> {
      *         scheduled for execution
      * @throws NullPointerException if the task is null
      */
-    Future<V> submit(Callable<V> task);
+    Future<V, X> submit(Callable<V, X> task);
 
     /**
      * Submits a Runnable task for execution and returns a Future
@@ -90,7 +91,7 @@ public interface CompletionService<V> {
      *         scheduled for execution
      * @throws NullPointerException if the task is null
      */
-    Future<V> submit(Runnable task, V result);
+    Future<V, RuntimeException> submit(Runnable task, V result);
 
     /**
      * Retrieves and removes the Future representing the next

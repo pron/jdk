@@ -99,10 +99,11 @@ package java.util.concurrent;
  * }}</pre>
  *
  * @param <V> the type of values the tasks of this service produce and consume
+ * @param <X> throws
  *
  * @since 1.5
  */
-public class ExecutorCompletionService<V> implements CompletionService<V> {
+public class ExecutorCompletionService<V, throws X = Exception> implements CompletionService<V, X> {
     private final Executor executor;
     private final AbstractExecutorService aes;
     private final BlockingQueue<Future<V>> completionQueue;
@@ -122,16 +123,16 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
         protected void done() { completionQueue.add(task); }
     }
 
-    private RunnableFuture<V> newTaskFor(Callable<V> task) {
+    private RunnableFuture<V, X> newTaskFor(Callable<V, X> task) {
         if (aes == null)
-            return new FutureTask<V>(task);
+            return new FutureTask<>(task);
         else
             return aes.newTaskFor(task);
     }
 
-    private RunnableFuture<V> newTaskFor(Runnable task, V result) {
+    private RunnableFuture<V, RuntimeException> newTaskFor(Runnable task, V result) {
         if (aes == null)
-            return new FutureTask<V>(task, result);
+            return new FutureTask<>(task, result);
         else
             return aes.newTaskFor(task, result);
     }
@@ -180,9 +181,9 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
      * @throws RejectedExecutionException {@inheritDoc}
      * @throws NullPointerException       {@inheritDoc}
      */
-    public Future<V> submit(Callable<V> task) {
+    public Future<V, X> submit(Callable<V, X> task) {
         if (task == null) throw new NullPointerException();
-        RunnableFuture<V> f = newTaskFor(task);
+        RunnableFuture<V, X> f = newTaskFor(task);
         executor.execute(new QueueingFuture<V>(f, completionQueue));
         return f;
     }
@@ -191,9 +192,9 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
      * @throws RejectedExecutionException {@inheritDoc}
      * @throws NullPointerException       {@inheritDoc}
      */
-    public Future<V> submit(Runnable task, V result) {
+    public Future<V, RuntimeException> submit(Runnable task, V result) {
         if (task == null) throw new NullPointerException();
-        RunnableFuture<V> f = newTaskFor(task, result);
+        RunnableFuture<V, RuntimeException> f = newTaskFor(task, result);
         executor.execute(new QueueingFuture<V>(f, completionQueue));
         return f;
     }
