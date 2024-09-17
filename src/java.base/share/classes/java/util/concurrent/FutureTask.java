@@ -62,8 +62,9 @@ import java.util.concurrent.locks.LockSupport;
  * @since 1.5
  * @author Doug Lea
  * @param <V> The result type returned by this FutureTask's {@code get} methods
+ * @param <X> throws
  */
-public class FutureTask<V> implements RunnableFuture<V> {
+public class FutureTask<V, throws X = Exception> implements RunnableFuture<V, X> {
     /*
      * Revision notes: This differs from previous versions of this
      * class that relied on AbstractQueuedSynchronizer, mainly to
@@ -129,7 +130,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * @param  callable the callable task
      * @throws NullPointerException if the callable is null
      */
-    public FutureTask(Callable<V> callable) {
+    public FutureTask(Callable<V, X> callable) {
         if (callable == null)
             throw new NullPointerException();
         this.callable = callable;

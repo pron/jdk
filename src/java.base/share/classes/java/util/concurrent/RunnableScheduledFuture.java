@@ -44,8 +44,9 @@ package java.util.concurrent;
  * @since 1.6
  * @author Doug Lea
  * @param <V> The result type returned by this Future's {@code get} method
+ * @param <X> throws
  */
-public interface RunnableScheduledFuture<V> extends RunnableFuture<V>, ScheduledFuture<V> {
+public interface RunnableScheduledFuture<V, throws X = Exception> extends RunnableFuture<V, X>, ScheduledFuture<V, X> {
 
     /**
      * Returns {@code true} if this task is periodic. A periodic task may

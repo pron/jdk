@@ -446,7 +446,7 @@ public class Executors {
      * @return a callable object
      * @throws NullPointerException if task null
      */
-    public static <T> Callable<T> callable(Runnable task, T result) {
+    public static <T> Callable<T, RuntimeException> callable(Runnable task, T result) {
         if (task == null)
             throw new NullPointerException();
         return new RunnableAdapter<T>(task, result);
@@ -459,7 +459,7 @@ public class Executors {
      * @return a callable object
      * @throws NullPointerException if task null
      */
-    public static Callable<Object> callable(Runnable task) {
+    public static Callable<Object, RuntimeException> callable(Runnable task) {
         if (task == null)
             throw new NullPointerException();
         return new RunnableAdapter<Object>(task, null);
@@ -561,7 +561,7 @@ public class Executors {
     /**
      * A callable that runs given task and returns given result.
      */
-    private static final class RunnableAdapter<T> implements Callable<T> {
+    private static final class RunnableAdapter<T> implements Callable<T, RuntimeException> {
         private final Runnable task;
         private final T result;
         RunnableAdapter(Runnable task, T result) {
@@ -780,29 +780,29 @@ public class Executors {
                 return e.awaitTermination(timeout, unit);
             } finally { reachabilityFence(this); }
         }
-        public Future<?> submit(Runnable task) {
+        public Future<?, RuntimeException> submit(Runnable task) {
             try {
                 return e.submit(task);
             } finally { reachabilityFence(this); }
         }
-        public <T> Future<T> submit(Callable<T> task) {
+        public <T, throws X> Future<T, X> submit(Callable<T, X> task) {
             try {
                 return e.submit(task);
             } finally { reachabilityFence(this); }
         }
-        public <T> Future<T> submit(Runnable task, T result) {
+        public <T> Future<T, RuntimeException> submit(Runnable task, T result) {
             try {
                 return e.submit(task, result);
             } finally { reachabilityFence(this); }
         }
-        public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
+        public <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks)
             throws InterruptedException {
             try {
                 return e.invokeAll(tasks);
             } finally { reachabilityFence(this); }
         }
-        public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
-                                             long timeout, TimeUnit unit)
+        public <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks,
+                                                          long timeout, TimeUnit unit)
             throws InterruptedException {
             try {
                 return e.invokeAll(tasks, timeout, unit);
@@ -860,16 +860,16 @@ public class Executors {
             super(executor);
             e = executor;
         }
-        public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+        public ScheduledFuture<?, RuntimeException> schedule(Runnable command, long delay, TimeUnit unit) {
             return e.schedule(command, delay, unit);
         }
-        public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+        public <V, throws X> ScheduledFuture<V, X> schedule(Callable<V, X> callable, long delay, TimeUnit unit) {
             return e.schedule(callable, delay, unit);
         }
-        public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
+        public ScheduledFuture<?, RuntimeException> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
             return e.scheduleAtFixedRate(command, initialDelay, period, unit);
         }
-        public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
+        public ScheduledFuture<?, RuntimeException> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
             return e.scheduleWithFixedDelay(command, initialDelay, delay, unit);
         }
     }

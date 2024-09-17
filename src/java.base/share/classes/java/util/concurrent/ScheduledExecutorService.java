@@ -103,8 +103,8 @@ public interface ScheduledExecutorService extends ExecutorService {
      *         scheduled for execution
      * @throws NullPointerException if command or unit is null
      */
-    public ScheduledFuture<?> schedule(Runnable command,
-                                       long delay, TimeUnit unit);
+    public ScheduledFuture<?, RuntimeException> schedule(Runnable command,
+                                                         long delay, TimeUnit unit);
 
     /**
      * Submits a value-returning one-shot task that becomes enabled
@@ -114,13 +114,14 @@ public interface ScheduledExecutorService extends ExecutorService {
      * @param delay the time from now to delay execution
      * @param unit the time unit of the delay parameter
      * @param <V> the type of the callable's result
+     * @param <X> throws
      * @return a ScheduledFuture that can be used to extract result or cancel
      * @throws RejectedExecutionException if the task cannot be
      *         scheduled for execution
      * @throws NullPointerException if callable or unit is null
      */
-    public <V> ScheduledFuture<V> schedule(Callable<V> callable,
-                                           long delay, TimeUnit unit);
+    public <V, throws X> ScheduledFuture<V, X> schedule(Callable<V, X> callable,
+                                                        long delay, TimeUnit unit);
 
     /**
      * Submits a periodic action that becomes enabled first after the
@@ -161,7 +162,7 @@ public interface ScheduledExecutorService extends ExecutorService {
      * @throws NullPointerException if command or unit is null
      * @throws IllegalArgumentException if period less than or equal to zero
      */
-    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command,
+    public ScheduledFuture<?, RuntimeException> scheduleAtFixedRate(Runnable command,
                                                   long initialDelay,
                                                   long period,
                                                   TimeUnit unit);
@@ -201,7 +202,7 @@ public interface ScheduledExecutorService extends ExecutorService {
      * @throws NullPointerException if command or unit is null
      * @throws IllegalArgumentException if delay less than or equal to zero
      */
-    public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command,
+    public ScheduledFuture<?, RuntimeException> scheduleWithFixedDelay(Runnable command,
                                                      long initialDelay,
                                                      long delay,
                                                      TimeUnit unit);

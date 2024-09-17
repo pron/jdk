@@ -94,8 +94,8 @@ public abstract class AbstractExecutorService implements ExecutorService {
      * the underlying task
      * @since 1.6
      */
-    protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
-        return new FutureTask<T>(runnable, value);
+    protected <T> RunnableFuture<T, RuntimeException> newTaskFor(Runnable runnable, T value) {
+        return new FutureTask<>(runnable, value);
     }
 
     /**
@@ -103,14 +103,15 @@ public abstract class AbstractExecutorService implements ExecutorService {
      *
      * @param callable the callable task being wrapped
      * @param <T> the type of the callable's result
+     * @param <X> throws
      * @return a {@code RunnableFuture} which, when run, will call the
      * underlying callable and which, as a {@code Future}, will yield
      * the callable's result as its result and provide for
      * cancellation of the underlying task
      * @since 1.6
      */
-    protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
-        return new FutureTask<T>(callable);
+    protected <T, throws X> RunnableFuture<T, X> newTaskFor(Callable<T, X> callable) {
+        return new FutureTask<T, X>(callable);
     }
 
     /**
@@ -118,9 +119,9 @@ public abstract class AbstractExecutorService implements ExecutorService {
      * @throws NullPointerException       {@inheritDoc}
      */
     @Override
-    public Future<?> submit(Runnable task) {
+    public Future<?, RuntimeException> submit(Runnable task) {
         if (task == null) throw new NullPointerException();
-        RunnableFuture<Void> ftask = newTaskFor(task, null);
+        RunnableFuture<Void, RuntimeException> ftask = newTaskFor(task, null);
         execute(ftask);
         return ftask;
     }
@@ -130,9 +131,9 @@ public abstract class AbstractExecutorService implements ExecutorService {
      * @throws NullPointerException       {@inheritDoc}
      */
     @Override
-    public <T> Future<T> submit(Runnable task, T result) {
+    public <T> Future<T, RuntimeException> submit(Runnable task, T result) {
         if (task == null) throw new NullPointerException();
-        RunnableFuture<T> ftask = newTaskFor(task, result);
+        RunnableFuture<T, RuntimeException> ftask = newTaskFor(task, result);
         execute(ftask);
         return ftask;
     }
@@ -142,9 +143,9 @@ public abstract class AbstractExecutorService implements ExecutorService {
      * @throws NullPointerException       {@inheritDoc}
      */
     @Override
-    public <T> Future<T> submit(Callable<T> task) {
+    public <T, throws X> Future<T, X> submit(Callable<T, X> task) {
         if (task == null) throw new NullPointerException();
-        RunnableFuture<T> ftask = newTaskFor(task);
+        RunnableFuture<T, X> ftask = newTaskFor(task);
         execute(ftask);
         return ftask;
     }
@@ -260,19 +261,19 @@ public abstract class AbstractExecutorService implements ExecutorService {
      * @throws RejectedExecutionException {@inheritDoc}
      */
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
+    public <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks)
         throws InterruptedException {
         if (tasks == null)
             throw new NullPointerException();
-        ArrayList<Future<T>> futures = new ArrayList<>(tasks.size());
+        ArrayList<Future<T, X>> futures = new ArrayList<>(tasks.size());
         try {
-            for (Callable<T> t : tasks) {
-                RunnableFuture<T> f = newTaskFor(t);
+            for (Callable<T, X> t : tasks) {
+                RunnableFuture<T, X> f = newTaskFor(t);
                 futures.add(f);
                 execute(f);
             }
             for (int i = 0, size = futures.size(); i < size; i++) {
-                Future<T> f = futures.get(i);
+                Future<T, X> f = futures.get(i);
                 if (!f.isDone()) {
                     try { f.get(); }
                     catch (CancellationException | ExecutionException ignore) {}
@@ -291,17 +292,17 @@ public abstract class AbstractExecutorService implements ExecutorService {
      * @throws RejectedExecutionException {@inheritDoc}
      */
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
-                                         long timeout, TimeUnit unit)
+    public <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks,
+                                                      long timeout, TimeUnit unit)
         throws InterruptedException {
         if (tasks == null)
             throw new NullPointerException();
         final long nanos = unit.toNanos(timeout);
         final long deadline = System.nanoTime() + nanos;
-        ArrayList<Future<T>> futures = new ArrayList<>(tasks.size());
+        ArrayList<Future<T, X>> futures = new ArrayList<>(tasks.size());
         int j = 0;
         timedOut: try {
-            for (Callable<T> t : tasks)
+            for (Callable<T, X> t : tasks)
                 futures.add(newTaskFor(t));
 
             final int size = futures.size();
@@ -315,7 +316,7 @@ public abstract class AbstractExecutorService implements ExecutorService {
             }
 
             for (; j < size; j++) {
-                Future<T> f = futures.get(j);
+                Future<T, X> f = futures.get(j);
                 if (!f.isDone()) {
                     try { f.get(deadline - System.nanoTime(), NANOSECONDS); }
                     catch (CancellationException | ExecutionException ignore) {}
@@ -334,12 +335,12 @@ public abstract class AbstractExecutorService implements ExecutorService {
         return futures;
     }
 
-    private static <T> void cancelAll(ArrayList<Future<T>> futures) {
+    private static <T> void cancelAll(ArrayList<? extends Future<T>> futures) {
         cancelAll(futures, 0);
     }
 
     /** Cancels all futures with index at least j. */
-    private static <T> void cancelAll(ArrayList<Future<T>> futures, int j) {
+    private static <T> void cancelAll(ArrayList<? extends Future<T>> futures, int j) {
         for (int size = futures.size(); j < size; j++)
             futures.get(j).cancel(true);
     }

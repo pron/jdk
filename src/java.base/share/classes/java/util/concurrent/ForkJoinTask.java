@@ -199,11 +199,12 @@ import jdk.internal.misc.Unsafe;
  * execution. Serialization is not relied on during execution itself.
  *
  * @param <V> the type of the result of the task
+ * @param <X> throws
  *
  * @since 1.7
  * @author Doug Lea
  */
-public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
+public abstract class ForkJoinTask<V, throws X = Exception> implements Future<V, X>, Serializable {
 
     /*
      * See the internal documentation of class ForkJoinPool for a
@@ -712,7 +713,7 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
 
     /**
      * Forks the given tasks, returning when {@code isDone} holds for
-     * each task or an (unchecked) exception is encountered, in which
+     * each task or an exception is encountered, in which
      * case the exception is rethrown. If more than one task
      * encounters an exception, then this method throws any one of
      * these exceptions. If any task encounters an exception, others
@@ -725,7 +726,7 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
      * @param tasks the tasks
      * @throws NullPointerException if any task is null
      */
-    public static void invokeAll(ForkJoinTask<?>... tasks) {
+    public static void invokeAll(ForkJoinTask<?, ?>... tasks) {
         Throwable ex = null;
         int last = tasks.length - 1;
         for (int i = last; i >= 0; --i) {
@@ -783,7 +784,7 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
      */
     public static <T extends ForkJoinTask<?>> Collection<T> invokeAll(Collection<T> tasks) {
         if (!(tasks instanceof RandomAccess) || !(tasks instanceof List<?>)) {
-            invokeAll(tasks.toArray(new ForkJoinTask<?>[0]));
+            invokeAll(tasks.toArray(new ForkJoinTask<?,?>[0]));
             return tasks;
         }
         @SuppressWarnings("unchecked")
@@ -1439,10 +1440,11 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
      *
      * @param callable the callable action
      * @param <T> the type of the callable's result
+     * @param <X> throws
      * @return the task
      */
-    public static <T> ForkJoinTask<T> adapt(Callable<? extends T> callable) {
-        return new AdaptedCallable<T>(callable);
+    public static <T, throws X> ForkJoinTask<T, X> adapt(Callable<? extends T, X> callable) {
+        return new AdaptedCallable<>(callable);
     }
 
     /**
@@ -1455,12 +1457,13 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
      *
      * @param callable the callable action
      * @param <T> the type of the callable's result
+     * @param <X> throws
      * @return the task
      *
      * @since 19
      */
-    public static <T> ForkJoinTask<T> adaptInterruptible(Callable<? extends T> callable) {
-        return new AdaptedInterruptibleCallable<T>(callable);
+    public static <T, throws X> ForkJoinTask<T, X> adaptInterruptible(Callable<? extends T, X> callable) {
+        return new AdaptedInterruptibleCallable<>(callable);
     }
 
     /**
@@ -1478,7 +1481,7 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
      *
      * @since 22
      */
-    public static <T> ForkJoinTask<T> adaptInterruptible(Runnable runnable, T result) {
+    public static <T> ForkJoinTask<T, RuntimeException> adaptInterruptible(Runnable runnable, T result) {
         return new AdaptedInterruptibleRunnable<T>(runnable, result);
     }
 
@@ -1496,7 +1499,7 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
      *
      * @since 22
      */
-    public static ForkJoinTask<?> adaptInterruptible(Runnable runnable) {
+    public static ForkJoinTask<?, RuntimeException> adaptInterruptible(Runnable runnable) {
         return new AdaptedInterruptibleRunnable<Void>(runnable, null);
     }
 
@@ -1549,8 +1552,8 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
      * to be compliant with AbstractExecutorService constraints
      * when used in ForkJoinPool.
      */
-    static final class AdaptedRunnable<T> extends ForkJoinTask<T>
-        implements RunnableFuture<T> {
+    static final class AdaptedRunnable<T> extends ForkJoinTask<T, RuntimeException>
+        implements RunnableFuture<T, RuntimeException> {
         @SuppressWarnings("serial") // Conditionally serializable
         final Runnable runnable;
         @SuppressWarnings("serial") // Conditionally serializable
@@ -1573,8 +1576,8 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
     /**
      * Adapter for Runnables without results.
      */
-    static final class AdaptedRunnableAction extends ForkJoinTask<Void>
-        implements RunnableFuture<Void> {
+    static final class AdaptedRunnableAction extends ForkJoinTask<Void, RuntimeException>
+        implements RunnableFuture<Void, RuntimeException> {
         @SuppressWarnings("serial") // Conditionally serializable
         final Runnable runnable;
         AdaptedRunnableAction(Runnable runnable) {
@@ -1594,13 +1597,13 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
     /**
      * Adapter for Callables.
      */
-    static final class AdaptedCallable<T> extends ForkJoinTask<T>
-        implements RunnableFuture<T> {
+    static final class AdaptedCallable<T, throws X> extends ForkJoinTask<T, X>
+        implements RunnableFuture<T, X> {
         @SuppressWarnings("serial") // Conditionally serializable
-        final Callable<? extends T> callable;
+        final Callable<? extends T, X> callable;
         @SuppressWarnings("serial") // Conditionally serializable
         T result;
-        AdaptedCallable(Callable<? extends T> callable) {
+        AdaptedCallable(Callable<? extends T, X> callable) {
             Objects.requireNonNull(callable);
             this.callable = callable;
         }
@@ -1633,8 +1636,8 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
      * been cancelled on entry and might not otherwise be cancelled by
      * others.
      */
-    abstract static class InterruptibleTask<T> extends ForkJoinTask<T>
-        implements RunnableFuture<T> {
+    abstract static class InterruptibleTask<T, throws X> extends ForkJoinTask<T, X>
+        implements RunnableFuture<T, X> {
         transient volatile Thread runner;
         abstract T compute() throws Exception;
         public final boolean exec() {
@@ -1684,12 +1687,12 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
     /**
      * Adapter for Callable-based interruptible tasks.
      */
-    static final class AdaptedInterruptibleCallable<T> extends InterruptibleTask<T> {
+    static final class AdaptedInterruptibleCallable<T, throws X> extends InterruptibleTask<T, X> {
         @SuppressWarnings("serial") // Conditionally serializable
-        final Callable<? extends T> callable;
+        final Callable<? extends T, X> callable;
         @SuppressWarnings("serial") // Conditionally serializable
         T result;
-        AdaptedInterruptibleCallable(Callable<? extends T> callable) {
+        AdaptedInterruptibleCallable(Callable<? extends T, X> callable) {
             Objects.requireNonNull(callable);
             this.callable = callable;
         }
@@ -1703,7 +1706,7 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
     /**
      * Adapter for Runnable-based interruptible tasks.
      */
-    static final class AdaptedInterruptibleRunnable<T> extends InterruptibleTask<T> {
+    static final class AdaptedInterruptibleRunnable<T> extends InterruptibleTask<T, RuntimeException> {
         @SuppressWarnings("serial") // Conditionally serializable
         final Runnable runnable;
         @SuppressWarnings("serial") // Conditionally serializable
@@ -1723,7 +1726,7 @@ public abstract class ForkJoinTask<V> implements Future<V>, Serializable {
     /**
      * Adapter for Runnables in which failure forces worker exception.
      */
-    static final class RunnableExecuteAction extends InterruptibleTask<Void> {
+    static final class RunnableExecuteAction extends InterruptibleTask<Void, RuntimeException> {
         @SuppressWarnings("serial") // Conditionally serializable
         final Runnable runnable;
         RunnableExecuteAction(Runnable runnable) {

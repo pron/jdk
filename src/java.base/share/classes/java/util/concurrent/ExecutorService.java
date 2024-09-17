@@ -240,12 +240,13 @@ public interface ExecutorService extends Executor, AutoCloseable {
      *
      * @param task the task to submit
      * @param <T> the type of the task's result
+     * @param <X> throws
      * @return a Future representing pending completion of the task
      * @throws RejectedExecutionException if the task cannot be
      *         scheduled for execution
      * @throws NullPointerException if the task is null
      */
-    <T> Future<T> submit(Callable<T> task);
+    <T, throws X> Future<T, X> submit(Callable<T, X> task);
 
     /**
      * Submits a Runnable task for execution and returns a Future
@@ -260,7 +261,7 @@ public interface ExecutorService extends Executor, AutoCloseable {
      *         scheduled for execution
      * @throws NullPointerException if the task is null
      */
-    <T> Future<T> submit(Runnable task, T result);
+    <T> Future<T, RuntimeException> submit(Runnable task, T result);
 
     /**
      * Submits a Runnable task for execution and returns a Future
@@ -273,7 +274,7 @@ public interface ExecutorService extends Executor, AutoCloseable {
      *         scheduled for execution
      * @throws NullPointerException if the task is null
      */
-    Future<?> submit(Runnable task);
+    Future<?, RuntimeException> submit(Runnable task);
 
     /**
      * Executes the given tasks, returning a list of Futures holding
@@ -287,6 +288,7 @@ public interface ExecutorService extends Executor, AutoCloseable {
      *
      * @param tasks the collection of tasks
      * @param <T> the type of the values returned from the tasks
+     * @param <X> throws
      * @return a list of Futures representing the tasks, in the same
      *         sequential order as produced by the iterator for the
      *         given task list, each of which has completed
@@ -296,7 +298,7 @@ public interface ExecutorService extends Executor, AutoCloseable {
      * @throws RejectedExecutionException if any task cannot be
      *         scheduled for execution
      */
-    <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
+    <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks)
         throws InterruptedException;
 
     /**
@@ -315,6 +317,7 @@ public interface ExecutorService extends Executor, AutoCloseable {
      * @param timeout the maximum time to wait
      * @param unit the time unit of the timeout argument
      * @param <T> the type of the values returned from the tasks
+     * @param <X> throws
      * @return a list of Futures representing the tasks, in the same
      *         sequential order as produced by the iterator for the
      *         given task list. If the operation did not time out,
@@ -327,10 +330,9 @@ public interface ExecutorService extends Executor, AutoCloseable {
      * @throws RejectedExecutionException if any task cannot be scheduled
      *         for execution
      */
-    <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
-                                  long timeout, TimeUnit unit)
-        throws InterruptedException;
-
+    <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks,
+                                               long timeout, TimeUnit unit)
+            throws InterruptedException;
     /**
      * Executes the given tasks, returning the result
      * of one that has completed successfully (i.e., without throwing
@@ -350,7 +352,7 @@ public interface ExecutorService extends Executor, AutoCloseable {
      * @throws RejectedExecutionException if tasks cannot be scheduled
      *         for execution
      */
-    <T> T invokeAny(Collection<? extends Callable<T>> tasks)
+    <T> T invokeAny(Collection<? extends Callable<T, ?>> tasks)
         throws InterruptedException, ExecutionException;
 
     /**
@@ -376,7 +378,7 @@ public interface ExecutorService extends Executor, AutoCloseable {
      * @throws RejectedExecutionException if tasks cannot be scheduled
      *         for execution
      */
-    <T> T invokeAny(Collection<? extends Callable<T>> tasks,
+    <T> T invokeAny(Collection<? extends Callable<T,?>> tasks,
                     long timeout, TimeUnit unit)
         throws InterruptedException, ExecutionException, TimeoutException;
 

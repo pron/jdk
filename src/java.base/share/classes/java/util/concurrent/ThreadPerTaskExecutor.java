@@ -279,7 +279,7 @@ class ThreadPerTaskExecutor extends ThreadContainer implements ExecutorService {
     }
 
     @Override
-    public <T> Future<T> submit(Callable<T> task) {
+    public <T, throws X> Future<T, X> submit(Callable<T, X> task) {
         Objects.requireNonNull(task);
         ensureNotShutdown();
         var future = new ThreadBoundFuture<>(this, task);
@@ -289,12 +289,12 @@ class ThreadPerTaskExecutor extends ThreadContainer implements ExecutorService {
     }
 
     @Override
-    public Future<?> submit(Runnable task) {
+    public Future<?, RuntimeException> submit(Runnable task) {
         return submit(Executors.callable(task));
     }
 
     @Override
-    public <T> Future<T> submit(Runnable task, T result) {
+    public <T> Future<T, RuntimeException> submit(Runnable task, T result) {
         return submit(Executors.callable(task, result));
     }
 
@@ -324,13 +324,13 @@ class ThreadPerTaskExecutor extends ThreadContainer implements ExecutorService {
      * is interrupted when the future is cancelled. The executor is
      * notified when the task completes.
      */
-    private static class ThreadBoundFuture<T>
-            extends FutureTask<T> implements Runnable {
+    private static class ThreadBoundFuture<T, throws X>
+            extends FutureTask<T, X> implements Runnable {
 
         final ThreadPerTaskExecutor executor;
         final Thread thread;
 
-        ThreadBoundFuture(ThreadPerTaskExecutor executor, Callable<T> task) {
+        ThreadBoundFuture(ThreadPerTaskExecutor executor, Callable<T, X> task) {
             super(task);
             this.executor = executor;
             this.thread = executor.newThread(this);
@@ -347,19 +347,19 @@ class ThreadPerTaskExecutor extends ThreadContainer implements ExecutorService {
     }
 
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
+    public <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks)
             throws InterruptedException {
 
         Objects.requireNonNull(tasks);
-        List<Future<T>> futures = new ArrayList<>();
+        List<Future<T, X>> futures = new ArrayList<>();
         int j = 0;
         try {
-            for (Callable<T> t : tasks) {
-                Future<T> f = submit(t);
+            for (Callable<T, X> t : tasks) {
+                Future<T, X> f = submit(t);
                 futures.add(f);
             }
             for (int size = futures.size(); j < size; j++) {
-                Future<T> f = futures.get(j);
+                Future<T, X> f = futures.get(j);
                 if (!f.isDone()) {
                     try {
                         f.get();
@@ -373,21 +373,21 @@ class ThreadPerTaskExecutor extends ThreadContainer implements ExecutorService {
     }
 
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
-                                         long timeout, TimeUnit unit)
+    public <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks,
+                                                      long timeout, TimeUnit unit)
             throws InterruptedException {
 
         Objects.requireNonNull(tasks);
         long deadline = System.nanoTime() + unit.toNanos(timeout);
-        List<Future<T>> futures = new ArrayList<>();
+        List<Future<T, X>> futures = new ArrayList<>();
         int j = 0;
         try {
-            for (Callable<T> t : tasks) {
-                Future<T> f = submit(t);
+            for (Callable<T, X> t : tasks) {
+                Future<T, X> f = submit(t);
                 futures.add(f);
             }
             for (int size = futures.size(); j < size; j++) {
-                Future<T> f = futures.get(j);
+                Future<T, X> f = futures.get(j);
                 if (!f.isDone()) {
                     try {
                         f.get(deadline - System.nanoTime(), NANOSECONDS);
@@ -402,7 +402,7 @@ class ThreadPerTaskExecutor extends ThreadContainer implements ExecutorService {
         }
     }
 
-    private <T> void cancelAll(List<Future<T>> futures, int j) {
+    private <T> void cancelAll(List<? extends Future<T>> futures, int j) {
         for (int size = futures.size(); j < size; j++)
             futures.get(j).cancel(true);
     }

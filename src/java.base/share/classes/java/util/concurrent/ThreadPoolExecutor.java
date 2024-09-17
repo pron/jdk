@@ -1796,7 +1796,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             Iterator<Runnable> it = q.iterator();
             while (it.hasNext()) {
                 Runnable r = it.next();
-                if (r instanceof Future<?> && ((Future<?>)r).isCancelled())
+                if (r instanceof Future<?,?> && ((Future<?,?>)r).isCancelled()) // TODO RON: postpone warning?
                     it.remove();
             }
         } catch (ConcurrentModificationException fallThrough) {
@@ -1804,7 +1804,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             // Make copy for traversal and call remove for cancelled entries.
             // The slow path is more likely to be O(N*N).
             for (Object r : q.toArray())
-                if (r instanceof Future<?> && ((Future<?>)r).isCancelled())
+                if (r instanceof Future<?,?> && ((Future<?,?>)r).isCancelled())  // TODO RON: postpone warning?
                     q.remove(r);
         }
 

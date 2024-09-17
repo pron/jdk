@@ -84,8 +84,9 @@ package java.util.concurrent;
  * @since 1.5
  * @author Doug Lea
  * @param <V> The result type returned by this Future's {@code get} method
+ * @param <X> throws
  */
-public interface Future<V> {
+public interface Future<V, throws X = Exception> {
 
     /**
      * Attempts to cancel execution of this task.  This method has no

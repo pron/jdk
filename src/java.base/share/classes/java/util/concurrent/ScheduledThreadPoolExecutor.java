@@ -187,8 +187,8 @@ public class ScheduledThreadPoolExecutor
      */
     private static final long MAX_NANOS = (Long.MAX_VALUE >>> 1) - 1;
 
-    private class ScheduledFutureTask<V>
-            extends FutureTask<V> implements RunnableScheduledFuture<V> {
+    private class ScheduledFutureTask<V, throws X>
+            extends FutureTask<V, X> implements RunnableScheduledFuture<V, X> {
 
         /** Sequence number to break ties FIFO */
         private final long sequenceNumber;
@@ -205,7 +205,7 @@ public class ScheduledThreadPoolExecutor
         private final long period;
 
         /** The actual task to be re-enqueued by reExecutePeriodic */
-        RunnableScheduledFuture<V> outerTask = this;
+        RunnableScheduledFuture<V, X> outerTask = this;
 
         /**
          * Index into delay queue, to support faster cancellation.
@@ -238,7 +238,7 @@ public class ScheduledThreadPoolExecutor
         /**
          * Creates a one-shot action with given nanoTime-based trigger time.
          */
-        ScheduledFutureTask(Callable<V> callable, long triggerTime,
+        ScheduledFutureTask(Callable<V, X> callable, long triggerTime,
                             long sequenceNumber) {
             super(callable);
             this.time = triggerTime;
@@ -254,7 +254,7 @@ public class ScheduledThreadPoolExecutor
             if (other == this) // compare zero if same object
                 return 0;
             if (other instanceof ScheduledFutureTask) {
-                ScheduledFutureTask<?> x = (ScheduledFutureTask<?>)other;
+                ScheduledFutureTask<?,?> x = (ScheduledFutureTask<?,?>)other;
                 long diff = time - x.time;
                 if (diff < 0)
                     return -1;
@@ -406,11 +406,12 @@ public class ScheduledThreadPoolExecutor
      * @param runnable the submitted Runnable
      * @param task the task created to execute the runnable
      * @param <V> the type of the task's result
+     * @param <X> throws
      * @return a task that can execute the runnable
      * @since 1.6
      */
-    protected <V> RunnableScheduledFuture<V> decorateTask(
-        Runnable runnable, RunnableScheduledFuture<V> task) {
+    protected <V, throws X> RunnableScheduledFuture<V, X> decorateTask(
+        Runnable runnable, RunnableScheduledFuture<V, X> task) {
         return task;
     }
 
@@ -423,11 +424,12 @@ public class ScheduledThreadPoolExecutor
      * @param callable the submitted Callable
      * @param task the task created to execute the callable
      * @param <V> the type of the task's result
+     * @param <X> throws
      * @return a task that can execute the callable
      * @since 1.6
      */
-    protected <V> RunnableScheduledFuture<V> decorateTask(
-        Callable<V> callable, RunnableScheduledFuture<V> task) {
+    protected <V, throws X> RunnableScheduledFuture<V, X> decorateTask(
+        Callable<V, X> callable, RunnableScheduledFuture<V, X> task) {
         return task;
     }
 
@@ -537,13 +539,13 @@ public class ScheduledThreadPoolExecutor
      * @throws RejectedExecutionException {@inheritDoc}
      * @throws NullPointerException       {@inheritDoc}
      */
-    public ScheduledFuture<?> schedule(Runnable command,
+    public ScheduledFuture<?, RuntimeException> schedule(Runnable command,
                                        long delay,
                                        TimeUnit unit) {
         if (command == null || unit == null)
             throw new NullPointerException();
-        RunnableScheduledFuture<Void> t = decorateTask(command,
-            new ScheduledFutureTask<Void>(command, null,
+        RunnableScheduledFuture<Void, RuntimeException> t = decorateTask(command,
+            new ScheduledFutureTask<>(command, null,
                                           triggerTime(delay, unit),
                                           sequencer.getAndIncrement()));
         delayedExecute(t);
@@ -554,13 +556,13 @@ public class ScheduledThreadPoolExecutor
      * @throws RejectedExecutionException {@inheritDoc}
      * @throws NullPointerException       {@inheritDoc}
      */
-    public <V> ScheduledFuture<V> schedule(Callable<V> callable,
-                                           long delay,
-                                           TimeUnit unit) {
+    public <V, throws X> ScheduledFuture<V, X> schedule(Callable<V, X> callable,
+                                                        long delay,
+                                                        TimeUnit unit) {
         if (callable == null || unit == null)
             throw new NullPointerException();
-        RunnableScheduledFuture<V> t = decorateTask(callable,
-            new ScheduledFutureTask<V>(callable,
+        RunnableScheduledFuture<V, X> t = decorateTask(callable,
+            new ScheduledFutureTask<V, X>(callable,
                                        triggerTime(delay, unit),
                                        sequencer.getAndIncrement()));
         delayedExecute(t);
@@ -600,7 +602,7 @@ public class ScheduledThreadPoolExecutor
      * @throws NullPointerException       {@inheritDoc}
      * @throws IllegalArgumentException   {@inheritDoc}
      */
-    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command,
+    public ScheduledFuture<?, RuntimeException> scheduleAtFixedRate(Runnable command,
                                                   long initialDelay,
                                                   long period,
                                                   TimeUnit unit) {
@@ -608,13 +610,13 @@ public class ScheduledThreadPoolExecutor
             throw new NullPointerException();
         if (period <= 0L)
             throw new IllegalArgumentException();
-        ScheduledFutureTask<Void> sft =
-            new ScheduledFutureTask<Void>(command,
+        ScheduledFutureTask<Void, RuntimeException> sft =
+            new ScheduledFutureTask<>(command,
                                           null,
                                           triggerTime(initialDelay, unit),
                                           unit.toNanos(period),
                                           sequencer.getAndIncrement());
-        RunnableScheduledFuture<Void> t = decorateTask(command, sft);
+        RunnableScheduledFuture<Void, RuntimeException> t = decorateTask(command, sft);
         sft.outerTask = t;
         delayedExecute(t);
         return t;
@@ -648,7 +650,7 @@ public class ScheduledThreadPoolExecutor
      * @throws NullPointerException       {@inheritDoc}
      * @throws IllegalArgumentException   {@inheritDoc}
      */
-    public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command,
+    public ScheduledFuture<?, RuntimeException> scheduleWithFixedDelay(Runnable command,
                                                      long initialDelay,
                                                      long delay,
                                                      TimeUnit unit) {
@@ -656,13 +658,13 @@ public class ScheduledThreadPoolExecutor
             throw new NullPointerException();
         if (delay <= 0L)
             throw new IllegalArgumentException();
-        ScheduledFutureTask<Void> sft =
-            new ScheduledFutureTask<Void>(command,
+        ScheduledFutureTask<Void, RuntimeException> sft =
+            new ScheduledFutureTask<>(command,
                                           null,
                                           triggerTime(initialDelay, unit),
                                           -unit.toNanos(delay),
                                           sequencer.getAndIncrement());
-        RunnableScheduledFuture<Void> t = decorateTask(command, sft);
+        RunnableScheduledFuture<Void, RuntimeException> t = decorateTask(command, sft);
         sft.outerTask = t;
         delayedExecute(t);
         return t;
@@ -698,7 +700,7 @@ public class ScheduledThreadPoolExecutor
      * @throws RejectedExecutionException {@inheritDoc}
      * @throws NullPointerException       {@inheritDoc}
      */
-    public Future<?> submit(Runnable task) {
+    public Future<?, RuntimeException> submit(Runnable task) {
         return schedule(task, 0, NANOSECONDS);
     }
 
@@ -706,7 +708,7 @@ public class ScheduledThreadPoolExecutor
      * @throws RejectedExecutionException {@inheritDoc}
      * @throws NullPointerException       {@inheritDoc}
      */
-    public <T> Future<T> submit(Runnable task, T result) {
+    public <T> Future<T, RuntimeException> submit(Runnable task, T result) {
         return schedule(Executors.callable(task, result), 0, NANOSECONDS);
     }
 
@@ -714,7 +716,7 @@ public class ScheduledThreadPoolExecutor
      * @throws RejectedExecutionException {@inheritDoc}
      * @throws NullPointerException       {@inheritDoc}
      */
-    public <T> Future<T> submit(Callable<T> task) {
+    public <T, throws X> Future<T, X> submit(Callable<T, X> task) {
         return schedule(task, 0, NANOSECONDS);
     }
 
@@ -910,8 +912,8 @@ public class ScheduledThreadPoolExecutor
          */
 
         private static final int INITIAL_CAPACITY = 16;
-        private RunnableScheduledFuture<?>[] queue =
-            new RunnableScheduledFuture<?>[INITIAL_CAPACITY];
+        private RunnableScheduledFuture<?, ?>[] queue =
+            new RunnableScheduledFuture<?, ?>[INITIAL_CAPACITY];
         private final ReentrantLock lock = new ReentrantLock();
         private int size;
 

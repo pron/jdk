@@ -110,7 +110,7 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
     /**
      * FutureTask extension to enqueue upon completion.
      */
-    private static class QueueingFuture<V> extends FutureTask<Void> {
+    private static class QueueingFuture<V> extends FutureTask<Void, Exception> {
         QueueingFuture(RunnableFuture<V> task,
                        BlockingQueue<Future<V>> completionQueue) {
             super(task, null);

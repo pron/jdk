@@ -44,8 +44,9 @@ package java.util.concurrent;
  * @since 1.6
  * @author Doug Lea
  * @param <V> The result type returned by this Future's {@code get} method
+ * @param <X> throws
  */
-public interface RunnableFuture<V> extends Runnable, Future<V> {
+public interface RunnableFuture<V, throws X = Exception> extends Runnable, Future<V, X> {
     /**
      * Sets this Future to the result of its computation
      * unless it has been cancelled.

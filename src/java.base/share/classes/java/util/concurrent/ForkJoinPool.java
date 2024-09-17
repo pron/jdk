@@ -1249,7 +1249,7 @@ public class ForkJoinPool extends AbstractExecutorService {
          */
         WorkQueue(ForkJoinWorkerThread owner, int id, int cfg,
                   boolean clearThreadLocals) {
-            array = new ForkJoinTask<?>[owner == null ?
+            array = new ForkJoinTask<?,?>[owner == null ?
                                         INITIAL_EXTERNAL_QUEUE_CAPACITY :
                                         INITIAL_QUEUE_CAPACITY];
             this.owner = owner;
@@ -1315,7 +1315,7 @@ public class ForkJoinPool extends AbstractExecutorService {
             if (a != null && a.length == cap && cap > 0 && newCap > 0) {
                 ForkJoinTask<?>[] newArray = null;
                 try {
-                    newArray = new ForkJoinTask<?>[newCap];
+                    newArray = new ForkJoinTask<?,?>[newCap];
                 } catch (OutOfMemoryError ex) {
                 }
                 if (newArray != null) {               // else throw on next push
@@ -3149,8 +3149,8 @@ public class ForkJoinPool extends AbstractExecutorService {
     @Override
     @SuppressWarnings("unchecked")
     public void execute(Runnable task) {
-        poolSubmit(true, (task instanceof ForkJoinTask<?>)
-                   ? (ForkJoinTask<Void>) task // avoid re-wrap
+        poolSubmit(true, (task instanceof ForkJoinTask<?,?>)
+                   ? (ForkJoinTask<Void, RuntimeException>) task // avoid re-wrap
                    : new ForkJoinTask.RunnableExecuteAction(task));
     }
 
@@ -3163,12 +3163,13 @@ public class ForkJoinPool extends AbstractExecutorService {
      *
      * @param task the task to submit
      * @param <T> the type of the task's result
+     * @param <X> throws
      * @return the task
      * @throws NullPointerException if the task is null
      * @throws RejectedExecutionException if the task cannot be
      *         scheduled for execution
      */
-    public <T> ForkJoinTask<T> submit(ForkJoinTask<T> task) {
+    public <T, throws X> ForkJoinTask<T, X> submit(ForkJoinTask<T, X> task) {
         Objects.requireNonNull(task);
         poolSubmit(true, task);
         return task;
@@ -3180,11 +3181,11 @@ public class ForkJoinPool extends AbstractExecutorService {
      *         scheduled for execution
      */
     @Override
-    public <T> ForkJoinTask<T> submit(Callable<T> task) {
-        ForkJoinTask<T> t =
+    public <T, throws X> ForkJoinTask<T, X> submit(Callable<T, X> task) {
+        ForkJoinTask<T, X> t =
             (Thread.currentThread() instanceof ForkJoinWorkerThread) ?
-            new ForkJoinTask.AdaptedCallable<T>(task) :
-            new ForkJoinTask.AdaptedInterruptibleCallable<T>(task);
+            new ForkJoinTask.AdaptedCallable<>(task) :
+            new ForkJoinTask.AdaptedInterruptibleCallable<>(task);
         poolSubmit(true, t);
         return t;
     }
@@ -3195,11 +3196,11 @@ public class ForkJoinPool extends AbstractExecutorService {
      *         scheduled for execution
      */
     @Override
-    public <T> ForkJoinTask<T> submit(Runnable task, T result) {
-        ForkJoinTask<T> t =
+    public <T> ForkJoinTask<T, RuntimeException> submit(Runnable task, T result) {
+        ForkJoinTask<T, RuntimeException> t =
             (Thread.currentThread() instanceof ForkJoinWorkerThread) ?
-            new ForkJoinTask.AdaptedRunnable<T>(task, result) :
-            new ForkJoinTask.AdaptedInterruptibleRunnable<T>(task, result);
+            new ForkJoinTask.AdaptedRunnable<>(task, result) :
+            new ForkJoinTask.AdaptedInterruptibleRunnable<>(task, result);
         poolSubmit(true, t);
         return t;
     }
@@ -3211,9 +3212,9 @@ public class ForkJoinPool extends AbstractExecutorService {
      */
     @Override
     @SuppressWarnings("unchecked")
-    public ForkJoinTask<?> submit(Runnable task) {
-        ForkJoinTask<?> f = (task instanceof ForkJoinTask<?>) ?
-            (ForkJoinTask<Void>) task : // avoid re-wrap
+    public ForkJoinTask<?, RuntimeException> submit(Runnable task) {
+        ForkJoinTask<?, RuntimeException> f = (task instanceof ForkJoinTask<?,?>) ?
+            (ForkJoinTask<Void, RuntimeException>) task : // avoid re-wrap
             ((Thread.currentThread() instanceof ForkJoinWorkerThread) ?
              new ForkJoinTask.AdaptedRunnable<Void>(task, null) :
              new ForkJoinTask.AdaptedInterruptibleRunnable<Void>(task, null));
@@ -3233,12 +3234,13 @@ public class ForkJoinPool extends AbstractExecutorService {
      * @return the task
      * @param task the task to submit
      * @param <T> the type of the task's result
+     * @param <X> throws
      * @throws NullPointerException if the task is null
      * @throws RejectedExecutionException if the task cannot be
      *         scheduled for execution
      * @since 20
      */
-    public <T> ForkJoinTask<T> externalSubmit(ForkJoinTask<T> task) {
+    public <T, throws X> ForkJoinTask<T, X> externalSubmit(ForkJoinTask<T, X> task) {
         Objects.requireNonNull(task);
         externalSubmissionQueue().push(task, this, false);
         return task;
@@ -3254,13 +3256,14 @@ public class ForkJoinPool extends AbstractExecutorService {
      *
      * @param task the task
      * @param <T> the type of the task's result
+     * @param <X> throws
      * @return the task
      * @throws NullPointerException if the task is null
      * @throws RejectedExecutionException if the task cannot be
      *         scheduled for execution
      * @since 19
      */
-    public <T> ForkJoinTask<T> lazySubmit(ForkJoinTask<T> task) {
+    public <T, throws X> ForkJoinTask<T, X> lazySubmit(ForkJoinTask<T, X> task) {
         Objects.requireNonNull(task);
         poolSubmit(false, task);
         return task;
@@ -3343,29 +3346,29 @@ public class ForkJoinPool extends AbstractExecutorService {
     /**
      * Common support for timed and untimed invokeAll
      */
-    private  <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
+    private  <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks,
                                            long deadline)
         throws InterruptedException {
-        ArrayList<Future<T>> futures = new ArrayList<>(tasks.size());
+        ArrayList<Future<T, X>> futures = new ArrayList<>(tasks.size());
         try {
-            for (Callable<T> t : tasks) {
-                ForkJoinTask<T> f = ForkJoinTask.adaptInterruptible(t);
+            for (Callable<T, X> t : tasks) {
+                ForkJoinTask<T, X> f = ForkJoinTask.adaptInterruptible(t);
                 futures.add(f);
                 poolSubmit(true, f);
             }
             for (int i = futures.size() - 1; i >= 0; --i)
-                ((ForkJoinTask<?>)futures.get(i))
+                ((ForkJoinTask<?,?>)futures.get(i))
                     .quietlyJoinPoolInvokeAllTask(deadline);
             return futures;
         } catch (Throwable t) {
-            for (Future<T> e : futures)
+            for (Future<T, X> e : futures)
                 e.cancel(true);
             throw t;
         }
     }
 
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
+    public <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks)
         throws InterruptedException {
         return invokeAll(tasks, 0L);
     }
@@ -3380,8 +3383,8 @@ public class ForkJoinPool extends AbstractExecutorService {
     // }
 
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
-                                         long timeout, TimeUnit unit)
+    public <T, throws X> List<Future<T, X>> invokeAll(Collection<? extends Callable<T, X>> tasks,
+                                                      long timeout, TimeUnit unit)
         throws InterruptedException {
         return invokeAll(tasks, (System.nanoTime() + unit.toNanos(timeout)) | 1L);
     }
@@ -4022,17 +4025,17 @@ public class ForkJoinPool extends AbstractExecutorService {
     }
 
     @Override
-    protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
+    protected <T> RunnableFuture<T, RuntimeException> newTaskFor(Runnable runnable, T value) {
         return (Thread.currentThread() instanceof ForkJoinWorkerThread) ?
             new ForkJoinTask.AdaptedRunnable<T>(runnable, value) :
             new ForkJoinTask.AdaptedInterruptibleRunnable<T>(runnable, value);
     }
 
     @Override
-    protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
+    protected <T, throws X> RunnableFuture<T, X> newTaskFor(Callable<T, X> callable) {
         return (Thread.currentThread() instanceof ForkJoinWorkerThread) ?
-            new ForkJoinTask.AdaptedCallable<T>(callable) :
-            new ForkJoinTask.AdaptedInterruptibleCallable<T>(callable);
+            new ForkJoinTask.AdaptedCallable<>(callable) :
+            new ForkJoinTask.AdaptedInterruptibleCallable<>(callable);
     }
 
     static {
