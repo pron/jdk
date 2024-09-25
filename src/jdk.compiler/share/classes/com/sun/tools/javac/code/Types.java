@@ -1089,7 +1089,9 @@ public class Types {
             return isSuperType(s, t);
 
         if (s.isCompound()) {
-            if (s instanceof ThrowableUnionClassType su) {
+            if (s instanceof ThrowableUnionClassType su) { // TODO RON: rethink this whole thing
+                if (t instanceof CapturedType)
+                    return isSubtype.visit(capture ? capture(t) : t, s);
                 if (!t.hasTag(UNDETVAR)) {
                     if (su.alternatives().every(a -> a instanceof WildcardType wa && wa.kind == BoundKind.UNBOUND)) {
                         s = su.supertype_field;
@@ -1099,7 +1101,7 @@ public class Types {
                     }
                     if (t instanceof ThrowableUnionClassType tu) {
                         for (Type t2 : tu.alternatives()) {
-                            if (!su.alternatives().any(s2 ->
+                            if (!t2.isPartial() && !su.alternatives().any(s2 ->
                                     t2 == s2
                                             || (!s2.isPartial() && !t2.isPartial() && isSubtype(t2, s2, capture)))
                                 && !(t2.hasTag(TYPEVAR) && isSubtype(t2, s, capture)))
