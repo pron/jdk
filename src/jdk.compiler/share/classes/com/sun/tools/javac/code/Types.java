@@ -1088,10 +1088,12 @@ public class Types {
         if (s.isPartial())
             return isSuperType(s, t);
 
+//        if (t.toString().startsWith("capture") && t.toString().contains("|X1|X2") && s.toString().contains("capture") && s.toString().contains("|X1|X2"))
+//            System.out.println("FOFOFOFOFOFOFOFOF");
         if (s.isCompound()) {
             if (s instanceof ThrowableUnionClassType su) { // TODO RON: rethink this whole thing
-                if (t instanceof CapturedType)
-                    return isSubtype.visit(capture ? capture(t) : t, s);
+//                if (t instanceof CapturedType)
+//                    return isSubtype.visit(capture ? capture(t) : t, s);
                 if (!t.hasTag(UNDETVAR)) {
                     if (su.alternatives().every(a -> a instanceof WildcardType wa && wa.kind == BoundKind.UNBOUND)) {
                         s = su.supertype_field;

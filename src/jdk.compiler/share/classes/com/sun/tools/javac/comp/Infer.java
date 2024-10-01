@@ -171,6 +171,8 @@ public class Infer {
                             Resolve.MethodResolutionContext resolveContext,
                             Warner warn) throws InferenceException {
         //-System.err.println("instantiateMethod(" + tvars + ", " + mt + ", " + argtypes + ")"); //DEBUG
+//        if (msym.toString().startsWith("<T,X>concat("))
+//            System.out.println("LKLKLKLKLKLKLKLK");
         final InferenceContext inferenceContext = new InferenceContext(this, tvars);  //B0
         try {
             DeferredAttr.DeferredAttrContext deferredAttrContext =
@@ -853,6 +855,8 @@ public class Infer {
                 for (Type b : uv.getBounds(to)) {
                     b = typeFunc.apply(inferenceContext, b);
                     if (optFilter != null && optFilter.test(inferenceContext, b)) continue;
+//                    if (b.toString().startsWith("capture") && b.toString().contains("|X1|X2"))
+//                        System.out.println("PLPLPLPLPLPLPL");
                     boolean success = checkBound(t, b, from, to, warn);
                     if (!success) {
                         report(from, to);
@@ -1488,7 +1492,7 @@ public class Infer {
                 if (lobounds.tail.tail == null) {
                     owntype = lobounds.head;
                 } else if (infer.types.isThrowableUnionParam((TypeVar)uv.qtype)) {
-                    owntype = infer.types.makeThrowableUnionType(lobounds);
+                    owntype = infer.types.makeThrowableUnionType(lobounds); // XXXXXXXXXXX
                 } else {
                     owntype = infer.types.lub(lobounds);
                 }
@@ -1510,16 +1514,20 @@ public class Infer {
                     //not a throws undet var
                     return false;
                 }
+
                 Types types = inferenceContext.types;
                 Symtab syms = inferenceContext.infer.syms;
+                Type defaultThrows = ((TypeVar)t.qtype).isThrowsParam()
+                        ? ((TypeVar)t.qtype).getThrowsDefault() : syms.runtimeExceptionType;
                 return t.getBounds(InferenceBound.UPPER).stream()
                         .filter(b -> !inferenceContext.free(b))
-                        .allMatch(u -> types.isSubtype(syms.runtimeExceptionType, u));
+                        .allMatch(u -> types.isSubtype(defaultThrows, u));
             }
 
             @Override
             Type solve(UndetVar uv, InferenceContext inferenceContext) {
-                return inferenceContext.infer.syms.runtimeExceptionType;
+                return ((TypeVar)uv.qtype).isThrowsParam()
+                        ? ((TypeVar)uv.qtype).getThrowsDefault() : inferenceContext.infer.syms.runtimeExceptionType;
             }
         },
         /**

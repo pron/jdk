@@ -2286,7 +2286,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
         }
 
         public final boolean isThrows() {
-            return kind == Kind.THROWS;
+            return kind == Kind.THROWS || ((TypeVar)qtype).isThrowsParam();
         }
     }
 
