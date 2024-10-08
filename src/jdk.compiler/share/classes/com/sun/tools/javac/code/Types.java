@@ -2735,7 +2735,11 @@ public class Types {
         }
     }
 
-    List<Type> unionTypeUnion(List<Type> ts) {
+    private List<Type> unionTypeUnion(List<Type> ts) {
+//        List<Type> u = List.nil();
+//        for (Type t : ts)
+//            u = unionTypeUnion(u, t);
+
         ts = ts.map(t0 -> {
             Type t = t0;
             if (t instanceof CapturedType ct)
@@ -2765,6 +2769,20 @@ public class Types {
         List<Type> u = bs.filter(b -> !isIncludedIn(b, as));
         return u.prependList(as.filter(a -> !isIncludedIn(a, u)));
     }
+
+//    private List<Type> unionTypeUnion(List<Type> ts, Type t) {
+//        Assert.check(t != null);
+//        if (t instanceof WildcardType wt && wt.isExtendsBound() && wt.getExtendsBound() instanceof ThrowableUnionClassType)
+//            ts = unionTypeUnion(ts, wt.getExtendsBound());
+//        else
+//        if (t instanceof ThrowableUnionClassType tu) {
+//            for (Type a : tu.alternatives())
+//                ts = unionTypeUnion(ts, a);
+//        } else if (!isIncludedIn(t, ts))
+//            ts = ts.append(t);
+//
+//        return ts;
+//    }
 
     List<Type> unionTypeSubtract(List<Type> as, List<Type> bs) {
         return as.filter(a -> !isIncludedIn(a, bs));
