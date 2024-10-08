@@ -1680,7 +1680,9 @@ public class Resolve {
             if (m1SignatureMoreSpecific && m2SignatureMoreSpecific) {
                 Type mt1 = types.memberType(site, m1);
                 Type mt2 = types.memberType(site, m2);
-                if (!types.overrideEquivalent(mt1, mt2))
+                if (!(types.overrideEquivalent(mt1, mt2)
+                        || types.overrideEquivalent(types.eraseThrowsParam(mt1), mt2)
+                        || types.overrideEquivalent(mt1, types.eraseThrowsParam(mt2))))
                     return ambiguityError(m1, m2);
 
                 // same signature; select (a) the non-bridge method, or

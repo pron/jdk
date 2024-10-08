@@ -2667,9 +2667,15 @@ public class Check {
             //a member of 'site') and (ii) 'sym' has the same erasure as m1, issue an error
             if (!types.isSubSignature(sym.type, types.memberType(site, s))) {
                 if (types.hasSameArgs(s.erasure(types), sym.erasure(types))) {
-                    log.error(pos,
-                              Errors.NameClashSameErasureNoHide(sym, sym.location(), s, s.location()));
-                    return;
+                    if (types.isSubSignature(sym.type, types.eraseThrowsParam(types.memberType(site, s)))) {
+                        warnUnchecked(pos, // TreeInfo.diagnosticPositionFor(m1, tree),
+                                Warnings.OverrideUncheckedThrown(cannotOverride(sym, (MethodSymbol)s), null)); // TODO RON: different warning
+
+                    } else {
+                        log.error(pos,
+                                Errors.NameClashSameErasureNoHide(sym, sym.location(), s, s.location()));
+                        return;
+                    }
                 }
             }
          }
