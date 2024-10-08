@@ -570,6 +570,11 @@ public class Enter extends JCTree.Visitor {
         TypeVar a = (tree.type != null)
             ? (TypeVar)tree.type
             : new TypeVar(tree.name, env.info.scope.owner, syms.botType);
+
+        // tree.throwsParam ? classEnter(tree.throwsDefault, env) : syms.runtimeExceptionType
+        if (tree.type == null && tree.throwsParam)
+            a.setThrowsDefault(syms.throwableType); // will be fixed later
+
         tree.type = a;
         if (chk.checkUnique(tree.pos(), a.tsym, env.info.scope)) {
             env.info.scope.enter(a.tsym);

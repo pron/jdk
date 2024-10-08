@@ -5135,7 +5135,7 @@ public class Attr extends JCTree.Visitor {
 
         if (clazztype.hasTag(CLASS)) {
             List<Type> formals = clazztype.tsym.type.getTypeArguments();
-            if (actuals.isEmpty()) //diamond XXXXXXX -- consider Runnable
+            if (actuals.isEmpty()) //diamond
                 actuals = formals;
 
             boolean wildcard = env.info.isArgument || env.info.isTypeVar || (!env.baseClause && !env.info.isNewClass);

@@ -3701,7 +3701,7 @@ public class Types {
             List<Type> typarams = t.getTypeArguments();
             List<Type> formals = t.tsym.type.allparams();
             List<Type> typarams1 = typarams.mapTwo(formals,
-                    (tp, f) -> isThrowsParam(f) ? eraseTo(f): tp);
+                    (tp, f) -> isThrowsParam(f) && tp.hasTag(TYPEVAR) ? eraseTo(f): tp);
             typarams1 = visit(typarams1, ignored);
 
             if (outer1 == outer && typarams1 == typarams) return t;
