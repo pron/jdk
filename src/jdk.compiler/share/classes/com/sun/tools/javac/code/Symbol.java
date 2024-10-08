@@ -608,7 +608,7 @@ public abstract class Symbol extends AnnoConstruct implements PoolConstant, Elem
             if (sym.kind == kind &&
                     (kind != MTH ||
                     (sym.flags() & STATIC) != 0 &&
-                    types.isSubSignature(sym.type, type))) {
+                    (types.isSubSignature(sym.type, type) || types.isSubSignature(sym.type, types.eraseThrowsParam(type))))) {
                 return sym;
             }
         }
