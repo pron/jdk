@@ -1492,7 +1492,7 @@ public class Infer {
                 if (lobounds.tail.tail == null) {
                     owntype = lobounds.head;
                 } else if (infer.types.isThrowableUnionParam((TypeVar)uv.qtype)) {
-                    owntype = infer.types.makeThrowableUnionType(lobounds); // XXXXXXXXXXX
+                    owntype = infer.types.makeThrowableUnionType(lobounds);
                 } else {
                     owntype = infer.types.lub(lobounds);
                 }

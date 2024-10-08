@@ -241,6 +241,10 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
 
         @Override
         public Type visitClassType(ClassType t, S s) {
+            if (t instanceof ThrowableUnionClassType tu) {
+                List<Type> alternatives = visit(tu.alternatives(), s);
+                return new ThrowableUnionClassType(tu, alternatives);
+            }
             Type outer = t.getEnclosingType();
             Type outer1 = visit(outer, s);
             List<Type> typarams = t.getTypeArguments();
@@ -1295,19 +1299,6 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
     public static class ThrowableUnionClassType extends ClassType implements UnionType {
         final List<? extends Type> alternatives_field;
 
-        public ThrowableUnionClassType(ClassType ct, List<? extends Type> alternatives) {
-            // Presently no way to refer to this type directly, so we
-            // cannot put annotations directly on it.
-            super(ct.outer_field, ct.typarams_field, ct.tsym);
-            allparams_field = ct.allparams_field;
-            // supertype_field = ct.supertype_field;
-            interfaces_field = ct.interfaces_field;
-            all_interfaces_field = ct.interfaces_field;
-            alternatives_field = alternatives;
-
-            supertype_field = ct; // lub
-        }
-
         public ThrowableUnionClassType(ClassType ct, List<? extends Type> bounds, ClassSymbol csym) {
             // Presently no way to refer to this type directly, so we
             // cannot put annotations directly on it.
@@ -1318,6 +1309,16 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             //     setBound(ct);
 
             supertype_field = ct; // lub?
+        }
+
+        public ThrowableUnionClassType(ThrowableUnionClassType other, List<? extends Type> alternatives) {
+            super(other.getEnclosingType(), List.nil(), other.tsym);
+            allparams_field = other.allparams_field;
+            interfaces_field = other.interfaces_field;
+            all_interfaces_field = other.interfaces_field;
+            supertype_field = other.supertype_field;
+
+            alternatives_field = alternatives;
         }
 
         public void setBound(ClassType ct) {

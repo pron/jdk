@@ -1088,42 +1088,41 @@ public class Types {
         if (s.isPartial())
             return isSuperType(s, t);
 
-//        if (t.toString().startsWith("capture") && t.toString().contains("|X1|X2") && s.toString().contains("capture") && s.toString().contains("|X1|X2"))
-//            System.out.println("FOFOFOFOFOFOFOFOF");
         if (s.isCompound()) {
             if (s instanceof ThrowableUnionClassType su) { // TODO RON: rethink this whole thing
-//                if (t instanceof CapturedType)
-//                    return isSubtype.visit(capture ? capture(t) : t, s);
-                if (!t.hasTag(UNDETVAR)) {
+                if (t.hasTag(UNDETVAR)) {
+                    if (su.alternatives().any(x -> x == t))
+                        return true;
+                } else if (!(t instanceof ThrowableUnionClassType)) {
                     if (su.alternatives().every(a -> a instanceof WildcardType wa && wa.kind == BoundKind.UNBOUND)) {
                         s = su.supertype_field;
                         if (s == null || s instanceof NoType)
                             s = syms.throwableType;
                         return isSubtype(t, s, capture);
                     }
-                    if (t instanceof ThrowableUnionClassType tu) {
-                        for (Type t2 : tu.alternatives()) {
-                            if (!t2.isPartial() && !su.alternatives().any(s2 ->
-                                    t2 == s2
-                                            || (!s2.isPartial() && !t2.isPartial() && isSubtype(t2, s2, capture)))
-                                && !(t2.hasTag(TYPEVAR) && isSubtype(t2, s, capture)))
-                                return false;
-                        }
-                        return true;
-                    }
                     for (Type s2 : su.alternatives()) {
                         if (s2.isPartial()) continue;
                         if (isSubtype(t, s2, capture))
                             return true;
                     }
-                    for (Type s2 : su.alternatives()) {
-                        if (!s2.isPartial()) continue;
-                        if (isSubtype(t, s2, capture))
-                            return true;
+                    List<Type> undet = su.alternatives().filter(Type::isPartial);
+                    while (!undet.isEmpty()) {
+                        UndetVar s2 = (UndetVar)undet.head;
+                        if (undet.tail.isEmpty() && isSubtype(t, s2, capture))
+                                return true;
+                        List<Type> lower = s2.bounds.get(InferenceBound.LOWER);
+                        if (lower.isEmpty()) {
+                            if (isSubtype(t, s2, capture))
+                                return true;
+                        } else {
+                            if (lower.any(x -> x == t))
+                                return true;
+                        }
+
+                        undet = undet.tail;
                     }
                     return t.getUpperBound() != null && isSubtype(t.getUpperBound(), s);
                 }
-                return true;
             } else {
                 for (Type s2 : interfaces(s).prepend(supertype(s))) {
                     if (!isSubtype(t, s2, capture))
@@ -1245,8 +1244,8 @@ public class Types {
 
             @Override
             public Boolean visitClassType(ClassType t, Type s) {
-                if (t instanceof ThrowableUnionClassType tu
-                        && (tu.supertype_field != null && !isSubtype(tu.supertype_field, s))) { // some of the alternatives might be undetermined
+                if (t instanceof ThrowableUnionClassType tu) {
+                        // && (tu.supertype_field != null && !isSubtype(tu.supertype_field, s))) { // some of the alternatives might be undetermined
                     for (Type t1 : tu.alternatives()) { //  return tu.alternatives().every(t1 -> isSubtype(t1, s));
                         if (!isSubtype(t1, s))
                             return false;
@@ -2737,6 +2736,14 @@ public class Types {
     }
 
     List<? extends Type> unionTypeUnion(List<? extends Type> ts) {
+        ts = ts.map(t0 -> {
+            Type t = t0;
+            if (t instanceof CapturedType ct)
+                t = ct.wildcard;
+            if (t instanceof WildcardType wt && wt.getExtendsBound() != null)
+                t = wt.getExtendsBound();
+            return t;
+        });
         List<? extends Type> ts0 = ts.filter(t -> !(t instanceof ThrowableUnionClassType));
         List<? extends Type> u = ts0;
         if (!ts.any(t -> (t.hasTag(TYPEVAR) && !((TypeVar)t).isCaptured()) || t.hasTag(WILDCARD))) { // hack; things go wrong without this test; needs investigation
@@ -2745,6 +2752,7 @@ public class Types {
                 u = unionTypeUnion(u, List.of(u0));
             }
         }
+
         @SuppressWarnings("unchecked")
         List<ThrowableUnionClassType> us =
                 (List<ThrowableUnionClassType>)ts.filter(t -> t instanceof ThrowableUnionClassType);
@@ -3569,7 +3577,7 @@ public class Types {
         return true;
     }
 
-    public boolean isThrowableUnionParam(TypeVar tvar) {
+    public boolean isThrowableUnionParam(TypeVar tvar) { // TODO RON: use throws param
         Type ubound = topBound(tvar); // tvar.getUpperBound();
         return  ubound instanceof ThrowableUnionClassType
                     || isSameType(ubound, syms.throwableType)
@@ -3707,7 +3715,7 @@ public class Types {
         @Override
         public Type visitForAll(ForAll t, Void ignored) {
             @SuppressWarnings("unchecked")
-            List<Type> tvars1 = (List<Type>)t.tvars.filter(v -> !isThrowsParam(v));
+            List<Type> tvars1 = t.tvars.filter(v -> !isThrowsParam(v));
             Type qtype1 = visit(t.qtype, ignored);
             int nvars = t.tvars.length();
             int nvars1 = tvars1.length();
@@ -4973,13 +4981,17 @@ public class Types {
             for (Type t : types) {
                 if (t.hasTag(WILDCARD)) {
                     Type bound = ((WildcardType)t).getExtendsBound();
-                    if (bound == null)
-                        bound = syms.objectType;
-                    result.append(new CapturedType(capturedName,
-                                                   syms.noSymbol,
-                                                   bound,
-                                                   syms.botType,
-                                                   (WildcardType)t));
+                    if (bound instanceof ThrowableUnionClassType) { // TODO RON: we don't capture TTUs?
+                        result.append(t);
+                    } else {
+                        if (bound == null)
+                            bound = syms.objectType;
+                        result.append(new CapturedType(capturedName,
+                                                       syms.noSymbol,
+                                                       bound,
+                                                       syms.botType,
+                                                       (WildcardType)t));
+                    }
                 } else {
                     result.append(t);
                 }

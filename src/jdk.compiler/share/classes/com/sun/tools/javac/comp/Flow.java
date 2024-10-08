@@ -40,6 +40,7 @@ import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Scope.WriteableScope;
 import com.sun.tools.javac.code.Type.CapturedType;
 import com.sun.tools.javac.code.Type.ThrowableUnionClassType;
+import com.sun.tools.javac.code.Type.WildcardType;
 import com.sun.tools.javac.resources.CompilerProperties.Errors;
 import com.sun.tools.javac.resources.CompilerProperties.Warnings;
 import com.sun.tools.javac.tree.*;
@@ -1456,9 +1457,11 @@ public class Flow {
          */
         @SuppressWarnings("unchecked")
         void markThrown(JCTree tree, Type exc) {
-            if (exc instanceof CapturedType ct) {
-                markThrown(tree, ct.getUpperBound());
-            } else if (exc instanceof ThrowableUnionClassType tu) {
+            if (exc instanceof CapturedType ct)
+                exc = ct.getUpperBound();
+            if (exc instanceof WildcardType wt && wt.getExtendsBound() != null && wt.getExtendsBound() instanceof ThrowableUnionClassType)
+                exc = wt.getExtendsBound();
+            if (exc instanceof ThrowableUnionClassType tu) {
                 for (var ext : tu.alternatives())
                     markThrown(tree, ext);
             } else if (!chk.isUnchecked(tree.pos(), exc)) {

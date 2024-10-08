@@ -447,7 +447,7 @@ public class List<A> extends AbstractCollection<A> implements java.util.List<A> 
         return changed ? buf.toList() : (List<Z>)this;
     }
 
-    public List<? extends A> filter(Predicate<A> p) {
+    public List<A> filter(Predicate<A> p) {
         boolean changed = false;
         ListBuffer<A> buf = new ListBuffer<>();
         for (A a : this) {
