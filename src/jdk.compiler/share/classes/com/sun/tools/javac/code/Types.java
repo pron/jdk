@@ -2657,7 +2657,7 @@ public class Types {
     public Type makeThrowableUnionType(List<Type> bounds, Type sup) {
         Assert.check(bounds.nonEmpty());
 
-        List<? extends Type> bs = bounds;
+        List<Type> bs = bounds;
         if (sup == null)
             bs = unionTypeUnion(bs);
 
@@ -2735,7 +2735,7 @@ public class Types {
         }
     }
 
-    List<? extends Type> unionTypeUnion(List<? extends Type> ts) {
+    List<Type> unionTypeUnion(List<Type> ts) {
         ts = ts.map(t0 -> {
             Type t = t0;
             if (t instanceof CapturedType ct)
@@ -2744,8 +2744,8 @@ public class Types {
                 t = wt.getExtendsBound();
             return t;
         });
-        List<? extends Type> ts0 = ts.filter(t -> !(t instanceof ThrowableUnionClassType));
-        List<? extends Type> u = ts0;
+        List<Type> ts0 = ts.filter(t -> !(t instanceof ThrowableUnionClassType));
+        List<Type> u = ts0;
         if (!ts.any(t -> (t.hasTag(TYPEVAR) && !((TypeVar)t).isCaptured()) || t.hasTag(WILDCARD))) { // hack; things go wrong without this test; needs investigation
             u = List.nil();
             for (Type u0 : ts.filter(t -> !(t instanceof ThrowableUnionClassType))) {
@@ -2753,26 +2753,24 @@ public class Types {
             }
         }
 
-        @SuppressWarnings("unchecked")
-        List<ThrowableUnionClassType> us =
-                (List<ThrowableUnionClassType>)ts.filter(t -> t instanceof ThrowableUnionClassType);
-        for (ThrowableUnionClassType u0 : us) {
-            u = unionTypeUnion(u, u0.alternatives());
+        List<Type> us = ts.filter(t -> t instanceof ThrowableUnionClassType);
+        for (Type u0 : us) {
+            u = unionTypeUnion(u, ((ThrowableUnionClassType)u0).alternatives());
         }
         return u;
     }
 
     @SuppressWarnings("unchecked")
-    List<Type> unionTypeUnion(List<? extends Type> as, List<? extends Type> bs) {
-        List<Type> u = (List<Type>)bs.filter(b -> !isIncludedIn(b, as));
-        return u.prependList((List<Type>)as.filter(a -> !isIncludedIn(a, u)));
+    List<Type> unionTypeUnion(List<Type> as, List<Type> bs) {
+        List<Type> u = bs.filter(b -> !isIncludedIn(b, as));
+        return u.prependList(as.filter(a -> !isIncludedIn(a, u)));
     }
 
-    List<? extends Type> unionTypeSubtract(List<? extends Type> as, List<? extends Type> bs) {
+    List<Type> unionTypeSubtract(List<Type> as, List<Type> bs) {
         return as.filter(a -> !isIncludedIn(a, bs));
     }
 
-    private boolean isIncludedIn(Type x, List<? extends Type> ts) {
+    private boolean isIncludedIn(Type x, List<Type> ts) {
         for (Type t : ts) {
             if (x.isPartial() || t.isPartial())
                 continue;

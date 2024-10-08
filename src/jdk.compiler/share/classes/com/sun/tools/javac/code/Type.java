@@ -243,6 +243,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
         public Type visitClassType(ClassType t, S s) {
             if (t instanceof ThrowableUnionClassType tu) {
                 List<Type> alternatives = visit(tu.alternatives(), s);
+                if (alternatives == tu.alternatives()) return t;
                 return new ThrowableUnionClassType(tu, alternatives);
             }
             Type outer = t.getEnclosingType();
@@ -1297,9 +1298,9 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
 
     // a clone of a ClassType that knows about the alternatives of a union type.
     public static class ThrowableUnionClassType extends ClassType implements UnionType {
-        final List<? extends Type> alternatives_field;
+        final List<Type> alternatives_field;
 
-        public ThrowableUnionClassType(ClassType ct, List<? extends Type> bounds, ClassSymbol csym) {
+        public ThrowableUnionClassType(ClassType ct, List<Type> bounds, ClassSymbol csym) {
             // Presently no way to refer to this type directly, so we
             // cannot put annotations directly on it.
             super(Type.noType, List.nil(), csym);
@@ -1311,7 +1312,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             supertype_field = ct; // lub?
         }
 
-        public ThrowableUnionClassType(ThrowableUnionClassType other, List<? extends Type> alternatives) {
+        public ThrowableUnionClassType(ThrowableUnionClassType other, List<Type> alternatives) {
             super(other.getEnclosingType(), List.nil(), other.tsym);
             allparams_field = other.allparams_field;
             interfaces_field = other.interfaces_field;
@@ -1352,7 +1353,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
 
         @SuppressWarnings("unchecked")
         public List<Type> alternatives() {
-            return (List<Type>)alternatives_field;
+            return alternatives_field;
         }
 
         @Override
