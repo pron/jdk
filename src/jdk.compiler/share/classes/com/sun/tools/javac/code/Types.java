@@ -3712,9 +3712,10 @@ public class Types {
 
         @Override
         public Type visitForAll(ForAll t, Void ignored) {
-            @SuppressWarnings("unchecked")
+            Type qtype0 = subst(t.qtype, t.tvars, t.tvars.map(f -> isThrowsParam(f) ? eraseTo(f): f));
+            Type qtype1 = visit(qtype0, ignored);
+
             List<Type> tvars1 = t.tvars.filter(v -> !isThrowsParam(v));
-            Type qtype1 = visit(t.qtype, ignored);
             int nvars = t.tvars.length();
             int nvars1 = tvars1.length();
 
