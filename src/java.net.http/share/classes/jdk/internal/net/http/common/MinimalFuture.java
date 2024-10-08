@@ -52,6 +52,7 @@ public final class MinimalFuture<T> extends CompletableFuture<T> {
         return f;
     }
 
+    @SuppressWarnings("unchecked") // for throws-param "override" (hiding)
     public static <U> CompletableFuture<U> failedFuture(Throwable ex) {
         requireNonNull(ex);
         MinimalFuture<U> f = new MinimalFuture<>();
@@ -81,6 +82,7 @@ public final class MinimalFuture<T> extends CompletableFuture<T> {
     }
 
     @Override
+    @SuppressWarnings("unchecked") // for throws-param override
     public <U> MinimalFuture<U> newIncompleteFuture() {
         return new MinimalFuture<>(cancelable);
     }

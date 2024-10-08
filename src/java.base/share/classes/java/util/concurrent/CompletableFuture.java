@@ -138,10 +138,11 @@ import java.util.Objects;
  *
  * @author Doug Lea
  * @param <T> The result type returned by this future's {@code join}
+ * @param <X> throws
  * and {@code get} methods
  * @since 1.8
  */
-public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
+public class CompletableFuture<T, throws X extends Throwable> implements Future<T, X>, CompletionStage<T, X> {
 
     /*
      * Overview:
@@ -508,7 +509,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     /* ------------- Base Completion classes and operations -------------- */
 
     @SuppressWarnings("serial")
-    abstract static class Completion extends ForkJoinTask<Void>
+    abstract static class Completion extends ForkJoinTask<Void, Exception>
         implements Runnable, AsynchronousCompletionTask {
         volatile Completion next;      // Treiber stack link
 
@@ -518,7 +519,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
          *
          * @param mode SYNC, ASYNC, or NESTED
          */
-        abstract CompletableFuture<?> tryFire(int mode);
+        abstract CompletableFuture<?, ?> tryFire(int mode);
 
         /** Returns true if possibly still triggerable. Used by cleanStack. */
         abstract boolean isLive();
@@ -539,10 +540,10 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
          * and run.  It is extended along only one path at a time,
          * pushing others to avoid unbounded recursion.
          */
-        CompletableFuture<?> f = this; Completion h;
+        CompletableFuture<?, ?> f = this; Completion h;
         while ((h = f.stack) != null ||
                (f != this && (h = (f = this).stack) != null)) {
-            CompletableFuture<?> d; Completion t;
+            CompletableFuture<?, ?> d; Completion t;
             if (STACK.compareAndSet(f, h, t = h.next)) {
                 if (t != null) {
                     if (f != this) {
@@ -593,11 +594,11 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     @SuppressWarnings("serial")
     abstract static class UniCompletion<T,V> extends Completion {
         Executor executor;                 // executor to use (null if none)
-        CompletableFuture<V> dep;          // the dependent to complete
-        CompletableFuture<T> src;          // source for action
+        CompletableFuture<V, ?> dep;          // the dependent to complete
+        CompletableFuture<T, ?> src;          // source for action
 
-        UniCompletion(Executor executor, CompletableFuture<V> dep,
-                      CompletableFuture<T> src) {
+        UniCompletion(Executor executor, CompletableFuture<V, ?> dep,
+                      CompletableFuture<T, ?> src) {
             this.executor = executor; this.dep = dep; this.src = src;
         }
 
@@ -643,7 +644,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * Tries to clean stack of source a, and then either runs postComplete
      * or returns this to caller, depending on mode.
      */
-    final CompletableFuture<T> postFire(CompletableFuture<?> a, int mode) {
+    final CompletableFuture<T, X> postFire(CompletableFuture<?, ?> a, int mode) {
         if (a != null && a.stack != null) {
             Object r;
             if ((r = a.result) == null)
@@ -662,15 +663,15 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class UniApply<T,V> extends UniCompletion<T,V> {
-        Function<? super T,? extends V> fn;
-        UniApply(Executor executor, CompletableFuture<V> dep,
-                 CompletableFuture<T> src,
-                 Function<? super T,? extends V> fn) {
+        Function<? super T,? extends V, ?> fn;
+        UniApply(Executor executor, CompletableFuture<V, ?> dep,
+                 CompletableFuture<T, ?> src,
+                 Function<? super T,? extends V, ?> fn) {
             super(executor, dep, src); this.fn = fn;
         }
-        final CompletableFuture<V> tryFire(int mode) {
-            CompletableFuture<V> d; CompletableFuture<T> a;
-            Object r; Throwable x; Function<? super T,? extends V> f;
+        final CompletableFuture<V, ?> tryFire(int mode) {
+            CompletableFuture<V, ?> d; CompletableFuture<T, ?> a;
+            Object r; Throwable x; Function<? super T,? extends V, ?> f;
             if ((a = src) == null || (r = a.result) == null
                 || (d = dep) == null || (f = fn) == null)
                 return null;
@@ -698,19 +699,19 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
-    private <V> CompletableFuture<V> uniApplyStage(
-        Executor e, Function<? super T,? extends V> f) {
+    private <V, throws X1> CompletableFuture<V, X|X1> uniApplyStage(
+        Executor e, Function<? super T,? extends V, X1> f) {
         if (f == null) throw new NullPointerException();
         Object r;
         if ((r = result) != null)
             return uniApplyNow(r, e, f);
-        CompletableFuture<V> d = newIncompleteFuture();
+        CompletableFuture<V, X|X1> d = newIncompleteFuture();
         unipush(new UniApply<T,V>(e, d, this, f));
         return d;
     }
 
-    private <V> CompletableFuture<V> uniApplyNow(
-        Object r, Executor e, Function<? super T,? extends V> f) {
+    private <V, throws X1> CompletableFuture<V, X|X1> uniApplyNow(
+        Object r, Executor e, Function<? super T,? extends V, X1> f) {
         Throwable x;
         CompletableFuture<V> d = newIncompleteFuture();
         if (r instanceof AltResult) {
@@ -735,14 +736,14 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class UniAccept<T> extends UniCompletion<T,Void> {
-        Consumer<? super T> fn;
-        UniAccept(Executor executor, CompletableFuture<Void> dep,
-                  CompletableFuture<T> src, Consumer<? super T> fn) {
+        Consumer<? super T, ?> fn;
+        UniAccept(Executor executor, CompletableFuture<Void, ?> dep,
+                  CompletableFuture<T, ?> src, Consumer<? super T, ?> fn) {
             super(executor, dep, src); this.fn = fn;
         }
-        final CompletableFuture<Void> tryFire(int mode) {
-            CompletableFuture<Void> d; CompletableFuture<T> a;
-            Object r; Throwable x; Consumer<? super T> f;
+        final CompletableFuture<Void, ?> tryFire(int mode) {
+            CompletableFuture<Void, ?> d; CompletableFuture<T, ?> a;
+            Object r; Throwable x; Consumer<? super T, ?> f;
             if ((a = src) == null || (r = a.result) == null
                 || (d = dep) == null || (f = fn) == null)
                 return null;
@@ -771,21 +772,21 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
-    private CompletableFuture<Void> uniAcceptStage(Executor e,
-                                                   Consumer<? super T> f) {
+    private <throws X1> CompletableFuture<Void, X|X1> uniAcceptStage(Executor e,
+                                                   Consumer<? super T, X1> f) {
         if (f == null) throw new NullPointerException();
         Object r;
         if ((r = result) != null)
             return uniAcceptNow(r, e, f);
-        CompletableFuture<Void> d = newIncompleteFuture();
+        CompletableFuture<Void, X|X1> d = newIncompleteFuture();
         unipush(new UniAccept<T>(e, d, this, f));
         return d;
     }
 
-    private CompletableFuture<Void> uniAcceptNow(
-        Object r, Executor e, Consumer<? super T> f) {
+    private <throws X1> CompletableFuture<Void, X|X1> uniAcceptNow(
+        Object r, Executor e, Consumer<? super T, X1> f) {
         Throwable x;
-        CompletableFuture<Void> d = newIncompleteFuture();
+        CompletableFuture<Void, X|X1> d = newIncompleteFuture();
         if (r instanceof AltResult) {
             if ((x = ((AltResult)r).ex) != null) {
                 d.result = encodeThrowable(x, r);
@@ -810,12 +811,12 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     @SuppressWarnings("serial")
     static final class UniRun<T> extends UniCompletion<T,Void> {
         Runnable fn;
-        UniRun(Executor executor, CompletableFuture<Void> dep,
-               CompletableFuture<T> src, Runnable fn) {
+        UniRun(Executor executor, CompletableFuture<Void, ?> dep,
+               CompletableFuture<T, ?> src, Runnable fn) {
             super(executor, dep, src); this.fn = fn;
         }
-        final CompletableFuture<Void> tryFire(int mode) {
-            CompletableFuture<Void> d; CompletableFuture<T> a;
+        final CompletableFuture<Void, ?> tryFire(int mode) {
+            CompletableFuture<Void, ?> d; CompletableFuture<T, ?> a;
             Object r; Throwable x; Runnable f;
             if ((a = src) == null || (r = a.result) == null
                 || (d = dep) == null || (f = fn) == null)
@@ -840,7 +841,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
-    private CompletableFuture<Void> uniRunStage(Executor e, Runnable f) {
+    private CompletableFuture<Void, X> uniRunStage(Executor e, Runnable f) {
         if (f == null) throw new NullPointerException();
         Object r;
         if ((r = result) != null)
@@ -850,7 +851,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         return d;
     }
 
-    private CompletableFuture<Void> uniRunNow(Object r, Executor e, Runnable f) {
+    private CompletableFuture<Void, X> uniRunNow(Object r, Executor e, Runnable f) {
         Throwable x;
         CompletableFuture<Void> d = newIncompleteFuture();
         if (r instanceof AltResult && (x = ((AltResult)r).ex) != null)
@@ -871,15 +872,15 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class UniWhenComplete<T> extends UniCompletion<T,T> {
-        BiConsumer<? super T, ? super Throwable> fn;
-        UniWhenComplete(Executor executor, CompletableFuture<T> dep,
-                        CompletableFuture<T> src,
-                        BiConsumer<? super T, ? super Throwable> fn) {
+        BiConsumer<? super T, ? super Throwable, ?> fn;
+        UniWhenComplete(Executor executor, CompletableFuture<T, ?> dep,
+                        CompletableFuture<T, ?> src,
+                        BiConsumer<? super T, ? super Throwable, ?> fn) {
             super(executor, dep, src); this.fn = fn;
         }
-        final CompletableFuture<T> tryFire(int mode) {
-            CompletableFuture<T> d; CompletableFuture<T> a;
-            Object r; BiConsumer<? super T, ? super Throwable> f;
+        final CompletableFuture<T, ?> tryFire(int mode) {
+            CompletableFuture<T, ?> d; CompletableFuture<T, ?> a;
+            Object r; BiConsumer<? super T, ? super Throwable, ?> f;
             if ((a = src) == null || (r = a.result) == null
                 || (d = dep) == null || (f = fn) == null
                 || !d.uniWhenComplete(r, f, mode > 0 ? null : this))
@@ -890,7 +891,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     }
 
     final boolean uniWhenComplete(Object r,
-                                  BiConsumer<? super T,? super Throwable> f,
+                                  BiConsumer<? super T,? super Throwable, ?> f,
                                   UniWhenComplete<T> c) {
         T t; Throwable x = null;
         if (result == null) {
@@ -920,8 +921,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         return true;
     }
 
-    private CompletableFuture<T> uniWhenCompleteStage(
-        Executor e, BiConsumer<? super T, ? super Throwable> f) {
+    private <throws X1> CompletableFuture<T, X|X1> uniWhenCompleteStage(
+        Executor e, BiConsumer<? super T, ? super Throwable, X1> f) {
         if (f == null) throw new NullPointerException();
         CompletableFuture<T> d = newIncompleteFuture();
         Object r;
@@ -941,15 +942,15 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class UniHandle<T,V> extends UniCompletion<T,V> {
-        BiFunction<? super T, Throwable, ? extends V> fn;
-        UniHandle(Executor executor, CompletableFuture<V> dep,
-                  CompletableFuture<T> src,
-                  BiFunction<? super T, Throwable, ? extends V> fn) {
+        BiFunction<? super T, Throwable, ? extends V, ?> fn;
+        UniHandle(Executor executor, CompletableFuture<V, ?> dep,
+                  CompletableFuture<T, ?> src,
+                  BiFunction<? super T, Throwable, ? extends V, ?> fn) {
             super(executor, dep, src); this.fn = fn;
         }
-        final CompletableFuture<V> tryFire(int mode) {
-            CompletableFuture<V> d; CompletableFuture<T> a;
-            Object r; BiFunction<? super T, Throwable, ? extends V> f;
+        final CompletableFuture<V, ?> tryFire(int mode) {
+            CompletableFuture<V, ?> d; CompletableFuture<T, ?> a;
+            Object r; BiFunction<? super T, Throwable, ? extends V, ?> f;
             if ((a = src) == null || (r = a.result) == null
                 || (d = dep) == null || (f = fn) == null
                 || !d.uniHandle(r, f, mode > 0 ? null : this))
@@ -960,7 +961,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     }
 
     final <S> boolean uniHandle(Object r,
-                                BiFunction<? super S, Throwable, ? extends T> f,
+                                BiFunction<? super S, Throwable, ? extends T, ?> f,
                                 UniHandle<S,T> c) {
         S s; Throwable x;
         if (result == null) {
@@ -983,8 +984,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         return true;
     }
 
-    private <V> CompletableFuture<V> uniHandleStage(
-        Executor e, BiFunction<? super T, Throwable, ? extends V> f) {
+    private <V, throws X1> CompletableFuture<V, X1> uniHandleStage(
+        Executor e, BiFunction<? super T, Throwable, ? extends V, X1> f) {
         if (f == null) throw new NullPointerException();
         CompletableFuture<V> d = newIncompleteFuture();
         Object r;
@@ -1004,15 +1005,15 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class UniExceptionally<T> extends UniCompletion<T,T> {
-        Function<? super Throwable, ? extends T> fn;
+        Function<? super Throwable, ? extends T, ?> fn;
         UniExceptionally(Executor executor,
-                         CompletableFuture<T> dep, CompletableFuture<T> src,
-                         Function<? super Throwable, ? extends T> fn) {
+                         CompletableFuture<T, ?> dep, CompletableFuture<T, ?> src,
+                         Function<? super Throwable, ? extends T, ?> fn) {
             super(executor, dep, src); this.fn = fn;
         }
-        final CompletableFuture<T> tryFire(int mode) {
-            CompletableFuture<T> d; CompletableFuture<T> a;
-            Object r; Function<? super Throwable, ? extends T> f;
+        final CompletableFuture<T, ?> tryFire(int mode) {
+            CompletableFuture<T, ?> d; CompletableFuture<T, ?> a;
+            Object r; Function<? super Throwable, ? extends T, ?> f;
             if ((a = src) == null || (r = a.result) == null
                 || (d = dep) == null || (f = fn) == null
                 || !d.uniExceptionally(r, f, mode > 0 ? null : this))
@@ -1023,7 +1024,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     }
 
     final boolean uniExceptionally(Object r,
-                                   Function<? super Throwable, ? extends T> f,
+                                   Function<? super Throwable, ? extends T, ?> f,
                                    UniExceptionally<T> c) {
         Throwable x;
         if (result == null) {
@@ -1041,8 +1042,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         return true;
     }
 
-    private CompletableFuture<T> uniExceptionallyStage(
-        Executor e, Function<Throwable, ? extends T> f) {
+    private <throws X1> CompletableFuture<T, X1>  uniExceptionallyStage(
+        Executor e, Function<Throwable, ? extends T, X1> f) {
         if (f == null) throw new NullPointerException();
         CompletableFuture<T> d = newIncompleteFuture();
         Object r;
@@ -1062,15 +1063,15 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class UniComposeExceptionally<T> extends UniCompletion<T,T> {
-        Function<Throwable, ? extends CompletionStage<T>> fn;
-        UniComposeExceptionally(Executor executor, CompletableFuture<T> dep,
-                                CompletableFuture<T> src,
-                                Function<Throwable, ? extends CompletionStage<T>> fn) {
+        Function<Throwable, ? extends CompletionStage<T, ?>, ?> fn;
+        UniComposeExceptionally(Executor executor, CompletableFuture<T, ?> dep,
+                                CompletableFuture<T, ?> src,
+                                Function<Throwable, ? extends CompletionStage<T,?>, ?> fn) {
             super(executor, dep, src); this.fn = fn;
         }
-        final CompletableFuture<T> tryFire(int mode) {
-            CompletableFuture<T> d; CompletableFuture<T> a;
-            Function<Throwable, ? extends CompletionStage<T>> f;
+        final CompletableFuture<T, ?> tryFire(int mode) {
+            CompletableFuture<T, ?> d; CompletableFuture<T, ?> a;
+            Function<Throwable, ? extends CompletionStage<T, ?>, ?> f;
             Object r; Throwable x;
             if ((a = src) == null || (r = a.result) == null
                 || (d = dep) == null || (f = fn) == null)
@@ -1081,7 +1082,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
                     try {
                         if (mode <= 0 && !claim())
                             return null;
-                        CompletableFuture<T> g = f.apply(x).toCompletableFuture();
+                        CompletableFuture<T, ?> g = f.apply(x).toCompletableFuture();
                         if ((r = g.result) != null)
                             d.completeRelay(r);
                         else {
@@ -1101,8 +1102,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
-    private CompletableFuture<T> uniComposeExceptionallyStage(
-        Executor e, Function<Throwable, ? extends CompletionStage<T>> f) {
+    private <throws X1 extends Throwable, throws X2> CompletableFuture<T, X1|X2> uniComposeExceptionallyStage(
+        Executor e, Function<Throwable, ? extends CompletionStage<T, X1>, X2> f) {
         if (f == null) throw new NullPointerException();
         CompletableFuture<T> d = newIncompleteFuture();
         Object r, s; Throwable x;
@@ -1115,7 +1116,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
                 if (e != null)
                     e.execute(new UniComposeExceptionally<T>(null, d, this, f));
                 else {
-                    CompletableFuture<T> g = f.apply(x).toCompletableFuture();
+                    CompletableFuture<T, ?> g = f.apply(x).toCompletableFuture();
                     if ((s = g.result) != null)
                         d.result = encodeRelay(s);
                     else
@@ -1129,11 +1130,11 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class UniRelay<U, T extends U> extends UniCompletion<T,U> {
-        UniRelay(CompletableFuture<U> dep, CompletableFuture<T> src) {
+        UniRelay(CompletableFuture<U, ?> dep, CompletableFuture<T, ?> src) {
             super(null, dep, src);
         }
-        final CompletableFuture<U> tryFire(int mode) {
-            CompletableFuture<U> d; CompletableFuture<T> a; Object r;
+        final CompletableFuture<U, ?> tryFire(int mode) {
+            CompletableFuture<U, ?> d; CompletableFuture<T, ?> a; Object r;
             if ((a = src) == null || (r = a.result) == null
                 || (d = dep) == null)
                 return null;
@@ -1144,10 +1145,10 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
-    private static <U, T extends U> CompletableFuture<U> uniCopyStage(
-        CompletableFuture<T> src) {
+    private static <U, T extends U, throws X extends Throwable> CompletableFuture<U, X> uniCopyStage(
+        CompletableFuture<T, X> src) {
         Object r;
-        CompletableFuture<U> d = src.newIncompleteFuture();
+        CompletableFuture<U, X> d = src.newIncompleteFuture();
         if ((r = src.result) != null)
             d.result = encodeRelay(r);
         else
@@ -1155,26 +1156,26 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         return d;
     }
 
-    private MinimalStage<T> uniAsMinimalStage() {
+    private MinimalStage<T, X> uniAsMinimalStage() {
         Object r;
         if ((r = result) != null)
             return new MinimalStage<T>(encodeRelay(r));
-        MinimalStage<T> d = new MinimalStage<T>();
+        MinimalStage<T, X> d = new MinimalStage<T, X>();
         unipush(new UniRelay<T,T>(d, this));
         return d;
     }
 
     @SuppressWarnings("serial")
     static final class UniCompose<T,V> extends UniCompletion<T,V> {
-        Function<? super T, ? extends CompletionStage<V>> fn;
-        UniCompose(Executor executor, CompletableFuture<V> dep,
-                   CompletableFuture<T> src,
-                   Function<? super T, ? extends CompletionStage<V>> fn) {
+        Function<? super T, ? extends CompletionStage<V, ?>, ?> fn;
+        UniCompose(Executor executor, CompletableFuture<V, ?> dep,
+                   CompletableFuture<T, ?> src,
+                   Function<? super T, ? extends CompletionStage<V, ?>, ?> fn) {
             super(executor, dep, src); this.fn = fn;
         }
-        final CompletableFuture<V> tryFire(int mode) {
-            CompletableFuture<V> d; CompletableFuture<T> a;
-            Function<? super T, ? extends CompletionStage<V>> f;
+        final CompletableFuture<V, ?> tryFire(int mode) {
+            CompletableFuture<V, ?> d; CompletableFuture<T, ?> a;
+            Function<? super T, ? extends CompletionStage<V, ?>, ?> f;
             Object r; Throwable x;
             if ((a = src) == null || (r = a.result) == null
                 || (d = dep) == null || (f = fn) == null)
@@ -1191,7 +1192,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
                     if (mode <= 0 && !claim())
                         return null;
                     @SuppressWarnings("unchecked") T t = (T) r;
-                    CompletableFuture<V> g = f.apply(t).toCompletableFuture();
+                    CompletableFuture<V, ?> g = f.apply(t).toCompletableFuture();
                     if ((r = g.result) != null)
                         d.completeRelay(r);
                     else {
@@ -1208,8 +1209,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
-    private <V> CompletableFuture<V> uniComposeStage(
-        Executor e, Function<? super T, ? extends CompletionStage<V>> f) {
+    private <V, throws X1 extends Throwable, throws X2> CompletableFuture<V, X|X1|X2> uniComposeStage(
+        Executor e, Function<? super T, ? extends CompletionStage<V, X1>, X2> f) {
         if (f == null) throw new NullPointerException();
         CompletableFuture<V> d = newIncompleteFuture();
         Object r, s; Throwable x;
@@ -1228,7 +1229,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
                     e.execute(new UniCompose<T,V>(null, d, this, f));
                 else {
                     @SuppressWarnings("unchecked") T t = (T) r;
-                    CompletableFuture<V> g = f.apply(t).toCompletableFuture();
+                    CompletableFuture<V, ?> g = f.apply(t).toCompletableFuture();
                     if ((s = g.result) != null)
                         d.result = encodeRelay(s);
                     else
@@ -1246,9 +1247,9 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     /** A Completion for an action with two sources */
     @SuppressWarnings("serial")
     abstract static class BiCompletion<T,U,V> extends UniCompletion<T,V> {
-        CompletableFuture<U> snd; // second source for action
-        BiCompletion(Executor executor, CompletableFuture<V> dep,
-                     CompletableFuture<T> src, CompletableFuture<U> snd) {
+        CompletableFuture<U, ?> snd; // second source for action
+        BiCompletion(Executor executor, CompletableFuture<V, ?> dep,
+                     CompletableFuture<T, ?> src, CompletableFuture<U, ?> snd) {
             super(executor, dep, src); this.snd = snd;
         }
     }
@@ -1258,8 +1259,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     static final class CoCompletion extends Completion {
         BiCompletion<?,?,?> base;
         CoCompletion(BiCompletion<?,?,?> base) { this.base = base; }
-        final CompletableFuture<?> tryFire(int mode) {
-            BiCompletion<?,?,?> c; CompletableFuture<?> d;
+        final CompletableFuture<?, ?> tryFire(int mode) {
+            BiCompletion<?,?,?> c; CompletableFuture<?, ?> d;
             if ((c = base) == null || (d = c.tryFire(mode)) == null)
                 return null;
             base = null; // detach
@@ -1277,7 +1278,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * Pushes completion to this and b unless both done.
      * Caller should first check that either result or b.result is null.
      */
-    final void bipush(CompletableFuture<?> b, BiCompletion<?,?,?> c) {
+    final void bipush(CompletableFuture<?, ?> b, BiCompletion<?,?,?> c) {
         if (c != null) {
             while (result == null) {
                 if (tryPushStack(c)) {
@@ -1293,8 +1294,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     }
 
     /** Post-processing after successful BiCompletion tryFire. */
-    final CompletableFuture<T> postFire(CompletableFuture<?> a,
-                                        CompletableFuture<?> b, int mode) {
+    final CompletableFuture<T, ?> postFire(CompletableFuture<?, ?> a,
+                                        CompletableFuture<?, ?> b, int mode) {
         if (b != null && b.stack != null) { // clean second source
             Object r;
             if ((r = b.result) == null)
@@ -1307,17 +1308,17 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class BiApply<T,U,V> extends BiCompletion<T,U,V> {
-        BiFunction<? super T,? super U,? extends V> fn;
-        BiApply(Executor executor, CompletableFuture<V> dep,
-                CompletableFuture<T> src, CompletableFuture<U> snd,
-                BiFunction<? super T,? super U,? extends V> fn) {
+        BiFunction<? super T,? super U,? extends V, ?> fn;
+        BiApply(Executor executor, CompletableFuture<V, ?> dep,
+                CompletableFuture<T, ?> src, CompletableFuture<U, ?> snd,
+                BiFunction<? super T,? super U,? extends V, ?> fn) {
             super(executor, dep, src, snd); this.fn = fn;
         }
-        final CompletableFuture<V> tryFire(int mode) {
-            CompletableFuture<V> d;
-            CompletableFuture<T> a;
-            CompletableFuture<U> b;
-            Object r, s; BiFunction<? super T,? super U,? extends V> f;
+        final CompletableFuture<V, ?> tryFire(int mode) {
+            CompletableFuture<V, ?> d;
+            CompletableFuture<T, ?> a;
+            CompletableFuture<U, ?> b;
+            Object r, s; BiFunction<? super T,? super U,? extends V, ?> f;
             if (   (a = src) == null || (r = a.result) == null
                 || (b = snd) == null || (s = b.result) == null
                 || (d = dep) == null || (f = fn) == null
@@ -1329,7 +1330,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     }
 
     final <R,S> boolean biApply(Object r, Object s,
-                                BiFunction<? super R,? super S,? extends T> f,
+                                BiFunction<? super R,? super S,? extends T, ?> f,
                                 BiApply<R,S,T> c) {
         Throwable x;
         tryComplete: if (result == null) {
@@ -1360,13 +1361,13 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         return true;
     }
 
-    private <U,V> CompletableFuture<V> biApplyStage(
-        Executor e, CompletionStage<U> o,
-        BiFunction<? super T,? super U,? extends V> f) {
-        CompletableFuture<U> b; Object r, s;
+    private <U,V, throws X1, throws X2> CompletableFuture<V, X|X1|X2> biApplyStage(
+        Executor e, CompletionStage<U, X1> o,
+        BiFunction<? super T,? super U,? extends V, X2> f) {
+        CompletableFuture<U, ?> b; Object r, s;
         if (f == null || (b = o.toCompletableFuture()) == null)
             throw new NullPointerException();
-        CompletableFuture<V> d = newIncompleteFuture();
+        CompletableFuture<V, X|X1|X2> d = newIncompleteFuture();
         if ((r = result) == null || (s = b.result) == null)
             bipush(b, new BiApply<T,U,V>(e, d, this, b, f));
         else if (e == null)
@@ -1382,17 +1383,17 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class BiAccept<T,U> extends BiCompletion<T,U,Void> {
-        BiConsumer<? super T,? super U> fn;
-        BiAccept(Executor executor, CompletableFuture<Void> dep,
-                 CompletableFuture<T> src, CompletableFuture<U> snd,
-                 BiConsumer<? super T,? super U> fn) {
+        BiConsumer<? super T,? super U, ?> fn;
+        BiAccept(Executor executor, CompletableFuture<Void, ?> dep,
+                 CompletableFuture<T, ?> src, CompletableFuture<U, ?> snd,
+                 BiConsumer<? super T,? super U, ?> fn) {
             super(executor, dep, src, snd); this.fn = fn;
         }
-        final CompletableFuture<Void> tryFire(int mode) {
-            CompletableFuture<Void> d;
-            CompletableFuture<T> a;
-            CompletableFuture<U> b;
-            Object r, s; BiConsumer<? super T,? super U> f;
+        final CompletableFuture<Void, ?> tryFire(int mode) {
+            CompletableFuture<Void, ?> d;
+            CompletableFuture<T, ?> a;
+            CompletableFuture<U, ?> b;
+            Object r, s; BiConsumer<? super T,? super U, ?> f;
             if (   (a = src) == null || (r = a.result) == null
                 || (b = snd) == null || (s = b.result) == null
                 || (d = dep) == null || (f = fn) == null
@@ -1404,7 +1405,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     }
 
     final <R,S> boolean biAccept(Object r, Object s,
-                                 BiConsumer<? super R,? super S> f,
+                                 BiConsumer<? super R,? super S, ?> f,
                                  BiAccept<R,S> c) {
         Throwable x;
         tryComplete: if (result == null) {
@@ -1436,10 +1437,10 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         return true;
     }
 
-    private <U> CompletableFuture<Void> biAcceptStage(
-        Executor e, CompletionStage<U> o,
-        BiConsumer<? super T,? super U> f) {
-        CompletableFuture<U> b; Object r, s;
+    private <U, throws X1, throws X2> CompletableFuture<Void, X|X1|X2> biAcceptStage(
+        Executor e, CompletionStage<U, X1> o,
+        BiConsumer<? super T,? super U, X2> f) {
+        CompletableFuture<U, ?> b; Object r, s;
         if (f == null || (b = o.toCompletableFuture()) == null)
             throw new NullPointerException();
         CompletableFuture<Void> d = newIncompleteFuture();
@@ -1459,15 +1460,15 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     @SuppressWarnings("serial")
     static final class BiRun<T,U> extends BiCompletion<T,U,Void> {
         Runnable fn;
-        BiRun(Executor executor, CompletableFuture<Void> dep,
-              CompletableFuture<T> src, CompletableFuture<U> snd,
+        BiRun(Executor executor, CompletableFuture<Void, ?> dep,
+              CompletableFuture<T, ?> src, CompletableFuture<U, ?> snd,
               Runnable fn) {
             super(executor, dep, src, snd); this.fn = fn;
         }
-        final CompletableFuture<Void> tryFire(int mode) {
-            CompletableFuture<Void> d;
-            CompletableFuture<T> a;
-            CompletableFuture<U> b;
+        final CompletableFuture<Void, ?> tryFire(int mode) {
+            CompletableFuture<Void, ?> d;
+            CompletableFuture<T, ?> a;
+            CompletableFuture<U, ?> b;
             Object r, s; Runnable f;
             if (   (a = src) == null || (r = a.result) == null
                 || (b = snd) == null || (s = b.result) == null
@@ -1500,12 +1501,12 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         return true;
     }
 
-    private CompletableFuture<Void> biRunStage(Executor e, CompletionStage<?> o,
+    private <throws X1> CompletableFuture<Void, X|X1> biRunStage(Executor e, CompletionStage<?, X1> o,
                                                Runnable f) {
-        CompletableFuture<?> b; Object r, s;
+        CompletableFuture<?, ?> b; Object r, s;
         if (f == null || (b = o.toCompletableFuture()) == null)
             throw new NullPointerException();
-        CompletableFuture<Void> d = newIncompleteFuture();
+        CompletableFuture<Void, X|X1> d = newIncompleteFuture();
         if ((r = result) == null || (s = b.result) == null)
             bipush(b, new BiRun<>(e, d, this, b, f));
         else if (e == null)
@@ -1521,14 +1522,14 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class BiRelay<T,U> extends BiCompletion<T,U,Void> { // for And
-        BiRelay(CompletableFuture<Void> dep,
-                CompletableFuture<T> src, CompletableFuture<U> snd) {
+        BiRelay(CompletableFuture<Void, ?> dep,
+                CompletableFuture<T, ?> src, CompletableFuture<U, ?> snd) {
             super(null, dep, src, snd);
         }
-        final CompletableFuture<Void> tryFire(int mode) {
-            CompletableFuture<Void> d;
-            CompletableFuture<T> a;
-            CompletableFuture<U> b;
+        final CompletableFuture<Void, ?> tryFire(int mode) {
+            CompletableFuture<Void, ?> d;
+            CompletableFuture<T, ?> a;
+            CompletableFuture<U, ?> b;
             Object r, s, z; Throwable x;
             if (   (a = src) == null || (r = a.result) == null
                 || (b = snd) == null || (s = b.result) == null
@@ -1549,13 +1550,13 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     }
 
     /** Recursively constructs a tree of completions. */
-    static CompletableFuture<Void> andTree(CompletableFuture<?>[] cfs,
+    static <throws X> CompletableFuture<Void, X> andTree(CompletableFuture<?, X>[] cfs,
                                            int lo, int hi) {
-        CompletableFuture<Void> d = new CompletableFuture<Void>();
+        CompletableFuture<Void, X> d = new CompletableFuture<Void, X>();
         if (lo > hi) // empty
             d.result = NIL;
         else {
-            CompletableFuture<?> a, b; Object r, s, z; Throwable x;
+            CompletableFuture<?, X> a, b; Object r, s, z; Throwable x;
             int mid = (lo + hi) >>> 1;
             if ((a = (lo == mid ? cfs[lo] :
                       andTree(cfs, lo, mid))) == null ||
@@ -1581,7 +1582,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * Pushes completion to this and b unless either done.
      * Caller should first check that result and b.result are both null.
      */
-    final void orpush(CompletableFuture<?> b, BiCompletion<?,?,?> c) {
+    final void orpush(CompletableFuture<?, ?> b, BiCompletion<?,?,?> c) {
         if (c != null) {
             while (!tryPushStack(c)) {
                 if (result != null) {
@@ -1598,15 +1599,15 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     @SuppressWarnings("serial")
     static final class OrApply<T,U extends T,V> extends BiCompletion<T,U,V> {
-        Function<? super T,? extends V> fn;
-        OrApply(Executor executor, CompletableFuture<V> dep,
-                CompletableFuture<T> src, CompletableFuture<U> snd,
-                Function<? super T,? extends V> fn) {
+        Function<? super T,? extends V, ?> fn;
+        OrApply(Executor executor, CompletableFuture<V, ?> dep,
+                CompletableFuture<T, ?> src, CompletableFuture<U, ?> snd,
+                Function<? super T,? extends V, ?> fn) {
             super(executor, dep, src, snd); this.fn = fn;
         }
-        final CompletableFuture<V> tryFire(int mode) {
-            CompletableFuture<V> d; CompletableFuture<? extends T> a, b;
-            Object r; Throwable x; Function<? super T,? extends V> f;
+        final CompletableFuture<V, ?> tryFire(int mode) {
+            CompletableFuture<V, ?> d; CompletableFuture<? extends T, ?> a, b;
+            Object r; Throwable x; Function<? super T,? extends V, ?> f;
             if ((a = src) == null || (b = snd) == null
                 || ((r = a.result) == null && (r = b.result) == null)
                 || (d = dep) == null || (f = fn) == null)
@@ -1633,33 +1634,33 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
-    private <U extends T,V> CompletableFuture<V> orApplyStage(
-        Executor e, CompletionStage<U> o, Function<? super T, ? extends V> f) {
-        CompletableFuture<U> b;
+    private <U extends T,V, throws X1, throws X2> CompletableFuture<V, X|X1|X2> orApplyStage(
+        Executor e, CompletionStage<U, X1> o, Function<? super T, ? extends V, X2> f) {
+        CompletableFuture<U, X|X1> b;
         if (f == null || (b = o.toCompletableFuture()) == null)
             throw new NullPointerException();
 
-        Object r; CompletableFuture<? extends T> z;
+        Object r; CompletableFuture<? extends T, X|X1> z;
         if ((r = (z = this).result) != null ||
             (r = (z = b).result) != null)
             return z.uniApplyNow(r, e, f);
 
-        CompletableFuture<V> d = newIncompleteFuture();
+        CompletableFuture<V, X|X1|X2> d = newIncompleteFuture();
         orpush(b, new OrApply<T,U,V>(e, d, this, b, f));
         return d;
     }
 
     @SuppressWarnings("serial")
     static final class OrAccept<T,U extends T> extends BiCompletion<T,U,Void> {
-        Consumer<? super T> fn;
-        OrAccept(Executor executor, CompletableFuture<Void> dep,
-                 CompletableFuture<T> src, CompletableFuture<U> snd,
-                 Consumer<? super T> fn) {
+        Consumer<? super T, ?> fn;
+        OrAccept(Executor executor, CompletableFuture<Void, ?> dep,
+                 CompletableFuture<T, ?> src, CompletableFuture<U, ?> snd,
+                 Consumer<? super T, ?> fn) {
             super(executor, dep, src, snd); this.fn = fn;
         }
-        final CompletableFuture<Void> tryFire(int mode) {
-            CompletableFuture<Void> d; CompletableFuture<? extends T> a, b;
-            Object r; Throwable x; Consumer<? super T> f;
+        final CompletableFuture<Void, ?> tryFire(int mode) {
+            CompletableFuture<Void, ?> d; CompletableFuture<? extends T, ?> a, b;
+            Object r; Throwable x; Consumer<? super T, ?> f;
             if ((a = src) == null || (b = snd) == null
                 || ((r = a.result) == null && (r = b.result) == null)
                 || (d = dep) == null || (f = fn) == null)
@@ -1687,18 +1688,18 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
-    private <U extends T> CompletableFuture<Void> orAcceptStage(
-        Executor e, CompletionStage<U> o, Consumer<? super T> f) {
-        CompletableFuture<U> b;
+    private <U extends T, throws X1, throws X2> CompletableFuture<Void, X|X1|X2> orAcceptStage(
+        Executor e, CompletionStage<U, X1> o, Consumer<? super T, X2> f) {
+        CompletableFuture<U, X1> b;
         if (f == null || (b = o.toCompletableFuture()) == null)
             throw new NullPointerException();
 
-        Object r; CompletableFuture<? extends T> z;
+        Object r; CompletableFuture<? extends T, X|X1> z;
         if ((r = (z = this).result) != null ||
             (r = (z = b).result) != null)
             return z.uniAcceptNow(r, e, f);
 
-        CompletableFuture<Void> d = newIncompleteFuture();
+        CompletableFuture<Void, X|X1|X2> d = newIncompleteFuture();
         orpush(b, new OrAccept<T,U>(e, d, this, b, f));
         return d;
     }
@@ -1706,13 +1707,13 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     @SuppressWarnings("serial")
     static final class OrRun<T,U> extends BiCompletion<T,U,Void> {
         Runnable fn;
-        OrRun(Executor executor, CompletableFuture<Void> dep,
-              CompletableFuture<T> src, CompletableFuture<U> snd,
+        OrRun(Executor executor, CompletableFuture<Void, ?> dep,
+              CompletableFuture<T, ?> src, CompletableFuture<U, ?> snd,
               Runnable fn) {
             super(executor, dep, src, snd); this.fn = fn;
         }
-        final CompletableFuture<Void> tryFire(int mode) {
-            CompletableFuture<Void> d; CompletableFuture<?> a, b;
+        final CompletableFuture<Void, ?> tryFire(int mode) {
+            CompletableFuture<Void, ?> d; CompletableFuture<?, ?> a, b;
             Object r; Throwable x; Runnable f;
             if ((a = src) == null || (b = snd) == null
                 || ((r = a.result) == null && (r = b.result) == null)
@@ -1738,18 +1739,18 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
-    private CompletableFuture<Void> orRunStage(Executor e, CompletionStage<?> o,
+    private <throws X1> CompletableFuture<Void, X|X1> orRunStage(Executor e, CompletionStage<?, X1> o,
                                                Runnable f) {
-        CompletableFuture<?> b;
+        CompletableFuture<?, X1> b;
         if (f == null || (b = o.toCompletableFuture()) == null)
             throw new NullPointerException();
 
-        Object r; CompletableFuture<?> z;
+        Object r; CompletableFuture<?, X|X1> z;
         if ((r = (z = this).result) != null ||
             (r = (z = b).result) != null)
             return z.uniRunNow(r, e, f);
 
-        CompletableFuture<Void> d = newIncompleteFuture();
+        CompletableFuture<Void, X|X1> d = newIncompleteFuture();
         orpush(b, new OrRun<>(e, d, this, b, f));
         return d;
     }
@@ -1757,23 +1758,23 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     /** Completion for an anyOf input future. */
     @SuppressWarnings("serial")
     static class AnyOf extends Completion {
-        CompletableFuture<Object> dep; CompletableFuture<?> src;
-        CompletableFuture<?>[] srcs;
-        AnyOf(CompletableFuture<Object> dep, CompletableFuture<?> src,
-              CompletableFuture<?>[] srcs) {
+        CompletableFuture<Object, ?> dep; CompletableFuture<?, ?> src;
+        CompletableFuture<?, ?>[] srcs;
+        AnyOf(CompletableFuture<Object, ?> dep, CompletableFuture<?, ?> src,
+              CompletableFuture<?, ?>[] srcs) {
             this.dep = dep; this.src = src; this.srcs = srcs;
         }
-        final CompletableFuture<Object> tryFire(int mode) {
+        final CompletableFuture<Object, ?> tryFire(int mode) {
             // assert mode != ASYNC;
-            CompletableFuture<Object> d; CompletableFuture<?> a;
-            CompletableFuture<?>[] as;
+            CompletableFuture<Object, ?> d; CompletableFuture<?, ?> a;
+            CompletableFuture<?, ?>[] as;
             Object r;
             if ((a = src) == null || (r = a.result) == null
                 || (d = dep) == null || (as = srcs) == null)
                 return null;
             src = null; dep = null; srcs = null;
             if (d.completeRelay(r)) {
-                for (CompletableFuture<?> b : as)
+                for (CompletableFuture<?, ?> b : as)
                     if (b != a)
                         b.cleanStack();
                 if (mode < 0)
@@ -1784,7 +1785,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
             return null;
         }
         final boolean isLive() {
-            CompletableFuture<Object> d;
+            CompletableFuture<Object, ?> d;
             return (d = dep) != null && d.result == null;
         }
     }
@@ -1794,8 +1795,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     @SuppressWarnings("serial")
     static final class AsyncSupply<T> extends ForkJoinTask<Void>
         implements Runnable, AsynchronousCompletionTask {
-        CompletableFuture<T> dep; Supplier<? extends T> fn;
-        AsyncSupply(CompletableFuture<T> dep, Supplier<? extends T> fn) {
+        CompletableFuture<T, ?> dep; Supplier<? extends T, ?> fn;
+        AsyncSupply(CompletableFuture<T, ?> dep, Supplier<? extends T, ?> fn) {
             this.dep = dep; this.fn = fn;
         }
 
@@ -1804,7 +1805,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         public final boolean exec() { run(); return false; }
 
         public void run() {
-            CompletableFuture<T> d; Supplier<? extends T> f;
+            CompletableFuture<T, ?> d; Supplier<? extends T, ?> f;
             if ((d = dep) != null && (f = fn) != null) {
                 dep = null; fn = null;
                 if (d.result == null) {
@@ -1819,10 +1820,10 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
-    static <U> CompletableFuture<U> asyncSupplyStage(Executor e,
-                                                     Supplier<U> f) {
+    static <U, throws X> CompletableFuture<U, X> asyncSupplyStage(Executor e,
+                                                     Supplier<U, X> f) {
         if (f == null) throw new NullPointerException();
-        CompletableFuture<U> d = new CompletableFuture<U>();
+        CompletableFuture<U, X> d = new CompletableFuture<U, X>();
         e.execute(new AsyncSupply<U>(d, f));
         return d;
     }
@@ -1830,8 +1831,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     @SuppressWarnings("serial")
     static final class AsyncRun extends ForkJoinTask<Void>
         implements Runnable, AsynchronousCompletionTask {
-        CompletableFuture<Void> dep; Runnable fn;
-        AsyncRun(CompletableFuture<Void> dep, Runnable fn) {
+        CompletableFuture<Void, ?> dep; Runnable fn;
+        AsyncRun(CompletableFuture<Void, ?> dep, Runnable fn) {
             this.dep = dep; this.fn = fn;
         }
 
@@ -1840,7 +1841,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         public final boolean exec() { run(); return false; }
 
         public void run() {
-            CompletableFuture<Void> d; Runnable f;
+            CompletableFuture<Void, ?> d; Runnable f;
             if ((d = dep) != null && (f = fn) != null) {
                 dep = null; fn = null;
                 if (d.result == null) {
@@ -2027,9 +2028,10 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * @param supplier a function returning the value to be used
      * to complete the returned CompletableFuture
      * @param <U> the function's return type
+     * @param <X> throws
      * @return the new CompletableFuture
      */
-    public static <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
+    public static <U, throws X> CompletableFuture<U, X> supplyAsync(Supplier<U, X> supplier) {
         return asyncSupplyStage(ASYNC_POOL, supplier);
     }
 
@@ -2042,9 +2044,10 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * to complete the returned CompletableFuture
      * @param executor the executor to use for asynchronous execution
      * @param <U> the function's return type
+     * @param <X> throws
      * @return the new CompletableFuture
      */
-    public static <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier,
+    public static <U, throws X> CompletableFuture<U, X> supplyAsync(Supplier<U, X> supplier,
                                                        Executor executor) {
         return asyncSupplyStage(screenExecutor(executor), supplier);
     }
@@ -2245,190 +2248,226 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         return triggered;
     }
 
-    public <U> CompletableFuture<U> thenApply(
-        Function<? super T,? extends U> fn) {
+    @Override
+    public <U, throws X1> CompletableFuture<U, X|X1> thenApply(
+        Function<? super T,? extends U, X1> fn) {
         return uniApplyStage(null, fn);
     }
 
-    public <U> CompletableFuture<U> thenApplyAsync(
-        Function<? super T,? extends U> fn) {
+    @Override
+    public <U, throws X1> CompletableFuture<U, X|X1> thenApplyAsync(
+        Function<? super T,? extends U, X1> fn) {
         return uniApplyStage(defaultExecutor(), fn);
     }
 
-    public <U> CompletableFuture<U> thenApplyAsync(
-        Function<? super T,? extends U> fn, Executor executor) {
+    @Override
+    public <U, throws X1> CompletableFuture<U, X|X1> thenApplyAsync(
+        Function<? super T,? extends U, X1> fn, Executor executor) {
         return uniApplyStage(screenExecutor(executor), fn);
     }
 
-    public CompletableFuture<Void> thenAccept(Consumer<? super T> action) {
+    @Override
+    public <throws X1> CompletableFuture<Void, X|X1> thenAccept(Consumer<? super T, X1> action) {
         return uniAcceptStage(null, action);
     }
 
-    public CompletableFuture<Void> thenAcceptAsync(Consumer<? super T> action) {
+    @Override
+    public <throws X1> CompletableFuture<Void, X|X1> thenAcceptAsync(Consumer<? super T, X1> action) {
         return uniAcceptStage(defaultExecutor(), action);
     }
 
-    public CompletableFuture<Void> thenAcceptAsync(Consumer<? super T> action,
+    @Override
+    public <throws X1> CompletableFuture<Void, X|X1> thenAcceptAsync(Consumer<? super T, X1> action,
                                                    Executor executor) {
         return uniAcceptStage(screenExecutor(executor), action);
     }
 
-    public CompletableFuture<Void> thenRun(Runnable action) {
+    @Override
+    public CompletableFuture<Void, X> thenRun(Runnable action) {
         return uniRunStage(null, action);
     }
 
-    public CompletableFuture<Void> thenRunAsync(Runnable action) {
+    @Override
+    public CompletableFuture<Void, X> thenRunAsync(Runnable action) {
         return uniRunStage(defaultExecutor(), action);
     }
 
-    public CompletableFuture<Void> thenRunAsync(Runnable action,
+    @Override
+    public CompletableFuture<Void, X> thenRunAsync(Runnable action,
                                                 Executor executor) {
         return uniRunStage(screenExecutor(executor), action);
     }
 
-    public <U,V> CompletableFuture<V> thenCombine(
-        CompletionStage<? extends U> other,
-        BiFunction<? super T,? super U,? extends V> fn) {
+    @Override
+    public <U,V, throws X1, throws X2> CompletableFuture<V, X|X1|X2> thenCombine(
+        CompletionStage<? extends U, X1> other,
+        BiFunction<? super T,? super U,? extends V, X2> fn) {
         return biApplyStage(null, other, fn);
     }
 
-    public <U,V> CompletableFuture<V> thenCombineAsync(
-        CompletionStage<? extends U> other,
-        BiFunction<? super T,? super U,? extends V> fn) {
+    @Override
+    public <U,V, throws X1, throws X2> CompletableFuture<V, X|X1|X2> thenCombineAsync(
+        CompletionStage<? extends U, X1> other,
+        BiFunction<? super T,? super U,? extends V, X2> fn) {
         return biApplyStage(defaultExecutor(), other, fn);
     }
 
-    public <U,V> CompletableFuture<V> thenCombineAsync(
-        CompletionStage<? extends U> other,
-        BiFunction<? super T,? super U,? extends V> fn, Executor executor) {
+    @Override
+    public <U,V, throws X1, throws X2> CompletableFuture<V, X|X1|X2> thenCombineAsync(
+        CompletionStage<? extends U, X1> other,
+        BiFunction<? super T,? super U,? extends V, X2> fn, Executor executor) {
         return biApplyStage(screenExecutor(executor), other, fn);
     }
 
-    public <U> CompletableFuture<Void> thenAcceptBoth(
-        CompletionStage<? extends U> other,
-        BiConsumer<? super T, ? super U> action) {
+    @Override
+    public <U, throws X1, throws X2> CompletableFuture<Void, X|X1|X2> thenAcceptBoth(
+        CompletionStage<? extends U, X1> other,
+        BiConsumer<? super T, ? super U, X2> action) {
         return biAcceptStage(null, other, action);
     }
 
-    public <U> CompletableFuture<Void> thenAcceptBothAsync(
-        CompletionStage<? extends U> other,
-        BiConsumer<? super T, ? super U> action) {
+    @Override
+    public <U, throws X1, throws X2> CompletableFuture<Void, X|X1|X2> thenAcceptBothAsync(
+        CompletionStage<? extends U, X1> other,
+        BiConsumer<? super T, ? super U, X2> action) {
         return biAcceptStage(defaultExecutor(), other, action);
     }
 
-    public <U> CompletableFuture<Void> thenAcceptBothAsync(
-        CompletionStage<? extends U> other,
-        BiConsumer<? super T, ? super U> action, Executor executor) {
+    @Override
+    public <U, throws X1, throws X2> CompletableFuture<Void, X|X1|X2> thenAcceptBothAsync(
+        CompletionStage<? extends U, X1> other,
+        BiConsumer<? super T, ? super U, X2> action, Executor executor) {
         return biAcceptStage(screenExecutor(executor), other, action);
     }
 
-    public CompletableFuture<Void> runAfterBoth(CompletionStage<?> other,
+    @Override
+    public <throws X1> CompletableFuture<Void, X|X1> runAfterBoth(CompletionStage<?, X1> other,
                                                 Runnable action) {
         return biRunStage(null, other, action);
     }
 
-    public CompletableFuture<Void> runAfterBothAsync(CompletionStage<?> other,
+    @Override
+    public <throws X1> CompletableFuture<Void, X|X1> runAfterBothAsync(CompletionStage<?, X1> other,
                                                      Runnable action) {
         return biRunStage(defaultExecutor(), other, action);
     }
 
-    public CompletableFuture<Void> runAfterBothAsync(CompletionStage<?> other,
+    @Override
+    public <throws X1> CompletableFuture<Void, X|X1> runAfterBothAsync(CompletionStage<?, X1> other,
                                                      Runnable action,
                                                      Executor executor) {
         return biRunStage(screenExecutor(executor), other, action);
     }
 
-    public <U> CompletableFuture<U> applyToEither(
-        CompletionStage<? extends T> other, Function<? super T, U> fn) {
+    @Override
+    public <U, throws X1, throws X2> CompletableFuture<U, X|X1|X2> applyToEither(
+        CompletionStage<? extends T, X1> other, Function<? super T, U, X2> fn) {
         return orApplyStage(null, other, fn);
     }
 
-    public <U> CompletableFuture<U> applyToEitherAsync(
-        CompletionStage<? extends T> other, Function<? super T, U> fn) {
+    @Override
+    public <U, throws X1, throws X2> CompletableFuture<U, X|X1|X2> applyToEitherAsync(
+        CompletionStage<? extends T, X1> other, Function<? super T, U, X2> fn) {
         return orApplyStage(defaultExecutor(), other, fn);
     }
 
-    public <U> CompletableFuture<U> applyToEitherAsync(
-        CompletionStage<? extends T> other, Function<? super T, U> fn,
+    @Override
+    public <U, throws X1, throws X2> CompletableFuture<U, X|X1|X2> applyToEitherAsync(
+        CompletionStage<? extends T, X1> other, Function<? super T, U, X2> fn,
         Executor executor) {
         return orApplyStage(screenExecutor(executor), other, fn);
     }
 
-    public CompletableFuture<Void> acceptEither(
-        CompletionStage<? extends T> other, Consumer<? super T> action) {
+    @Override
+    public <throws X1, throws X2> CompletableFuture<Void, X|X1|X2> acceptEither(
+        CompletionStage<? extends T, X1> other, Consumer<? super T, X2> action) {
         return orAcceptStage(null, other, action);
     }
 
-    public CompletableFuture<Void> acceptEitherAsync(
-        CompletionStage<? extends T> other, Consumer<? super T> action) {
+    @Override
+    public <throws X1, throws X2> CompletableFuture<Void, X|X1|X2> acceptEitherAsync(
+        CompletionStage<? extends T, X1> other, Consumer<? super T, X2> action) {
         return orAcceptStage(defaultExecutor(), other, action);
     }
 
-    public CompletableFuture<Void> acceptEitherAsync(
-        CompletionStage<? extends T> other, Consumer<? super T> action,
+    @Override
+    public <throws X1, throws X2> CompletableFuture<Void, X|X1|X2> acceptEitherAsync(
+        CompletionStage<? extends T, X1> other, Consumer<? super T, X2> action,
         Executor executor) {
         return orAcceptStage(screenExecutor(executor), other, action);
     }
 
-    public CompletableFuture<Void> runAfterEither(CompletionStage<?> other,
+    @Override
+    public <throws X1> CompletableFuture<Void, X|X1> runAfterEither(CompletionStage<?, X1> other,
                                                   Runnable action) {
         return orRunStage(null, other, action);
     }
 
-    public CompletableFuture<Void> runAfterEitherAsync(CompletionStage<?> other,
+    @Override
+    public <throws X1> CompletableFuture<Void, X|X1> runAfterEitherAsync(CompletionStage<?, X1> other,
                                                        Runnable action) {
         return orRunStage(defaultExecutor(), other, action);
     }
 
-    public CompletableFuture<Void> runAfterEitherAsync(CompletionStage<?> other,
+    @Override
+    public <throws X1> CompletableFuture<Void, X|X1> runAfterEitherAsync(CompletionStage<?, X1> other,
                                                        Runnable action,
                                                        Executor executor) {
         return orRunStage(screenExecutor(executor), other, action);
     }
 
-    public <U> CompletableFuture<U> thenCompose(
-        Function<? super T, ? extends CompletionStage<U>> fn) {
+    @Override
+    public <U, throws X1 extends Throwable, throws X2> CompletableFuture<U, X|X1|X2> thenCompose(
+        Function<? super T, ? extends CompletionStage<U, X1>, X2> fn) {
         return uniComposeStage(null, fn);
     }
 
-    public <U> CompletableFuture<U> thenComposeAsync(
-        Function<? super T, ? extends CompletionStage<U>> fn) {
+    @Override
+    public <U, throws X1 extends Throwable, throws X2> CompletableFuture<U, X|X1|X2> thenComposeAsync(
+        Function<? super T, ? extends CompletionStage<U, X1>, X2> fn) {
         return uniComposeStage(defaultExecutor(), fn);
     }
 
-    public <U> CompletableFuture<U> thenComposeAsync(
-        Function<? super T, ? extends CompletionStage<U>> fn,
+    @Override
+    public <U, throws X1 extends Throwable, throws X2> CompletableFuture<U, X|X1|X2> thenComposeAsync(
+        Function<? super T, ? extends CompletionStage<U, X1>, X2> fn,
         Executor executor) {
         return uniComposeStage(screenExecutor(executor), fn);
     }
 
-    public CompletableFuture<T> whenComplete(
-        BiConsumer<? super T, ? super Throwable> action) {
+    @Override
+    public <throws X1> CompletableFuture<T, X|X1> whenComplete(
+        BiConsumer<? super T, ? super Throwable, X1> action) {
         return uniWhenCompleteStage(null, action);
     }
 
-    public CompletableFuture<T> whenCompleteAsync(
-        BiConsumer<? super T, ? super Throwable> action) {
+    @Override
+    public <throws X1> CompletableFuture<T, X|X1> whenCompleteAsync(
+        BiConsumer<? super T, ? super Throwable, X1> action) {
         return uniWhenCompleteStage(defaultExecutor(), action);
     }
 
-    public CompletableFuture<T> whenCompleteAsync(
-        BiConsumer<? super T, ? super Throwable> action, Executor executor) {
+    @Override
+    public <throws X1> CompletableFuture<T, X|X1> whenCompleteAsync(
+        BiConsumer<? super T, ? super Throwable, X1> action, Executor executor) {
         return uniWhenCompleteStage(screenExecutor(executor), action);
     }
 
-    public <U> CompletableFuture<U> handle(
-        BiFunction<? super T, Throwable, ? extends U> fn) {
+    @Override
+    public <U, throws X1> CompletableFuture<U, X1> handle(
+        BiFunction<? super T, Throwable, ? extends U, X1> fn) {
         return uniHandleStage(null, fn);
     }
 
-    public <U> CompletableFuture<U> handleAsync(
-        BiFunction<? super T, Throwable, ? extends U> fn) {
+    @Override
+    public <U, throws X1> CompletableFuture<U, X1> handleAsync(
+        BiFunction<? super T, Throwable, ? extends U, X1> fn) {
         return uniHandleStage(defaultExecutor(), fn);
     }
 
-    public <U> CompletableFuture<U> handleAsync(
-        BiFunction<? super T, Throwable, ? extends U> fn, Executor executor) {
+    @Override
+    public <U, throws X1> CompletableFuture<U, X1> handleAsync(
+        BiFunction<? super T, Throwable, ? extends U, X1> fn, Executor executor) {
         return uniHandleStage(screenExecutor(executor), fn);
     }
 
@@ -2437,52 +2476,59 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      *
      * @return this CompletableFuture
      */
-    public CompletableFuture<T> toCompletableFuture() {
+    @Override
+    public CompletableFuture<T, X> toCompletableFuture() {
         return this;
     }
 
-    public CompletableFuture<T> exceptionally(
-        Function<Throwable, ? extends T> fn) {
+    @Override
+    public <throws X1> CompletableFuture<T, X1> exceptionally(
+        Function<Throwable, ? extends T, X1> fn) {
         return uniExceptionallyStage(null, fn);
     }
 
     /**
      * @since 12
      */
-    public CompletableFuture<T> exceptionallyAsync(
-        Function<Throwable, ? extends T> fn) {
+    @Override
+    public <throws X1> CompletableFuture<T, X1> exceptionallyAsync(
+        Function<Throwable, ? extends T, X1> fn) {
         return uniExceptionallyStage(defaultExecutor(), fn);
     }
 
     /**
      * @since 12
      */
-    public CompletableFuture<T> exceptionallyAsync(
-        Function<Throwable, ? extends T> fn, Executor executor) {
+    @Override
+    public <throws X1> CompletableFuture<T, X1> exceptionallyAsync(
+        Function<Throwable, ? extends T, X1> fn, Executor executor) {
         return uniExceptionallyStage(screenExecutor(executor), fn);
     }
 
     /**
      * @since 12
      */
-    public CompletableFuture<T> exceptionallyCompose(
-        Function<Throwable, ? extends CompletionStage<T>> fn) {
+    @Override
+    public <throws X1 extends Throwable, throws X2> CompletableFuture<T, X1|X2> exceptionallyCompose(
+        Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn) {
         return uniComposeExceptionallyStage(null, fn);
     }
 
     /**
      * @since 12
      */
-    public CompletableFuture<T> exceptionallyComposeAsync(
-        Function<Throwable, ? extends CompletionStage<T>> fn) {
+    @Override
+    public <throws X1 extends Throwable, throws X2> CompletableFuture<T, X1|X2> exceptionallyComposeAsync(
+        Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn) {
         return uniComposeExceptionallyStage(defaultExecutor(), fn);
     }
 
     /**
      * @since 12
      */
-    public CompletableFuture<T> exceptionallyComposeAsync(
-        Function<Throwable, ? extends CompletionStage<T>> fn,
+    @Override
+    public <throws X1 extends Throwable, throws X2> CompletableFuture<T, X1|X2> exceptionallyComposeAsync(
+        Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn,
         Executor executor) {
         return uniComposeExceptionallyStage(screenExecutor(executor), fn);
     }
@@ -2507,12 +2553,15 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * c3).join();}.
      *
      * @param cfs the CompletableFutures
+     * @param <X> throws
      * @return a new CompletableFuture that is completed when all of the
      * given CompletableFutures complete
      * @throws NullPointerException if the array or any of its elements are
      * {@code null}
      */
-    public static CompletableFuture<Void> allOf(CompletableFuture<?>... cfs) {
+    @SafeVarargs
+    @SuppressWarnings("varargs")
+    public static <throws X> CompletableFuture<Void, X> allOf(CompletableFuture<?, X>... cfs) {
         return andTree(cfs, 0, cfs.length - 1);
     }
 
@@ -2525,24 +2574,27 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * are provided, returns an incomplete CompletableFuture.
      *
      * @param cfs the CompletableFutures
+     * @param <X> throws
      * @return a new CompletableFuture that is completed with the
      * result or exception of any of the given CompletableFutures when
      * one completes
      * @throws NullPointerException if the array or any of its elements are
      * {@code null}
      */
-    public static CompletableFuture<Object> anyOf(CompletableFuture<?>... cfs) {
+    @SafeVarargs
+    @SuppressWarnings("varargs")
+    public static <throws X> CompletableFuture<Object, X> anyOf(CompletableFuture<?, X>... cfs) {
         int n; Object r;
         if ((n = cfs.length) <= 1)
             return (n == 0)
                 ? new CompletableFuture<Object>()
                 : uniCopyStage(cfs[0]);
-        for (CompletableFuture<?> cf : cfs)
+        for (CompletableFuture<?, X> cf : cfs)
             if ((r = cf.result) != null)
                 return new CompletableFuture<Object>(encodeRelay(r));
         cfs = cfs.clone();
         CompletableFuture<Object> d = new CompletableFuture<>();
-        for (CompletableFuture<?> cf : cfs)
+        for (CompletableFuture<?, ?> cf : cfs)
             cf.unipush(new AnyOf(d, cf, cfs));
         // If d was completed while we were adding completions, we should
         // clean the stack of any sources that may have had completions
@@ -2571,6 +2623,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      *
      * @return {@code true} if this task is now cancelled
      */
+    @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         boolean cancelled = (result == null) &&
             internalComplete(new AltResult(new CancellationException()));
@@ -2585,6 +2638,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * @return {@code true} if this CompletableFuture was cancelled
      * before it completed normally
      */
+    @Override
     public boolean isCancelled() {
         Object r;
         return ((r = result) instanceof AltResult) &&
@@ -2705,11 +2759,12 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * returns an instance of class CompletableFuture.
      *
      * @param <U> the type of the value
+     * @param <X1> throws
      * @return a new CompletableFuture
      * @since 9
      */
-    public <U> CompletableFuture<U> newIncompleteFuture() {
-        return new CompletableFuture<U>();
+    public <U, throws X1 extends Throwable> CompletableFuture<U, X1> newIncompleteFuture() {
+        return new CompletableFuture<U, X1>();
     }
 
     /**
@@ -2741,7 +2796,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * @return the new CompletableFuture
      * @since 9
      */
-    public CompletableFuture<T> copy() {
+    public CompletableFuture<T, X> copy() {
         return uniCopyStage(this);
     }
 
@@ -2765,7 +2820,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * @return the new CompletionStage
      * @since 9
      */
-    public CompletionStage<T> minimalCompletionStage() {
+    public CompletionStage<T, X> minimalCompletionStage() {
         return uniAsMinimalStage();
     }
 
@@ -2780,7 +2835,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * @return this CompletableFuture
      * @since 9
      */
-    public CompletableFuture<T> completeAsync(Supplier<? extends T> supplier,
+    public CompletableFuture<T, X> completeAsync(Supplier<? extends T> supplier, // TODO RON
                                               Executor executor) {
         if (supplier == null || executor == null)
             throw new NullPointerException();
@@ -2798,7 +2853,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * @return this CompletableFuture
      * @since 9
      */
-    public CompletableFuture<T> completeAsync(Supplier<? extends T> supplier) {
+    public CompletableFuture<T, X> completeAsync(Supplier<? extends T> supplier) { // TODO RON
         return completeAsync(supplier, defaultExecutor());
     }
 
@@ -2814,7 +2869,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * @return this CompletableFuture
      * @since 9
      */
-    public CompletableFuture<T> orTimeout(long timeout, TimeUnit unit) {
+    public CompletableFuture<T, X> orTimeout(long timeout, TimeUnit unit) {
         if (unit == null)
             throw new NullPointerException();
         if (result == null)
@@ -2835,7 +2890,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * @return this CompletableFuture
      * @since 9
      */
-    public CompletableFuture<T> completeOnTimeout(T value, long timeout,
+    public CompletableFuture<T, X> completeOnTimeout(T value, long timeout,
                                                   TimeUnit unit) {
         if (unit == null)
             throw new NullPointerException();
@@ -2904,12 +2959,13 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      *
      * @param ex the exception
      * @param <U> the type of the value
+     * @param <X> throws
      * @return the exceptionally completed CompletableFuture
      * @since 9
      */
-    public static <U> CompletableFuture<U> failedFuture(Throwable ex) {
+    public static <U, throws X extends Throwable = Throwable> CompletableFuture<U, X> failedFuture(X ex) {
         if (ex == null) throw new NullPointerException();
-        return new CompletableFuture<U>(new AltResult(ex));
+        return new CompletableFuture<U, X>(new AltResult(ex));
     }
 
     /**
@@ -2919,10 +2975,11 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      *
      * @param ex the exception
      * @param <U> the type of the value
+     * @param <X> throws
      * @return the exceptionally completed CompletionStage
      * @since 9
      */
-    public static <U> CompletionStage<U> failedStage(Throwable ex) {
+    public static <U, throws X extends Throwable = Throwable> CompletionStage<U, X> failedStage(X ex) {
         if (ex == null) throw new NullPointerException();
         return new MinimalStage<U>(new AltResult(ex));
     }
@@ -2981,8 +3038,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     /** Action to completeExceptionally on timeout */
     static final class Timeout implements Runnable {
-        final CompletableFuture<?> f;
-        Timeout(CompletableFuture<?> f) { this.f = f; }
+        final CompletableFuture<?, ?> f;
+        Timeout(CompletableFuture<?, ?> f) { this.f = f; }
         public void run() {
             if (f != null && !f.isDone())
                 f.completeExceptionally(new TimeoutException());
@@ -2991,9 +3048,9 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     /** Action to complete on timeout */
     static final class DelayedCompleter<U> implements Runnable {
-        final CompletableFuture<U> f;
+        final CompletableFuture<U, ?> f;
         final U u;
-        DelayedCompleter(CompletableFuture<U> f, U u) { this.f = f; this.u = u; }
+        DelayedCompleter(CompletableFuture<U, ?> f, U u) { this.f = f; this.u = u; }
         public void run() {
             if (f != null)
                 f.complete(u);
@@ -3002,8 +3059,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     /** Action to cancel unneeded timeouts */
     static final class Canceller implements BiConsumer<Object, Throwable> {
-        final Future<?> f;
-        Canceller(Future<?> f) { this.f = f; }
+        final Future<?, ?> f;
+        Canceller(Future<?, ?> f) { this.f = f; }
         public void accept(Object ignore, Throwable ex) {
             if (f != null && !f.isDone())
                 f.cancel(false);
@@ -3013,11 +3070,11 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     /**
      * A subclass that just throws UOE for most non-CompletionStage methods.
      */
-    static final class MinimalStage<T> extends CompletableFuture<T> {
+    static final class MinimalStage<T, throws X extends Throwable> extends CompletableFuture<T, X> {
         MinimalStage() { }
         MinimalStage(Object r) { super(r); }
-        @Override public <U> CompletableFuture<U> newIncompleteFuture() {
-            return new MinimalStage<U>(); }
+        @Override public <U, throws X extends Throwable> CompletableFuture<U, X> newIncompleteFuture() {
+            return new MinimalStage<U, X>(); }
         @Override public T get() {
             throw new UnsupportedOperationException(); }
         @Override public T get(long timeout, TimeUnit unit) {
@@ -3050,24 +3107,24 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
             throw new UnsupportedOperationException(); }
         @Override public int getNumberOfDependents() {
             throw new UnsupportedOperationException(); }
-        @Override public CompletableFuture<T> completeAsync
+        @Override public CompletableFuture<T, X> completeAsync
             (Supplier<? extends T> supplier, Executor executor) {
             throw new UnsupportedOperationException(); }
-        @Override public CompletableFuture<T> completeAsync
+        @Override public CompletableFuture<T, X> completeAsync
             (Supplier<? extends T> supplier) {
             throw new UnsupportedOperationException(); }
-        @Override public CompletableFuture<T> orTimeout
+        @Override public CompletableFuture<T, X> orTimeout
             (long timeout, TimeUnit unit) {
             throw new UnsupportedOperationException(); }
-        @Override public CompletableFuture<T> completeOnTimeout
+        @Override public CompletableFuture<T, X> completeOnTimeout
             (T value, long timeout, TimeUnit unit) {
             throw new UnsupportedOperationException(); }
-        @Override public CompletableFuture<T> toCompletableFuture() {
+        @Override public CompletableFuture<T, X> toCompletableFuture() {
             Object r;
             if ((r = result) != null)
-                return new CompletableFuture<T>(encodeRelay(r));
+                return new CompletableFuture<T, X>(encodeRelay(r));
             else {
-                CompletableFuture<T> d = new CompletableFuture<>();
+                CompletableFuture<T, X> d = new CompletableFuture<>();
                 unipush(new UniRelay<T,T>(d, this));
                 return d;
             }
