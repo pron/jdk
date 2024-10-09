@@ -24,6 +24,7 @@
  */
 package java.util.stream;
 
+import jdk.internal.invoke.MhUtil;
 import jdk.internal.vm.annotation.ForceInline;
 
 import java.lang.invoke.MethodHandles;
@@ -468,16 +469,8 @@ final class GathererOp<T, throws X_IN, A, throws X, R, throws X_OUT extends X_IN
             private Spliterator<T, X_IN> spliterator;
             private Hybrid next;
 
-            private static final VarHandle NEXT;
-
-            static {
-                try {
-                    MethodHandles.Lookup l = MethodHandles.lookup();
-                    NEXT = l.findVarHandle(Hybrid.class, "next", Hybrid.class);
-                } catch (Exception e) {
-                    throw new InternalError(e);
-                }
-            }
+            private static final VarHandle NEXT = MhUtil.findVarHandle(
+                    MethodHandles.lookup(), "next", Hybrid.class);
 
             protected Hybrid(Spliterator<T, X_IN> spliterator) {
                 super(null);
