@@ -462,6 +462,27 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
         return r;
     }
 
+    private Object reportGetOrThrow(Object r, String details)
+            throws InterruptedException, X {
+        if (r == null) // by convention, null means interrupted
+            throw new InterruptedException();
+        if (r instanceof AltResult) {
+            Throwable x, cause;
+            if ((x = ((AltResult)r).ex) == null)
+                return null;
+            if (x instanceof CancellationException)
+                throw new CancellationException(details, (CancellationException)x);
+            if ((x instanceof CompletionException) &&
+                    (cause = x.getCause()) != null) {
+                @SuppressWarnings("unchecked")
+                X x0 = (X)cause;
+                throw x0;
+            }
+            throw wrapInCompletionException(x);
+        }
+        return r;
+    }
+
     /* ------------- Async task preliminaries -------------- */
 
     /**
@@ -2114,6 +2135,7 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
      * @throws InterruptedException if the current thread was interrupted
      * while waiting
      */
+    @Override
     @SuppressWarnings("unchecked")
     public T get() throws InterruptedException, ExecutionException {
         Object r;
@@ -2135,6 +2157,7 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
      * while waiting
      * @throws TimeoutException if the wait timed out
      */
+    @Override
     @SuppressWarnings("unchecked")
     public T get(long timeout, TimeUnit unit)
         throws InterruptedException, ExecutionException, TimeoutException {
@@ -2143,6 +2166,49 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
         if ((r = result) == null)
             r = timedGet(nanos);
         return (T) reportGet(r, "get");
+    }
+
+    /**
+     * Waits if necessary for the computation to complete, and then
+     * retrieves its result.
+     *
+     * @return the computed result
+     * @throws CancellationException if the computation was cancelled
+     * @throws X if the computation threw an exception
+     * @throws InterruptedException if the current thread was interrupted
+     * while waiting
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public T getOrThrow() throws X, InterruptedException {
+        Object r;
+        if ((r = result) == null)
+            r = waitingGet(true);
+        return (T) reportGetOrThrow(r, "getOrThrow");
+    }
+
+    /**
+     * Waits if necessary for at most the given time for the computation
+     * to complete, and then retrieves its result, if available.
+     *
+     * @param timeout the maximum time to wait
+     * @param unit the time unit of the timeout argument
+     * @return the computed result
+     * @throws CancellationException if the computation was cancelled
+     * @throws X if the computation threw an exception
+     * @throws InterruptedException if the current thread was interrupted
+     * while waiting
+     * @throws TimeoutException if the wait timed out
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public T getOrThrow(long timeout, TimeUnit unit)
+            throws X, InterruptedException, TimeoutException {
+        long nanos = unit.toNanos(timeout);
+        Object r;
+        if ((r = result) == null)
+            r = timedGet(nanos);
+        return (T) reportGetOrThrow(r, "getOrThrow");
     }
 
     /**

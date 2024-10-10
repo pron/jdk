@@ -173,7 +173,7 @@ public interface Future<V, throws X extends Throwable = Exception> {
      * @throws InterruptedException if the current thread was interrupted
      * while waiting
      */
-    default V join() throws InterruptedException, X {
+    default V getOrThrow() throws InterruptedException, X {
         try {
             return get();
         } catch (ExecutionException ex) {
@@ -199,7 +199,7 @@ public interface Future<V, throws X extends Throwable = Exception> {
      * while waiting
      * @throws TimeoutException if the wait timed out
      */
-    default V join(long timeout, TimeUnit unit)
+    default V getOrThrow(long timeout, TimeUnit unit)
         throws InterruptedException, X, TimeoutException {
         try {
             return get(timeout, unit);
