@@ -54,12 +54,12 @@ final class GathererOp<T, A, R, throws X extends X_OUT, throws X_OUT> extends Re
             Gatherer<T, A, R, X> gatherer) {
         // When attaching a gather-operation onto another gather-operation,
         // we can fuse them into one
-        if (upstream.getClass() == GathererOp.class) { // TODO RON
-            return new GathererOp<T, A, R, X, X_OUT>(
+        if (upstream.getClass() == GathererOp.class) {
+            return new GathererOp<>(// TODO RON
                     (Gatherer<T, A, R, X>)((GathererOp<P_IN, Object, P_OUT, ?, X_OUT>) upstream).gatherer.andThen(gatherer),
                     (GathererOp<?, ?, T, ?, ?>) upstream);
         } else {
-            return new GathererOp<T, A, R, X, X_OUT>(
+            return new GathererOp<>(
                     (ReferencePipeline<?, T, X_OUT>) upstream,
                     gatherer);
 

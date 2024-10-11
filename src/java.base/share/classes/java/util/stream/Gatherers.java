@@ -548,21 +548,17 @@ public final class Gatherers {
             return impl().finisher();
         }
 
-        @SuppressWarnings({"unchecked", "rawtypes"})
+        @SuppressWarnings({"unchecked"})
         @Override
         public <RRR, throws X2> Gatherer<T, ?, RRR, X|X2> andThen(
                 Gatherer<? super RR, ?, ? extends RRR, X2> that) {
-            
-            Gatherer r; // TODO RON ???
-            Gatherer<T, ?, RRR, X|X2> x;
+
             if (that.getClass() == Composite.class) {
                 final var c = (Composite<? super RR, ?, Object, ?, ? extends RRR, X2>) that;
-                r = left.andThen(right.andThen(c.left).andThen(c.right)); // x = 
+                return left.andThen(right.andThen(c.left).andThen(c.right));
             } else {
-                // Gatherer<? super R, ?, ? extends RRR, X2|X4> y
-                r = left.andThen(right.andThen(that)); // x =
+                return left.andThen(right.andThen(that));
             }
-            return x = (Gatherer<T, ?, RRR, X|X2>)r;
         }
 
         static final <T, A, R, AA, RR, throws X> GathererImpl<T, ?, RR, X> impl(

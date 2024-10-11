@@ -270,10 +270,9 @@ public interface Gatherer<T, A, R, throws X> {
      * @return returns a composed Gatherer which connects the output of this
      *         Gatherer as input that Gatherer
      */
-    @SuppressWarnings({"unchecked", "rawtypes"}) // TODO ????
     default <RR, throws X2> Gatherer<T, ?, RR, X|X2> andThen(Gatherer<? super R, ?, ? extends RR, X2> that) {
         Objects.requireNonNull(that);
-        return (Gatherer<T, ?, RR, X|X2>)Gatherers.Composite.of((Gatherer)this, that); // TODO ????
+        return Gatherers.Composite.of(this, that);
     }
 
     /**

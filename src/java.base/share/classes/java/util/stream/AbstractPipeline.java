@@ -497,8 +497,7 @@ abstract class AbstractPipeline<E_IN, E_OUT, throws X, S extends BaseStream<E_OU
                     try {
                         spliterator = p.opEvaluateParallelLazy(u,spliterator);
                     } catch (Exception ex) {
-                        CheckedExceptions.rethrowUncheckedException(ex);
-                        spliterator = Spliterators.throwingSpliterator((X)ex);
+                        spliterator = Spliterators.throwingSpliterator((X)CheckedExceptions.rethrowUncheckedException(ex));
                     }
 
                     // Inject or clear SIZED on the source pipeline stage
