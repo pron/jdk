@@ -85,20 +85,20 @@ import java.util.concurrent.ForkJoinWorkerThread;
  * @since 1.8
  */
 @SuppressWarnings("serial")
-abstract class AbstractTask<P_IN, P_OUT, R,
-                            K extends AbstractTask<P_IN, P_OUT, R, K>>
+abstract class AbstractTask<P_IN, P_OUT, R, throws X,
+                            K extends AbstractTask<P_IN, P_OUT, R, X, K>>
         extends CountedCompleter<R> {
 
     private static final int LEAF_TARGET = ForkJoinPool.getCommonPoolParallelism() << 2;
 
     /** The pipeline helper, common to all tasks in a computation */
-    protected final PipelineHelper<P_OUT, ?, ?> helper;
+    protected final PipelineHelper<P_OUT, X> helper;
 
     /**
      * The spliterator for the portion of the input associated with the subtree
      * rooted at this task
      */
-    protected Spliterator<P_IN, ?> spliterator;
+    protected Spliterator<P_IN, X> spliterator;
 
     /** Target leaf size, common to all tasks in a computation */
     protected long targetSize; // may be lazily initialized
@@ -128,8 +128,8 @@ abstract class AbstractTask<P_IN, P_OUT, R,
      * @param spliterator The {@code Spliterator} describing the source for this
      *                    pipeline
      */
-    protected AbstractTask(PipelineHelper<P_OUT, ?, ?> helper,
-                           Spliterator<P_IN, ?> spliterator) {
+    protected AbstractTask(PipelineHelper<P_OUT, X> helper,
+                           Spliterator<P_IN, X> spliterator) {
         super(null);
         this.helper = helper;
         this.spliterator = spliterator;
@@ -144,7 +144,7 @@ abstract class AbstractTask<P_IN, P_OUT, R,
      *        this node, obtained by splitting the parent {@code Spliterator}
      */
     protected AbstractTask(K parent,
-                           Spliterator<P_IN, ?> spliterator) {
+                           Spliterator<P_IN, X> spliterator) {
         super(parent);
         this.spliterator = spliterator;
         this.helper = parent.helper;
@@ -176,7 +176,7 @@ abstract class AbstractTask<P_IN, P_OUT, R,
      *        this node, obtained by splitting the parent {@code Spliterator}
      * @return newly constructed child node
      */
-    protected abstract K makeChild(Spliterator<P_IN, ?> spliterator);
+    protected abstract K makeChild(Spliterator<P_IN, X> spliterator);
 
     /**
      * Computes the result associated with a leaf node.  Will be called by
@@ -300,7 +300,7 @@ abstract class AbstractTask<P_IN, P_OUT, R,
      */
     @Override
     public void compute() {
-        Spliterator<P_IN, ?> rs = spliterator, ls; // right, left spliterators
+        Spliterator<P_IN, X> rs = spliterator, ls; // right, left spliterators
         long sizeEstimate = rs.estimateSize();
         long sizeThreshold = getTargetSize(sizeEstimate);
         boolean forkRight = false;

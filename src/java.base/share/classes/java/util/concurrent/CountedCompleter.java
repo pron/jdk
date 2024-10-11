@@ -424,7 +424,7 @@ import jdk.internal.misc.Unsafe;
  * @since 1.8
  * @author Doug Lea
  */
-public abstract class CountedCompleter<T> extends ForkJoinTask<T> {
+public abstract class CountedCompleter<T> extends ForkJoinTask<T, RuntimeException> {
     private static final long serialVersionUID = 5232453752276485070L;
 
     /** This task's completer, or null if none */

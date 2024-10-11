@@ -57,7 +57,7 @@ class StreamSpliterators {
      * <p>A wrapping spliterator produced from a sequential stream
      * cannot be split if there are stateful operations present.
      */
-    private abstract static class AbstractWrappingSpliterator<P_IN, P_OUT, throws X_OUT, throws X extends X_OUT,
+    private abstract static class AbstractWrappingSpliterator<P_IN, P_OUT, throws X_OUT,
                                                               T_BUFFER extends AbstractSpinedBuffer>
             implements Spliterator<P_OUT, X_OUT> {
 
@@ -69,7 +69,7 @@ class StreamSpliterators {
          */
         final boolean isParallel;
 
-        final PipelineHelper<P_OUT, X_OUT, X> ph;
+        final PipelineHelper<P_OUT, X_OUT> ph;
 
         /**
          * Supplier for the source spliterator.  Client provides either a
@@ -112,7 +112,7 @@ class StreamSpliterators {
          * Construct an AbstractWrappingSpliterator from a
          * {@code Supplier<Spliterator>}.
          */
-        AbstractWrappingSpliterator(PipelineHelper<P_OUT, X_OUT, X> ph,
+        AbstractWrappingSpliterator(PipelineHelper<P_OUT, X_OUT> ph,
                                     Supplier<? extends Spliterator<P_IN, X_OUT>> spliteratorSupplier,
                                     boolean parallel) {
             this.ph = ph;
@@ -125,7 +125,7 @@ class StreamSpliterators {
          * Construct an AbstractWrappingSpliterator from a
          * {@code Spliterator}.
          */
-        AbstractWrappingSpliterator(PipelineHelper<P_OUT, X_OUT, X> ph,
+        AbstractWrappingSpliterator(PipelineHelper<P_OUT, X_OUT> ph,
                                     Spliterator<P_IN, X_OUT> spliterator,
                                     boolean parallel) {
             this.ph = ph;
@@ -176,7 +176,7 @@ class StreamSpliterators {
          * Invokes the shape-specific constructor with the provided arguments
          * and returns the result.
          */
-        abstract AbstractWrappingSpliterator<P_IN, P_OUT, X_OUT, ?, ?> wrap(Spliterator<P_IN, X_OUT> s);
+        abstract AbstractWrappingSpliterator<P_IN, P_OUT, X_OUT, ?> wrap(Spliterator<P_IN, X_OUT> s);
 
         /**
          * Initializes buffer, sink chain, and pusher for a shape-specific
@@ -273,24 +273,24 @@ class StreamSpliterators {
         }
     }
 
-    static final class WrappingSpliterator<P_IN, P_OUT, throws X_OUT, throws X extends X_OUT>
-            extends AbstractWrappingSpliterator<P_IN, P_OUT, X_OUT, X, SpinedBuffer<P_OUT>> {
+    static final class WrappingSpliterator<P_IN, P_OUT, throws X_OUT>
+            extends AbstractWrappingSpliterator<P_IN, P_OUT, X_OUT, SpinedBuffer<P_OUT>> {
 
-        WrappingSpliterator(PipelineHelper<P_OUT, X_OUT, X> ph,
+        WrappingSpliterator(PipelineHelper<P_OUT, X_OUT> ph,
                             Supplier<? extends Spliterator<P_IN, X_OUT>> supplier,
                             boolean parallel) {
             super(ph, supplier, parallel);
         }
 
-        WrappingSpliterator(PipelineHelper<P_OUT, X_OUT, X> ph,
+        WrappingSpliterator(PipelineHelper<P_OUT, X_OUT> ph,
                             Spliterator<P_IN, X_OUT> spliterator,
                             boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        WrappingSpliterator<P_IN, P_OUT, X_OUT, X> wrap(Spliterator<P_IN, X_OUT> s) {
-            return new WrappingSpliterator<P_IN, P_OUT, X_OUT, X>(ph, s, isParallel);
+        WrappingSpliterator<P_IN, P_OUT, X_OUT> wrap(Spliterator<P_IN, X_OUT> s) {
+            return new WrappingSpliterator<P_IN, P_OUT, X_OUT>(ph, s, isParallel);
         }
 
         @Override
@@ -329,24 +329,24 @@ class StreamSpliterators {
         }
     }
 
-    static final class IntWrappingSpliterator<P_IN, throws X_OUT, throws X extends X_OUT>
-            extends AbstractWrappingSpliterator<P_IN, Integer, X_OUT, X, SpinedBuffer.OfInt>
+    static final class IntWrappingSpliterator<P_IN, throws X_OUT>
+            extends AbstractWrappingSpliterator<P_IN, Integer, X_OUT, SpinedBuffer.OfInt>
             implements Spliterator.OfInt<X_OUT> {
 
-        IntWrappingSpliterator(PipelineHelper<Integer, X_OUT, X> ph,
+        IntWrappingSpliterator(PipelineHelper<Integer, X_OUT> ph,
                                Supplier<? extends Spliterator<P_IN, X_OUT>> supplier,
                                boolean parallel) {
             super(ph, supplier, parallel);
         }
 
-        IntWrappingSpliterator(PipelineHelper<Integer, X_OUT, X> ph,
+        IntWrappingSpliterator(PipelineHelper<Integer, X_OUT> ph,
                                Spliterator<P_IN, X_OUT> spliterator,
                                boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        AbstractWrappingSpliterator<P_IN, Integer, X_OUT, X, ?> wrap(Spliterator<P_IN, X_OUT> s) {
+        AbstractWrappingSpliterator<P_IN, Integer, X_OUT, ?> wrap(Spliterator<P_IN, X_OUT> s) {
             return new IntWrappingSpliterator<>(ph, s, isParallel);
         }
 
@@ -391,24 +391,24 @@ class StreamSpliterators {
         }
     }
 
-    static final class LongWrappingSpliterator<P_IN, throws X_OUT, throws X extends X_OUT>
-            extends AbstractWrappingSpliterator<P_IN, Long, X_OUT, X, SpinedBuffer.OfLong>
+    static final class LongWrappingSpliterator<P_IN, throws X_OUT>
+            extends AbstractWrappingSpliterator<P_IN, Long, X_OUT, SpinedBuffer.OfLong>
             implements Spliterator.OfLong<X_OUT> {
 
-        LongWrappingSpliterator(PipelineHelper<Long, X_OUT, X> ph,
+        LongWrappingSpliterator(PipelineHelper<Long, X_OUT> ph,
                                 Supplier<? extends Spliterator<P_IN, X_OUT>> supplier,
                                 boolean parallel) {
             super(ph, supplier, parallel);
         }
 
-        LongWrappingSpliterator(PipelineHelper<Long, X_OUT, X> ph,
+        LongWrappingSpliterator(PipelineHelper<Long, X_OUT> ph,
                                 Spliterator<P_IN, X_OUT> spliterator,
                                 boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        AbstractWrappingSpliterator<P_IN, Long, X_OUT, X, ?> wrap(Spliterator<P_IN, X_OUT> s) {
+        AbstractWrappingSpliterator<P_IN, Long, X_OUT, ?> wrap(Spliterator<P_IN, X_OUT> s) {
             return new LongWrappingSpliterator<>(ph, s, isParallel);
         }
 
@@ -453,24 +453,24 @@ class StreamSpliterators {
         }
     }
 
-    static final class DoubleWrappingSpliterator<P_IN, throws X_OUT, throws X extends X_OUT>
-            extends AbstractWrappingSpliterator<P_IN, Double, X_OUT, X, SpinedBuffer.OfDouble>
+    static final class DoubleWrappingSpliterator<P_IN, throws X_OUT>
+            extends AbstractWrappingSpliterator<P_IN, Double, X_OUT, SpinedBuffer.OfDouble>
             implements Spliterator.OfDouble<X_OUT> {
 
-        DoubleWrappingSpliterator(PipelineHelper<Double, X_OUT, X> ph,
+        DoubleWrappingSpliterator(PipelineHelper<Double, X_OUT> ph,
                                   Supplier<? extends Spliterator<P_IN, X_OUT>> supplier,
                                   boolean parallel) {
             super(ph, supplier, parallel);
         }
 
-        DoubleWrappingSpliterator(PipelineHelper<Double, X_OUT, X> ph,
+        DoubleWrappingSpliterator(PipelineHelper<Double, X_OUT> ph,
                                   Spliterator<P_IN, X_OUT> spliterator,
                                   boolean parallel) {
             super(ph, spliterator, parallel);
         }
 
         @Override
-        AbstractWrappingSpliterator<P_IN, Double, X_OUT, X, ?> wrap(Spliterator<P_IN, X_OUT> s) {
+        AbstractWrappingSpliterator<P_IN, Double, X_OUT, ?> wrap(Spliterator<P_IN, X_OUT> s) {
             return new DoubleWrappingSpliterator<>(ph, s, isParallel);
         }
 

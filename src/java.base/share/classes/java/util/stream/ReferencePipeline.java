@@ -59,9 +59,9 @@ import jdk.internal.access.SharedSecrets;
  *
  * @since 1.8
  */
-abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends X_IN|X, throws X>
-        extends AbstractPipeline<P_IN, X_IN, P_OUT, X_OUT, X, Stream<P_OUT, X_OUT>>
-        implements Stream<P_OUT, X_OUT>  {
+abstract class ReferencePipeline<P_IN, P_OUT, throws X>
+        extends AbstractPipeline<P_IN, P_OUT, X, Stream<P_OUT, X>>
+        implements Stream<P_OUT, X>  {
 
     /**
      * Constructor for the head of a stream pipeline.
@@ -97,7 +97,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
      * @param opFlags The operation flags for this operation, described in
      *        {@link StreamOpFlag}
      */
-    ReferencePipeline(AbstractPipeline<?, ?, P_IN, X_IN, ?, ?> upstream, int opFlags) {
+    ReferencePipeline(AbstractPipeline<?, P_IN, X, ?> upstream, int opFlags) {
         super(upstream, opFlags);
     }
 
@@ -110,7 +110,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
       * @param opFlags The operation flags for this operation, described in
       *        {@link StreamOpFlag}
       */
-     protected ReferencePipeline(AbstractPipeline<?, ?, P_IN, X_IN, ?, ?> upupstream, AbstractPipeline<?, ?, P_IN, X_IN, ?, ?> upstream, int opFlags) {
+     protected ReferencePipeline(AbstractPipeline<?, P_IN, X, ?> upupstream, AbstractPipeline<?, P_IN, X, ?> upstream, int opFlags) {
          super(upupstream, upstream, opFlags);
      }
 
@@ -122,22 +122,22 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    final <P_IN, throws XIN extends X_OUT> Node<P_OUT> evaluateToNode(PipelineHelper<P_OUT, X_OUT, X> helper,
-                                        Spliterator<P_IN, XIN> spliterator,
+    final <P_IN> Node<P_OUT> evaluateToNode(PipelineHelper<P_OUT, X> helper,
+                                        Spliterator<P_IN, X> spliterator,
                                         boolean flattenTree,
                                         IntFunction<P_OUT[]> generator) {
         return Nodes.collect(helper, spliterator, flattenTree, generator);
     }
 
     @Override
-    final <P_IN, throws XIN extends X_OUT> Spliterator<P_OUT, X_OUT> wrap(PipelineHelper<P_OUT, X_OUT, X> ph,
-                                     Supplier<Spliterator<P_IN, XIN>> supplier,
-                                     boolean isParallel) {
-        return new StreamSpliterators.WrappingSpliterator<P_IN, P_OUT, X_OUT, X>(ph, supplier, isParallel);
+    final <P_IN> Spliterator<P_OUT, X> wrap(PipelineHelper<P_OUT, X> ph,
+                                                Supplier<Spliterator<P_IN, X>> supplier,
+                                                boolean isParallel) {
+        return new StreamSpliterators.WrappingSpliterator<P_IN, P_OUT, X>(ph, supplier, isParallel);
     }
 
     @Override
-    final Spliterator<P_OUT, X_OUT> lazySpliterator(Supplier<? extends Spliterator<P_OUT, X_OUT>> supplier) {
+    final Spliterator<P_OUT, X> lazySpliterator(Supplier<? extends Spliterator<P_OUT, X>> supplier) {
         return new StreamSpliterators.DelegatingSpliterator<>(supplier);
     }
 
@@ -157,7 +157,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     // BaseStream
 
     @Override
-    public final Iterator<P_OUT, X_OUT> iterator() {
+    public final Iterator<P_OUT, X> iterator() {
         return Spliterators.iterator(spliterator());
     }
 
@@ -167,10 +167,10 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     // Stateless intermediate operations from Stream
 
     @Override
-    public Stream<P_OUT, X_OUT> unordered() {
+    public Stream<P_OUT, X> unordered() {
         if (!isOrdered())
             return this;
-        return new StatelessOp<P_OUT, X_OUT, P_OUT, X_OUT>(this, StreamShape.REFERENCE, StreamOpFlag.NOT_ORDERED) {
+        return new StatelessOp<P_OUT, P_OUT, X>(this, StreamShape.REFERENCE, StreamOpFlag.NOT_ORDERED) {
             @Override
             Sink<P_OUT> opWrapSink(int flags, Sink<P_OUT> sink) {
                 return sink;
@@ -179,7 +179,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final <throws X1> Stream<P_OUT, X_OUT|X1> filter(Predicate<? super P_OUT, X1> predicate) {
+    public final <throws X1> Stream<P_OUT, X|X1> filter(Predicate<? super P_OUT, X1> predicate) {
         Objects.requireNonNull(predicate);
 
         return new StatelessOp<>(this, StreamShape.REFERENCE,
@@ -187,7 +187,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
             // X4 is an added parameter that doesn't exist in the overloaded method; temporary until we support A|B outside bounds
             // If we're not adding X4, we infer a result of Sink<P_OUT, X3> rather than Sink<P_OUT, X1|X3>
             // because inference works on the constructor, and chooses the lower result (it probably solves ChainedReference's
-            // X to its lower bound of X_OUT, given that ChainedReference<T, throws X, E_OUT, throws X_OUT extends X>
+            // X to its lower bound of X, given that ChainedReference<T, throws X, E_OUT, throws X extends X>
             @Override
             Sink<P_OUT> opWrapSink(int flags, Sink<P_OUT> sink) {
                 return new Sink.ChainedReference<P_OUT, P_OUT>(sink) {
@@ -209,7 +209,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final <R, throws X1> Stream<R, X_OUT|X1> map(Function<? super P_OUT, ? extends R, X1> mapper) {
+    public final <R, throws X1> Stream<R, X|X1> map(Function<? super P_OUT, ? extends R, X1> mapper) {
         Objects.requireNonNull(mapper);
 
         return new StatelessOp<>(this, StreamShape.REFERENCE,
@@ -229,7 +229,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final IntStream<X_OUT> mapToInt(ToIntFunction<? super P_OUT> mapper) {
+    public final IntStream<X> mapToInt(ToIntFunction<? super P_OUT> mapper) {
         Objects.requireNonNull(mapper);
         return new IntPipeline.StatelessOp<>(this, StreamShape.REFERENCE,
                                               StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -246,7 +246,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final LongStream<X_OUT> mapToLong(ToLongFunction<? super P_OUT> mapper) {
+    public final LongStream<X> mapToLong(ToLongFunction<? super P_OUT> mapper) {
         Objects.requireNonNull(mapper);
         return new LongPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                       StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -263,7 +263,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final DoubleStream<X_OUT> mapToDouble(ToDoubleFunction<? super P_OUT> mapper) {
+    public final DoubleStream<X> mapToDouble(ToDoubleFunction<? super P_OUT> mapper) {
         Objects.requireNonNull(mapper);
         return new DoublePipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                         StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -281,7 +281,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
 
     @Override
     public final <R, throws X1, throws X2>
-    Stream<R, X_OUT|X1|X2> flatMap(Function<? super P_OUT, ? extends Stream<? extends R, X2>, X1> mapper) {
+    Stream<R, X|X1|X2> flatMap(Function<? super P_OUT, ? extends Stream<? extends R, X2>, X1> mapper) {
         Objects.requireNonNull(mapper);
         return new StatelessOp<>(this, StreamShape.REFERENCE,
                                      StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -329,7 +329,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final IntStream<X_OUT> flatMapToInt(Function<? super P_OUT, ? extends IntStream> mapper) {
+    public final IntStream<X> flatMapToInt(Function<? super P_OUT, ? extends IntStream> mapper) {
         Objects.requireNonNull(mapper);
         return new IntPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                               StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -380,7 +380,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final DoubleStream<X_OUT> flatMapToDouble(Function<? super P_OUT, ? extends DoubleStream> mapper) {
+    public final DoubleStream<X> flatMapToDouble(Function<? super P_OUT, ? extends DoubleStream> mapper) {
         Objects.requireNonNull(mapper);
         return new DoublePipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
                                                      StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -431,7 +431,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final LongStream<X_OUT> flatMapToLong(Function<? super P_OUT, ? extends LongStream> mapper) {
+    public final LongStream<X> flatMapToLong(Function<? super P_OUT, ? extends LongStream> mapper) {
         Objects.requireNonNull(mapper);
         // We can do better than this, by polling cancellationRequested when stream is infinite
         return new LongPipeline.StatelessOp<P_OUT>(eraseException(), StreamShape.REFERENCE,
@@ -484,9 +484,9 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
 
     @Override
     public final <R, throws X1>
-    Stream<R, X_OUT|X1> mapMulti(BiConsumer<? super P_OUT, ? super Consumer<R>, X1> mapper) {
+    Stream<R, X|X1> mapMulti(BiConsumer<? super P_OUT, ? super Consumer<R>, X1> mapper) {
         Objects.requireNonNull(mapper);
-        return new StatelessOp<P_OUT, X_OUT, R, X_OUT>(this, StreamShape.REFERENCE,
+        return new StatelessOp<P_OUT, R, X>(this, StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
             Sink<P_OUT> opWrapSink(int flags, Sink<R> sink) {
@@ -508,9 +508,9 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final IntStream<X_OUT> mapMultiToInt(BiConsumer<? super P_OUT, ? super IntConsumer> mapper) {
+    public final IntStream<X> mapMultiToInt(BiConsumer<? super P_OUT, ? super IntConsumer> mapper) {
         Objects.requireNonNull(mapper);
-        return new IntPipeline.StatelessOp<>(eraseException(), StreamShape.REFERENCE,
+        return new IntPipeline.StatelessOp<>(this, StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
             Sink<P_OUT> opWrapSink(int flags, Sink<Integer> sink) {
@@ -532,9 +532,9 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final LongStream<X_OUT> mapMultiToLong(BiConsumer<? super P_OUT, ? super LongConsumer> mapper) {
+    public final LongStream<X> mapMultiToLong(BiConsumer<? super P_OUT, ? super LongConsumer> mapper) {
         Objects.requireNonNull(mapper);
-        return new LongPipeline.StatelessOp<>(eraseException(), StreamShape.REFERENCE,
+        return new LongPipeline.StatelessOp<>(this, StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
             Sink<P_OUT> opWrapSink(int flags, Sink<Long> sink) {
@@ -557,9 +557,9 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
 
 
     @Override
-    public final DoubleStream<X_OUT> mapMultiToDouble(BiConsumer<? super P_OUT, ? super DoubleConsumer> mapper) {
+    public final DoubleStream<X> mapMultiToDouble(BiConsumer<? super P_OUT, ? super DoubleConsumer> mapper) {
         Objects.requireNonNull(mapper);
-        return new DoublePipeline.StatelessOp<>(eraseException(), StreamShape.REFERENCE,
+        return new DoublePipeline.StatelessOp<>(this, StreamShape.REFERENCE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
             @Override
             Sink<P_OUT> opWrapSink(int flags, Sink<Double> sink) {
@@ -581,9 +581,9 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final Stream<P_OUT, X_OUT> peek(Consumer<? super P_OUT> action) {
+    public final Stream<P_OUT, X> peek(Consumer<? super P_OUT> action) {
         Objects.requireNonNull(action);
-        return new StatelessOp<P_OUT, X_OUT, P_OUT, X_OUT>(this, StreamShape.REFERENCE,
+        return new StatelessOp<P_OUT, P_OUT, X>(this, StreamShape.REFERENCE,
                                      0) {
             @Override
             Sink<P_OUT> opWrapSink(int flags, Sink<P_OUT> sink) {
@@ -601,29 +601,29 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     // Stateful intermediate operations from Stream
 
     @Override
-    public final Stream<P_OUT, X_OUT> distinct() {
+    public final Stream<P_OUT, X> distinct() {
         return DistinctOps.makeRef(this);
     }
 
     @Override
-    public final Stream<P_OUT, X_OUT> sorted() {
+    public final Stream<P_OUT, X> sorted() {
         return SortedOps.makeRef(this);
     }
 
     @Override
-    public final Stream<P_OUT, X_OUT> sorted(Comparator<? super P_OUT> comparator) {
+    public final Stream<P_OUT, X> sorted(Comparator<? super P_OUT> comparator) {
         return SortedOps.makeRef(this, comparator);
     }
 
     @Override
-    public final Stream<P_OUT, X_OUT> limit(long maxSize) {
+    public final Stream<P_OUT, X> limit(long maxSize) {
         if (maxSize < 0)
             throw new IllegalArgumentException(Long.toString(maxSize));
         return SliceOps.makeRef(this, 0, maxSize);
     }
 
     @Override
-    public final Stream<P_OUT, X_OUT> skip(long n) {
+    public final Stream<P_OUT, X> skip(long n) {
         if (n < 0)
             throw new IllegalArgumentException(Long.toString(n));
         if (n == 0)
@@ -633,30 +633,30 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     }
 
     @Override
-    public final <throws X1> Stream<P_OUT, X_OUT|X1> takeWhile(Predicate<? super P_OUT, X1> predicate) {
+    public final <throws X1> Stream<P_OUT, X|X1> takeWhile(Predicate<? super P_OUT, X1> predicate) {
         return WhileOps.makeTakeWhileRef(this, predicate);
     }
 
     @Override
-    public final <throws X1> Stream<P_OUT, X_OUT|X1> dropWhile(Predicate<? super P_OUT, X1> predicate) {
+    public final <throws X1> Stream<P_OUT, X|X1> dropWhile(Predicate<? super P_OUT, X1> predicate) {
         return WhileOps.makeDropWhileRef(this, predicate);
     }
 
     // Terminal operations from Stream
 
     @Override
-    public <throws X1> void forEach(Consumer<? super P_OUT, X1> action) throws X_OUT, X1 {
+    public <throws X1> void forEach(Consumer<? super P_OUT, X1> action) throws X, X1 {
         evaluate(ForEachOps.makeRef(action, false));
     }
 
     @Override
-    public <throws X1> void forEachOrdered(Consumer<? super P_OUT, X1> action) throws X_OUT, X1 {
+    public <throws X1> void forEachOrdered(Consumer<? super P_OUT, X1> action) throws X, X1 {
         evaluate(ForEachOps.makeRef(action, true));
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public final <A> A[] toArray(IntFunction<A[]> generator) throws X_OUT {
+    public final <A> A[] toArray(IntFunction<A[]> generator) throws X {
         // Since A has no relation to U (not possible to declare that A is an upper bound of U)
         // there will be no static type checking.
         // Therefore use a raw type and assume A == U rather than propagating the separation of A and U
@@ -672,68 +672,68 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
         } catch (RuntimeException re) {
             throw re;
         } catch (Exception ex) {
-            throw (X_OUT)ex;
+            throw (X)ex;
         }
     }
 
     @Override
-    public final Object[] toArray() throws X_OUT {
+    public final Object[] toArray() throws X {
         return toArray(Object[]::new);
     }
 
     @Override
-    public List<P_OUT> toList() throws X_OUT {
+    public List<P_OUT> toList() throws X {
         return SharedSecrets.getJavaUtilCollectionAccess().listFromTrustedArrayNullsAllowed(this.toArray());
     }
 
     @Override
-    public final boolean anyMatch(Predicate<? super P_OUT> predicate) throws X_OUT {
+    public final boolean anyMatch(Predicate<? super P_OUT> predicate) throws X {
         return evaluate(MatchOps.makeRef(predicate, MatchOps.MatchKind.ANY));
     }
 
     @Override
-    public final boolean allMatch(Predicate<? super P_OUT> predicate) throws X_OUT {
+    public final boolean allMatch(Predicate<? super P_OUT> predicate) throws X {
         return evaluate(MatchOps.makeRef(predicate, MatchOps.MatchKind.ALL));
     }
 
     @Override
-    public final boolean noneMatch(Predicate<? super P_OUT> predicate) throws X_OUT {
+    public final boolean noneMatch(Predicate<? super P_OUT> predicate) throws X {
         return evaluate(MatchOps.makeRef(predicate, MatchOps.MatchKind.NONE));
     }
 
     @Override
-    public final Optional<P_OUT> findFirst() throws X_OUT {
+    public final Optional<P_OUT> findFirst() throws X {
         return evaluate(FindOps.makeRef(true));
     }
 
     @Override
-    public final Optional<P_OUT> findAny() throws X_OUT {
+    public final Optional<P_OUT> findAny() throws X {
         return evaluate(FindOps.makeRef(false));
     }
 
     @Override
-    public final P_OUT reduce(final P_OUT identity, final BinaryOperator<P_OUT> accumulator) throws X_OUT {
+    public final P_OUT reduce(final P_OUT identity, final BinaryOperator<P_OUT> accumulator) throws X {
         return evaluate(ReduceOps.makeRef(identity, accumulator, accumulator));
     }
 
     @Override
-    public final Optional<P_OUT> reduce(BinaryOperator<P_OUT> accumulator) throws X_OUT {
+    public final Optional<P_OUT> reduce(BinaryOperator<P_OUT> accumulator) throws X {
         return evaluate(ReduceOps.makeRef(accumulator));
     }
 
     @Override
-    public final <R> R reduce(R identity, BiFunction<R, ? super P_OUT, R> accumulator, BinaryOperator<R> combiner) throws X_OUT {
+    public final <R> R reduce(R identity, BiFunction<R, ? super P_OUT, R> accumulator, BinaryOperator<R> combiner) throws X {
         return evaluate(ReduceOps.makeRef(identity, accumulator, combiner));
     }
 
     @Override
-    public final <R, throws X1> Stream<R, X_OUT|X1> gather(Gatherer<? super P_OUT, ?, R, X1> gatherer) {
+    public final <R, throws X1> Stream<R, X|X1> gather(Gatherer<? super P_OUT, ?, R, X1> gatherer) {
         return GathererOp.of(this, gatherer);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <R, A> R collect(Collector<? super P_OUT, A, R> collector) throws X_OUT {
+    public <R, A> R collect(Collector<? super P_OUT, A, R> collector) throws X {
         A container;
         if (isParallel()
                 && (collector.characteristics().contains(Collector.Characteristics.CONCURRENT))
@@ -753,23 +753,23 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
     @Override
     public <R> R collect(Supplier<R> supplier,
                                BiConsumer<R, ? super P_OUT> accumulator,
-                               BiConsumer<R, R> combiner) throws X_OUT {
+                               BiConsumer<R, R> combiner) throws X {
         return evaluate(ReduceOps.makeRef(supplier, accumulator, combiner));
     }
 
     @Override
-    public final Optional<P_OUT> max(Comparator<? super P_OUT> comparator) throws X_OUT {
+    public final Optional<P_OUT> max(Comparator<? super P_OUT> comparator) throws X {
         return reduce(BinaryOperator.maxBy(comparator));
     }
 
     @Override
-    public final Optional<P_OUT> min(Comparator<? super P_OUT> comparator) throws X_OUT {
+    public final Optional<P_OUT> min(Comparator<? super P_OUT> comparator) throws X {
         return reduce(BinaryOperator.minBy(comparator));
 
     }
 
     @Override
-    public final long count() throws X_OUT {
+    public final long count() throws X {
         return evaluate(ReduceOps.makeRefCounting());
     }
 
@@ -782,7 +782,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
      * @param <E_OUT> type of elements in produced by this stage
      * @since 1.8
      */
-    static class Head<E_IN, E_OUT, throws X_OUT> extends ReferencePipeline<E_IN, RuntimeException, E_OUT, X_OUT, X_OUT> {
+    static class Head<E_IN, E_OUT, throws X> extends ReferencePipeline<E_IN, E_OUT, X> {
         /**
          * Constructor for the source stage of a Stream.
          *
@@ -821,7 +821,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
         // Optimized sequential terminal operations for the head of the pipeline
 
         @Override
-        public <throws X1> void forEach(Consumer<? super E_OUT, X1> action) throws X_OUT, X1 {
+        public <throws X1> void forEach(Consumer<? super E_OUT, X1> action) throws X, X1 {
             if (!isParallel()) {
                 CheckedExceptions.unwrap(() ->
                     sourceStageSpliterator().forEachRemaining(CheckedExceptions.wrap(action)));
@@ -832,7 +832,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
         }
 
         @Override
-        public <throws X1> void forEachOrdered(Consumer<? super E_OUT, X1> action) throws X_OUT, X1 {
+        public <throws X1> void forEachOrdered(Consumer<? super E_OUT, X1> action) throws X, X1 {
             if (!isParallel()) {
                 CheckedExceptions.unwrap(() ->
                     sourceStageSpliterator().forEachRemaining(CheckedExceptions.wrap(action)));
@@ -850,8 +850,8 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
      * @param <E_OUT> type of elements in produced by this stage
      * @since 1.8
      */
-    abstract static class StatelessOp<E_IN, throws X_IN, E_OUT, throws X_OUT extends X_IN|X, throws X>
-            extends ReferencePipeline<E_IN, X_IN, E_OUT, X_OUT, X> {
+    abstract static class StatelessOp<E_IN, E_OUT, throws X>
+            extends ReferencePipeline<E_IN, E_OUT, X> {
         /**
          * Construct a new Stream by appending a stateless intermediate
          * operation to an existing stream.
@@ -860,7 +860,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
          * @param inputShape The stream shape for the upstream pipeline stage
          * @param opFlags Operation flags for the new stage
          */
-        StatelessOp(AbstractPipeline<?, ?, E_IN, X_IN, ?, ?> upstream,
+        StatelessOp(AbstractPipeline<?, E_IN, X, ?> upstream,
                     StreamShape inputShape,
                     int opFlags) {
             super(upstream, opFlags);
@@ -880,8 +880,8 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
      * @param <E_OUT> type of elements in produced by this stage
      * @since 1.8
      */
-    abstract static class StatefulOp<E_IN, throws X_IN, E_OUT, throws X_OUT extends X_IN|X, throws X>
-            extends ReferencePipeline<E_IN, X_IN, E_OUT, X_OUT, X> {
+    abstract static class StatefulOp<E_IN, E_OUT, throws X>
+            extends ReferencePipeline<E_IN, E_OUT, X> {
         /**
          * Construct a new Stream by appending a stateful intermediate operation
          * to an existing stream.
@@ -889,7 +889,7 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
          * @param inputShape The stream shape for the upstream pipeline stage
          * @param opFlags Operation flags for the new stage
          */
-        StatefulOp(AbstractPipeline<?, ?, E_IN, X_IN, ?, ?> upstream,
+        StatefulOp(AbstractPipeline<?, E_IN, X, ?> upstream,
                    StreamShape inputShape,
                    int opFlags) {
             super(upstream, opFlags);
@@ -902,8 +902,8 @@ abstract class ReferencePipeline<P_IN, throws X_IN, P_OUT, throws X_OUT extends 
         }
 
         @Override
-        abstract <P_IN, throws XX extends X_IN> Node<E_OUT> opEvaluateParallel(PipelineHelper<E_OUT, XX, X> helper,
-                                                                               Spliterator<P_IN, XX> spliterator,
-                                                                               IntFunction<E_OUT[]> generator) throws X_OUT;
+        abstract <P_IN> Node<E_OUT> opEvaluateParallel(PipelineHelper<E_OUT, X> helper,
+                                                       Spliterator<P_IN, X> spliterator,
+                                                       IntFunction<E_OUT[]> generator) throws X;
     }
 }

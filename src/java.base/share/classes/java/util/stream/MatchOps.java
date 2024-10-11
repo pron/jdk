@@ -225,14 +225,14 @@ final class MatchOps {
         }
 
         @Override
-        public <S, throws X_IN, throws X> Boolean evaluateSequential(PipelineHelper<T, X_IN, X> helper,
-                                                                      Spliterator<S, X_IN> spliterator) throws X_IN, X {
+        public <S, throws X> Boolean evaluateSequential(PipelineHelper<T, X> helper,
+                                                        Spliterator<S, X> spliterator) throws X {
             return helper.wrapAndCopyInto(sinkSupplier.get(), spliterator).getAndClearState();
         }
 
         @Override
-        public <S, throws X_IN, throws X> Boolean evaluateParallel(PipelineHelper<T, X_IN, X> helper,
-                                                                    Spliterator<S, X_IN> spliterator) throws X_IN, X {
+        public <S, throws X> Boolean evaluateParallel(PipelineHelper<T, X> helper,
+                                                      Spliterator<S, X> spliterator) throws X {
             // Approach for parallel implementation:
             // - Decompose as per usual
             // - run match on leaf chunks, call result "b"
@@ -275,15 +275,15 @@ final class MatchOps {
      * @param <P_OUT> the type of output elements for the pipeline
      */
     @SuppressWarnings("serial")
-    private static final class MatchTask<P_IN, P_OUT>
-            extends AbstractShortCircuitTask<P_IN, P_OUT, Boolean, MatchTask<P_IN, P_OUT>> {
+    private static final class MatchTask<P_IN, P_OUT, throws X>
+            extends AbstractShortCircuitTask<P_IN, P_OUT, Boolean, X, MatchTask<P_IN, P_OUT, X>> {
         private final MatchOp<P_OUT> op;
 
         /**
          * Constructor for root node
          */
-        MatchTask(MatchOp<P_OUT> op, PipelineHelper<P_OUT, ?, ?> helper,
-                  Spliterator<P_IN, ?> spliterator) {
+        MatchTask(MatchOp<P_OUT> op, PipelineHelper<P_OUT, X> helper,
+                  Spliterator<P_IN, X> spliterator) {
             super(helper, spliterator);
             this.op = op;
         }
@@ -291,13 +291,13 @@ final class MatchOps {
         /**
          * Constructor for non-root node
          */
-        MatchTask(MatchTask<P_IN, P_OUT> parent, Spliterator<P_IN, ?> spliterator) {
+        MatchTask(MatchTask<P_IN, P_OUT, X> parent, Spliterator<P_IN, X> spliterator) {
             super(parent, spliterator);
             this.op = parent.op;
         }
 
         @Override
-        protected MatchTask<P_IN, P_OUT> makeChild(Spliterator<P_IN, ?> spliterator) {
+        protected MatchTask<P_IN, P_OUT, X> makeChild(Spliterator<P_IN, X> spliterator) {
             return new MatchTask<>(this, spliterator);
         }
 

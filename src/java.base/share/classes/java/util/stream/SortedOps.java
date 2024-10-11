@@ -49,7 +49,7 @@ final class SortedOps {
      * @param upstream a reference stream with element type T
      */
 
-    static <T, throws X> Stream<T, X> makeRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream) {
+    static <T, throws X> Stream<T, X> makeRef(AbstractPipeline<?, T, X, ?> upstream) {
         return new OfRef<>(upstream);
     }
 
@@ -60,8 +60,8 @@ final class SortedOps {
      * @param upstream a reference stream with element type T
      * @param comparator the comparator to order elements by
      */
-    static <T, throws X> Stream<T, X> makeRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream,
-                                                         Comparator<? super T> comparator) {
+    static <T, throws X> Stream<T, X> makeRef(AbstractPipeline<?, T, X, ?> upstream,
+                                              Comparator<? super T> comparator) {
         return new OfRef<>(upstream, comparator);
     }
 
@@ -72,7 +72,7 @@ final class SortedOps {
      * @param <X> TBD
      * @param upstream a reference stream with element type T
      */
-    static <T, throws X> IntStream<X> makeInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream) {
+    static <T, throws X> IntStream<X> makeInt(AbstractPipeline<?, Integer, X, ?> upstream) {
         return new OfInt<>(upstream);
     }
 
@@ -83,7 +83,7 @@ final class SortedOps {
      * @param <X> TBD
      * @param upstream a reference stream with element type T
      */
-    static <T, throws X> LongStream<X> makeLong(AbstractPipeline<?, ?, Long, X, ?, ?> upstream) {
+    static <T, throws X> LongStream<X> makeLong(AbstractPipeline<?, Long, X, ?> upstream) {
         return new OfLong<>(upstream);
     }
 
@@ -94,14 +94,14 @@ final class SortedOps {
      * @param <X> TBD
      * @param upstream a reference stream with element type T
      */
-    static <T, throws X> DoubleStream<X> makeDouble(AbstractPipeline<?, ?, Double, X, ?, ?> upstream) {
+    static <T, throws X> DoubleStream<X> makeDouble(AbstractPipeline<?, Double, X, ?> upstream) {
         return new OfDouble<>(upstream);
     }
 
     /**
      * Specialized subtype for sorting reference streams
      */
-    private static final class OfRef<T, throws X> extends ReferencePipeline.StatefulOp<T, X, T, X, RuntimeException> {
+    private static final class OfRef<T, throws X> extends ReferencePipeline.StatefulOp<T, T, X> {
         /**
          * Comparator used for sorting
          */
@@ -112,7 +112,7 @@ final class SortedOps {
          * Sort using natural order of {@literal <T>} which must be
          * {@code Comparable}.
          */
-        OfRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream) {
+        OfRef(AbstractPipeline<?, T, X, ?> upstream) {
             super(upstream, StreamShape.REFERENCE,
                   StreamOpFlag.IS_ORDERED | StreamOpFlag.IS_SORTED);
             this.isNaturalSort = true;
@@ -127,7 +127,7 @@ final class SortedOps {
          *
          * @param comparator The comparator to be used to evaluate ordering.
          */
-        OfRef(AbstractPipeline<?, ?, T, X, ?, ?> upstream, Comparator<? super T> comparator) {
+        OfRef(AbstractPipeline<?, T, X, ?> upstream, Comparator<? super T> comparator) {
             super(upstream, StreamShape.REFERENCE,
                   StreamOpFlag.IS_ORDERED | StreamOpFlag.NOT_SORTED);
             this.isNaturalSort = false;
@@ -149,8 +149,8 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, throws X_IN extends X> Node<T> opEvaluateParallel(PipelineHelper<T, X_IN> helper,
-                                                 Spliterator<P_IN, X_IN> spliterator,
+        public <P_IN> Node<T> opEvaluateParallel(PipelineHelper<T, X> helper,
+                                                 Spliterator<P_IN, X> spliterator,
                                                  IntFunction<T[]> generator) throws X {
             // If the input is already naturally sorted and this operation
             // naturally sorts then collect the output
@@ -169,8 +169,8 @@ final class SortedOps {
     /**
      * Specialized subtype for sorting int streams.
      */
-    private static final class OfInt<throws X> extends IntPipeline.StatefulOp<Integer, X, X, RuntimeException> {
-        OfInt(AbstractPipeline<?, ?, Integer, X, ?, ?> upstream) {
+    private static final class OfInt<throws X> extends IntPipeline.StatefulOp<Integer, X> {
+        OfInt(AbstractPipeline<?, Integer, X, ?> upstream) {
             super(upstream, StreamShape.INT_VALUE,
                   StreamOpFlag.IS_ORDERED | StreamOpFlag.IS_SORTED);
         }
@@ -188,9 +188,9 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, throws X_IN extends X> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X_IN> helper,
-                                                       Spliterator<P_IN, X_IN> spliterator,
-                                                       IntFunction<Integer[]> generator) throws X_IN {
+        public <P_IN> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X> helper,
+                                                       Spliterator<P_IN, X> spliterator,
+                                                       IntFunction<Integer[]> generator) throws X {
             if (StreamOpFlag.SORTED.isKnown(helper.getStreamAndOpFlags())) {
                 return helper.evaluate(spliterator, false, generator);
             }
@@ -208,8 +208,8 @@ final class SortedOps {
     /**
      * Specialized subtype for sorting long streams.
      */
-    private static final class OfLong<throws X> extends LongPipeline.StatefulOp<Long, X, X, RuntimeException> {
-        OfLong(AbstractPipeline<?, ?, Long, X, ?, ?> upstream) {
+    private static final class OfLong<throws X> extends LongPipeline.StatefulOp<Long, X> {
+        OfLong(AbstractPipeline<?, Long, X, ?> upstream) {
             super(upstream, StreamShape.LONG_VALUE,
                   StreamOpFlag.IS_ORDERED | StreamOpFlag.IS_SORTED);
         }
@@ -227,9 +227,9 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, throws X_IN extends X> Node<Long> opEvaluateParallel(PipelineHelper<Long, X_IN> helper,
-                                                    Spliterator<P_IN, X_IN> spliterator,
-                                                    IntFunction<Long[]> generator) throws X_IN {
+        public <P_IN> Node<Long> opEvaluateParallel(PipelineHelper<Long, X> helper,
+                                                    Spliterator<P_IN, X> spliterator,
+                                                    IntFunction<Long[]> generator) throws X {
             if (StreamOpFlag.SORTED.isKnown(helper.getStreamAndOpFlags())) {
                 return helper.evaluate(spliterator, false, generator);
             }
@@ -247,8 +247,8 @@ final class SortedOps {
     /**
      * Specialized subtype for sorting double streams.
      */
-    private static final class OfDouble<throws X> extends DoublePipeline.StatefulOp<Double, X, X, RuntimeException> {
-        OfDouble(AbstractPipeline<?, ?, Double, X, ?, ?> upstream) {
+    private static final class OfDouble<throws X> extends DoublePipeline.StatefulOp<Double, X> {
+        OfDouble(AbstractPipeline<?, Double, X, ?> upstream) {
             super(upstream, StreamShape.DOUBLE_VALUE,
                   StreamOpFlag.IS_ORDERED | StreamOpFlag.IS_SORTED);
         }
@@ -266,9 +266,9 @@ final class SortedOps {
         }
 
         @Override
-        public <P_IN, throws X_IN extends X> Node<Double> opEvaluateParallel(PipelineHelper<Double, X_IN> helper,
-                                                      Spliterator<P_IN, X_IN> spliterator,
-                                                      IntFunction<Double[]> generator) throws X_IN {
+        public <P_IN> Node<Double> opEvaluateParallel(PipelineHelper<Double, X> helper,
+                                                      Spliterator<P_IN, X> spliterator,
+                                                      IntFunction<Double[]> generator) throws X {
             if (StreamOpFlag.SORTED.isKnown(helper.getStreamAndOpFlags())) {
                 return helper.evaluate(spliterator, false, generator);
             }

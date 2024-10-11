@@ -148,18 +148,18 @@ final class ForEachOps {
         }
 
         @Override
-        public <S, throws X_IN, throws X> Void evaluateSequential(PipelineHelper<T, X_IN, X> helper,
-                                           Spliterator<S, X_IN> spliterator) throws X_IN, X, XT {
+        public <S, throws X> Void evaluateSequential(PipelineHelper<T, X> helper,
+                                                     Spliterator<S, X> spliterator) throws X, XT {
             return helper.wrapAndCopyInto(this, spliterator).get();
         }
 
         @Override
-        public <S, throws X_IN, throws X> Void evaluateParallel(PipelineHelper<T, X_IN, X> helper,
-                                         Spliterator<S, X_IN> spliterator) throws X_IN, X, XT {
+        public <S, throws X> Void evaluateParallel(PipelineHelper<T, X> helper,
+                                                   Spliterator<S, X> spliterator) throws X, XT {
             if (ordered)
                 new ForEachOrderedTask<>(helper, spliterator, this).invoke();
             else
-                new ForEachTask<S, T, X_IN>(helper, spliterator, helper.wrapSink(this)).invoke();
+                new ForEachTask<S, T, X>(helper, spliterator, helper.wrapSink(this)).invoke();
             return null;
         }
 
@@ -257,14 +257,14 @@ final class ForEachOps {
 
     /** A {@code ForkJoinTask} for performing a parallel for-each operation */
     @SuppressWarnings("serial")
-    static final class ForEachTask<S, T, throws X_OUT> extends CountedCompleter<Void> {
-        private Spliterator<S, ?> spliterator;
+    static final class ForEachTask<S, T, throws X> extends CountedCompleter<Void> {
+        private Spliterator<S, X> spliterator;
         private final Sink<S> sink;
-        private final PipelineHelper<T, X_OUT, ?> helper;
+        private final PipelineHelper<T, X> helper;
         private long targetSize;
 
-        ForEachTask(PipelineHelper<T, X_OUT, ?> helper,
-                    Spliterator<S, ?> spliterator,
+        ForEachTask(PipelineHelper<T, X> helper,
+                    Spliterator<S, X> spliterator,
                     Sink<S> sink) {
             super(null);
             this.sink = sink;
@@ -273,7 +273,7 @@ final class ForEachOps {
             this.targetSize = 0L;
         }
 
-        ForEachTask(ForEachTask<S, T, X_OUT> parent, Spliterator<S, ?> spliterator) {
+        ForEachTask(ForEachTask<S, T, X> parent, Spliterator<S, X> spliterator) {
             super(parent);
             this.spliterator = spliterator;
             this.sink = parent.sink;
@@ -283,14 +283,14 @@ final class ForEachOps {
 
         // Similar to AbstractTask but doesn't need to track child tasks
         public void compute() {
-            Spliterator<S, ?> rightSplit = spliterator, leftSplit;
+            Spliterator<S, X> rightSplit = spliterator, leftSplit;
             long sizeEstimate = rightSplit.estimateSize(), sizeThreshold;
             if ((sizeThreshold = targetSize) == 0L)
                 targetSize = sizeThreshold = AbstractTask.suggestTargetSize(sizeEstimate);
             boolean isShortCircuit = StreamOpFlag.SHORT_CIRCUIT.isKnown(helper.getStreamAndOpFlags());
             boolean forkRight = false;
             Sink<S> taskSink = sink;
-            ForEachTask<S, T, X_OUT> task = this;
+            ForEachTask<S, T, X> task = this;
             try {
                 while (!isShortCircuit || !taskSink.cancellationRequested()) {
                     if (sizeEstimate <= sizeThreshold ||
@@ -298,9 +298,9 @@ final class ForEachOps {
                         task.helper.copyInto(taskSink, rightSplit);
                         break;
                     }
-                    ForEachTask<S, T, X_OUT> leftTask = new ForEachTask<>(task, leftSplit);
+                    ForEachTask<S, T, X> leftTask = new ForEachTask<>(task, leftSplit);
                     task.addToPendingCount(1);
-                    ForEachTask<S, T, X_OUT> taskToFork;
+                    ForEachTask<S, T, X> taskToFork;
                     if (forkRight) {
                         forkRight = false;
                         rightSplit = leftSplit;
@@ -327,7 +327,7 @@ final class ForEachOps {
      * which visits the elements in encounter order
      */
     @SuppressWarnings("serial")
-    static final class ForEachOrderedTask<S, T, throws X_OUT> extends CountedCompleter<Void> {
+    static final class ForEachOrderedTask<S, T, throws X> extends CountedCompleter<Void> {
         /*
          * Our goal is to ensure that the elements associated with a task are
          * processed according to an in-order traversal of the computation tree.
@@ -372,19 +372,19 @@ final class ForEachOps {
          * by the forEachOrdered operation.
          */
 
-        private final PipelineHelper<T, X_OUT, ?> helper;
-        private Spliterator<S, ?> spliterator;
+        private final PipelineHelper<T, X> helper;
+        private Spliterator<S, X> spliterator;
         private final long targetSize;
         private final Sink<T> action;
-        private final ForEachOrderedTask<S, T, X_OUT> leftPredecessor;
+        private final ForEachOrderedTask<S, T, X> leftPredecessor;
         private Node<T> node;
 
-        private ForEachOrderedTask<S, T, X_OUT> next;
+        private ForEachOrderedTask<S, T, X> next;
         private static final VarHandle NEXT = MhUtil.findVarHandle(
                 MethodHandles.lookup(), "next", ForEachOrderedTask.class);
 
-        protected ForEachOrderedTask(PipelineHelper<T, X_OUT, ?> helper,
-                                     Spliterator<S, ?> spliterator,
+        protected ForEachOrderedTask(PipelineHelper<T, X> helper,
+                                     Spliterator<S, X> spliterator,
                                      Sink<T> action) {
             super(null);
             this.helper = helper;
@@ -394,9 +394,9 @@ final class ForEachOps {
             this.leftPredecessor = null;
         }
 
-        ForEachOrderedTask(ForEachOrderedTask<S, T, X_OUT> parent,
-                           Spliterator<S, ?> spliterator,
-                           ForEachOrderedTask<S, T, X_OUT> leftPredecessor) {
+        ForEachOrderedTask(ForEachOrderedTask<S, T, X> parent,
+                           Spliterator<S, X> spliterator,
+                           ForEachOrderedTask<S, T, X> leftPredecessor) {
             super(parent);
             this.helper = parent.helper;
             this.spliterator = spliterator;
@@ -410,15 +410,15 @@ final class ForEachOps {
             doCompute(this);
         }
 
-        private static <S, T, throws X_OUT> void doCompute(ForEachOrderedTask<S, T, X_OUT> task) {
-            Spliterator<S, ?> rightSplit = task.spliterator, leftSplit;
+        private static <S, T, throws X> void doCompute(ForEachOrderedTask<S, T, X> task) {
+            Spliterator<S, X> rightSplit = task.spliterator, leftSplit;
             long sizeThreshold = task.targetSize;
             boolean forkRight = false;
             while (rightSplit.estimateSize() > sizeThreshold &&
                    (leftSplit = rightSplit.trySplit()) != null) {
-                ForEachOrderedTask<S, T, X_OUT> leftChild =
+                ForEachOrderedTask<S, T, X> leftChild =
                     new ForEachOrderedTask<>(task, leftSplit, task.leftPredecessor);
-                ForEachOrderedTask<S, T, X_OUT> rightChild =
+                ForEachOrderedTask<S, T, X> rightChild =
                     new ForEachOrderedTask<>(task, rightSplit, leftChild);
 
                 // leftChild and rightChild were just created and not fork():ed
@@ -459,7 +459,7 @@ final class ForEachOps {
                     }
                 }
 
-                ForEachOrderedTask<S, T, X_OUT> taskToFork;
+                ForEachOrderedTask<S, T, X> taskToFork;
                 if (forkRight) {
                     forkRight = false;
                     rightSplit = leftSplit;
@@ -522,7 +522,7 @@ final class ForEachOps {
             // "happens-before" completion of the associated left-most leaf task
             // of right subtree (if any, which can be this task's right sibling)
             //
-            var leftDescendant = (ForEachOrderedTask<S, T, X_OUT>)NEXT.getAndSet(this, null);
+            var leftDescendant = (ForEachOrderedTask<S, T, X>)NEXT.getAndSet(this, null);
             if (leftDescendant != null)
                 leftDescendant.tryComplete();
         }

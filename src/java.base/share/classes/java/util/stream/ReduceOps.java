@@ -250,8 +250,8 @@ final class ReduceOps {
             public CountingSink<T> makeSink() { return new CountingSink.OfRef<>(); }
 
             @Override
-            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateSequential(PipelineHelper<T, X_IN, X> helper,
-                                                  Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+            public <P_IN, throws X> Long evaluateSequential(PipelineHelper<T, X> helper,
+                                                            Spliterator<P_IN, X> spliterator) throws X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -259,8 +259,8 @@ final class ReduceOps {
             }
 
             @Override
-            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateParallel(PipelineHelper<T, X_IN, X> helper,
-                                                Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+            public <P_IN, throws X> Long evaluateParallel(PipelineHelper<T, X> helper,
+                                                          Spliterator<P_IN, X> spliterator) throws X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -426,8 +426,8 @@ final class ReduceOps {
             public CountingSink<Integer> makeSink() { return new CountingSink.OfInt(); }
 
             @Override
-            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateSequential(PipelineHelper<Integer, X_IN, X> helper,
-                                                  Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+            public <P_IN, throws X> Long evaluateSequential(PipelineHelper<Integer, X> helper,
+                                                  Spliterator<P_IN, X> spliterator) throws X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -435,8 +435,8 @@ final class ReduceOps {
             }
 
             @Override
-            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateParallel(PipelineHelper<Integer, X_IN, X> helper,
-                                                Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+            public <P_IN, throws X> Long evaluateParallel(PipelineHelper<Integer, X> helper,
+                                                Spliterator<P_IN, X> spliterator) throws X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -602,8 +602,8 @@ final class ReduceOps {
             public CountingSink<Long> makeSink() { return new CountingSink.OfLong(); }
 
             @Override
-            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateSequential(PipelineHelper<Long, X_IN, X> helper,
-                                                  Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+            public <P_IN, throws X> Long evaluateSequential(PipelineHelper<Long, X> helper,
+                                                  Spliterator<P_IN, X> spliterator) throws X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -611,8 +611,8 @@ final class ReduceOps {
             }
 
             @Override
-            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateParallel(PipelineHelper<Long, X_IN, X> helper,
-                                                Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+            public <P_IN, throws X> Long evaluateParallel(PipelineHelper<Long, X> helper,
+                                                Spliterator<P_IN, X> spliterator) throws X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -778,8 +778,8 @@ final class ReduceOps {
             public CountingSink<Double> makeSink() { return new CountingSink.OfDouble(); }
 
             @Override
-            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateSequential(PipelineHelper<Double, X_IN, X> helper,
-                                                  Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+            public <P_IN, throws X> Long evaluateSequential(PipelineHelper<Double, X> helper,
+                                                  Spliterator<P_IN, X> spliterator) throws X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -787,8 +787,8 @@ final class ReduceOps {
             }
 
             @Override
-            public <P_IN, X_IN extends Exception, X extends Exception> Long evaluateParallel(PipelineHelper<Double, X_IN, X> helper,
-                                                Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+            public <P_IN, throws X> Long evaluateParallel(PipelineHelper<Double, X> helper,
+                                                Spliterator<P_IN, X> spliterator) throws X {
                 long size = helper.exactOutputSizeIfKnown(spliterator);
                 if (size != -1)
                     return size;
@@ -916,14 +916,14 @@ final class ReduceOps {
         }
 
         @Override
-        public <P_IN, X_IN extends Exception, X extends Exception> R evaluateSequential(PipelineHelper<T, X_IN, X> helper,
-                                           Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+        public <P_IN, throws X> R evaluateSequential(PipelineHelper<T, X> helper,
+                                                     Spliterator<P_IN, X> spliterator) throws X {
             return helper.wrapAndCopyInto(makeSink(), spliterator).get();
         }
 
         @Override
-        public <P_IN, X_IN extends Exception, X extends Exception> R evaluateParallel(PipelineHelper<T, X_IN, X> helper,
-                                         Spliterator<P_IN, ? extends X_IN> spliterator) throws X_IN, X {
+        public <P_IN, throws X> R evaluateParallel(PipelineHelper<T, X> helper,
+                                                   Spliterator<P_IN, X> spliterator) throws X {
             return new ReduceTask<>(this, helper, spliterator).invoke().get();
         }
     }
@@ -932,26 +932,26 @@ final class ReduceOps {
      * A {@code ForkJoinTask} for performing a parallel reduce operation.
      */
     @SuppressWarnings("serial")
-    private static final class ReduceTask<P_IN, P_OUT, R,
+    private static final class ReduceTask<P_IN, P_OUT, R, throws X,
                                           S extends AccumulatingSink<P_OUT, R, S>>
-            extends AbstractTask<P_IN, P_OUT, S, ReduceTask<P_IN, P_OUT, R, S>> {
+            extends AbstractTask<P_IN, P_OUT, S, X, ReduceTask<P_IN, P_OUT, R, X, S>> {
         private final ReduceOp<P_OUT, R, S> op;
 
         ReduceTask(ReduceOp<P_OUT, R, S> op,
-                   PipelineHelper<P_OUT, ?, ?> helper,
-                   Spliterator<P_IN, ?> spliterator) {
+                   PipelineHelper<P_OUT, X> helper,
+                   Spliterator<P_IN, X> spliterator) {
             super(helper, spliterator);
             this.op = op;
         }
 
-        ReduceTask(ReduceTask<P_IN, P_OUT, R, S> parent,
-                   Spliterator<P_IN, ?> spliterator) {
+        ReduceTask(ReduceTask<P_IN, P_OUT, R, X, S> parent,
+                   Spliterator<P_IN, X> spliterator) {
             super(parent, spliterator);
             this.op = parent.op;
         }
 
         @Override
-        protected ReduceTask<P_IN, P_OUT, R, S> makeChild(Spliterator<P_IN, ?> spliterator) {
+        protected ReduceTask<P_IN, P_OUT, R, X, S> makeChild(Spliterator<P_IN, X> spliterator) {
             return new ReduceTask<>(this, spliterator);
         }
 

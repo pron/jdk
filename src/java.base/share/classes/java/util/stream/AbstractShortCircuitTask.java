@@ -40,9 +40,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * @since 1.8
  */
 @SuppressWarnings("serial")
-abstract class AbstractShortCircuitTask<P_IN, P_OUT, R,
-                                        K extends AbstractShortCircuitTask<P_IN, P_OUT, R, K>>
-        extends AbstractTask<P_IN, P_OUT, R, K> {
+abstract class AbstractShortCircuitTask<P_IN, P_OUT, R, throws X,
+                                        K extends AbstractShortCircuitTask<P_IN, P_OUT, R, X, K>>
+        extends AbstractTask<P_IN, P_OUT, R, X, K> {
     /**
      * The result for this computation; this is shared among all tasks and set
      * exactly once
@@ -65,8 +65,8 @@ abstract class AbstractShortCircuitTask<P_IN, P_OUT, R,
      * @param spliterator the {@code Spliterator} describing the source for this
      *                    pipeline
      */
-    protected AbstractShortCircuitTask(PipelineHelper<P_OUT, ?, ?> helper,
-                                       Spliterator<P_IN, ?> spliterator) {
+    protected AbstractShortCircuitTask(PipelineHelper<P_OUT, X> helper,
+                                       Spliterator<P_IN, X> spliterator) {
         super(helper, spliterator);
         sharedResult = new AtomicReference<>();
     }
@@ -79,7 +79,7 @@ abstract class AbstractShortCircuitTask<P_IN, P_OUT, R,
      *                    computation tree described by this task
      */
     protected AbstractShortCircuitTask(K parent,
-                                       Spliterator<P_IN, ?> spliterator) {
+                                       Spliterator<P_IN, X> spliterator) {
         super(parent, spliterator);
         sharedResult = parent.sharedResult;
     }
@@ -99,7 +99,7 @@ abstract class AbstractShortCircuitTask<P_IN, P_OUT, R,
      */
     @Override
     public void compute() {
-        Spliterator<P_IN, ?> rs = spliterator, ls;
+        Spliterator<P_IN, X> rs = spliterator, ls;
         long sizeEstimate = rs.estimateSize();
         long sizeThreshold = getTargetSize(sizeEstimate);
         boolean forkRight = false;

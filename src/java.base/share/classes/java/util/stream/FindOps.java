@@ -145,15 +145,15 @@ final class FindOps {
         }
 
         @Override
-        public <S, throws X_IN, throws X> O evaluateSequential(PipelineHelper<T, X_IN, X> helper,
-                                                                Spliterator<S, X_IN> spliterator) throws X_IN, X {
+        public <S, throws X> O evaluateSequential(PipelineHelper<T, X> helper,
+                                                  Spliterator<S, X> spliterator) throws X {
             O result = helper.wrapAndCopyInto(sinkSupplier.get(), spliterator).get();
             return result != null ? result : emptyValue;
         }
 
         @Override
-        public <P_IN, throws X_IN, throws X> O evaluateParallel(PipelineHelper<T, X_IN, X> helper,
-                                                                 Spliterator<P_IN, X_IN> spliterator) throws X_IN, X {
+        public <P_IN, throws X> O evaluateParallel(PipelineHelper<T, X> helper,
+                                                   Spliterator<P_IN, X> spliterator) throws X {
             // This takes into account the upstream ops flags and the terminal
             // op flags and therefore takes into account findFirst or findAny
             boolean mustFindFirst = StreamOpFlag.ORDERED.isKnown(helper.getStreamAndOpFlags());
@@ -292,28 +292,28 @@ final class FindOps {
      * @param <O> Result type from the find operation
      */
     @SuppressWarnings("serial")
-    private static final class FindTask<P_IN, P_OUT, O>
-            extends AbstractShortCircuitTask<P_IN, P_OUT, O, FindTask<P_IN, P_OUT, O>> {
+    private static final class FindTask<P_IN, P_OUT, O, throws X>
+            extends AbstractShortCircuitTask<P_IN, P_OUT, O, X, FindTask<P_IN, P_OUT, O, X>> {
         private final FindOp<P_OUT, O> op;
         private final boolean mustFindFirst;
 
         FindTask(FindOp<P_OUT, O> op,
                  boolean mustFindFirst,
-                 PipelineHelper<P_OUT, ?, ?> helper,
-                 Spliterator<P_IN, ?> spliterator) {
+                 PipelineHelper<P_OUT, X> helper,
+                 Spliterator<P_IN, X> spliterator) {
             super(helper, spliterator);
             this.mustFindFirst = mustFindFirst;
             this.op = op;
         }
 
-        FindTask(FindTask<P_IN, P_OUT, O> parent, Spliterator<P_IN, ?> spliterator) {
+        FindTask(FindTask<P_IN, P_OUT, O, X> parent, Spliterator<P_IN, X> spliterator) {
             super(parent, spliterator);
             this.mustFindFirst = parent.mustFindFirst;
             this.op = parent.op;
         }
 
         @Override
-        protected FindTask<P_IN, P_OUT, O> makeChild(Spliterator<P_IN, ?> spliterator) {
+        protected FindTask<P_IN, P_OUT, O, X> makeChild(Spliterator<P_IN, X> spliterator) {
             return new FindTask<>(this, spliterator);
         }
 
@@ -350,7 +350,7 @@ final class FindOps {
         @Override
         public void onCompletion(CountedCompleter<?> caller) {
             if (mustFindFirst) {
-                    for (FindTask<P_IN, P_OUT, O> child = leftChild, p = null; child != p;
+                    for (FindTask<P_IN, P_OUT, O, X> child = leftChild, p = null; child != p;
                          p = child, child = rightChild) {
                     O result = child.getLocalResult();
                     if (result != null && op.presentPredicate.test(result)) {

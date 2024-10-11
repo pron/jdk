@@ -50,9 +50,9 @@ import java.util.function.Supplier;
  * @param <E_IN> type of elements in the upstream source
  * @since 1.8
  */
-abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throws X>
-        extends AbstractPipeline<E_IN, X_IN, Integer, X_OUT, X, IntStream<X_OUT>>
-        implements IntStream<X_OUT> {
+abstract class IntPipeline<E_IN, throws X>
+        extends AbstractPipeline<E_IN, Integer, X, IntStream<X>>
+        implements IntStream<X> {
 
     /**
      * Constructor for the head of a stream pipeline.
@@ -87,7 +87,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
      * @param upstream the upstream element source
      * @param opFlags the operation flags for the new operation
      */
-    IntPipeline(AbstractPipeline<?, ?, E_IN, X_IN, ?, ?> upstream, int opFlags) {
+    IntPipeline(AbstractPipeline<?, E_IN, X, ?> upstream, int opFlags) {
         super(upstream, opFlags);
     }
 
@@ -137,24 +137,24 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
 
     @Override
     @SuppressWarnings("unchecked")
-    final <P_IN, throws XIN extends X_OUT> Node<Integer> evaluateToNode(PipelineHelper<Integer, X_OUT, X> helper,
-                                              Spliterator<P_IN, XIN> spliterator,
+    final <P_IN> Node<Integer> evaluateToNode(PipelineHelper<Integer, X> helper,
+                                              Spliterator<P_IN, X> spliterator,
                                               boolean flattenTree,
                                               IntFunction<Integer[]> generator) {
         return Nodes.collectInt(helper, (Spliterator<P_IN>)spliterator, flattenTree);
     }
 
     @Override
-    final <P_IN, throws XIN extends X_OUT> Spliterator<Integer, X_OUT> wrap(PipelineHelper<Integer, X_OUT, X> ph,
-                                           Supplier<Spliterator<P_IN, XIN>> supplier,
+    final <P_IN> Spliterator<Integer, X> wrap(PipelineHelper<Integer, X> ph,
+                                           Supplier<Spliterator<P_IN, X>> supplier,
                                            boolean isParallel) {
-        return new StreamSpliterators.IntWrappingSpliterator<P_IN, X_OUT, X>(ph, supplier, isParallel);
+        return new StreamSpliterators.IntWrappingSpliterator<P_IN, X>(ph, supplier, isParallel);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    final Spliterator.OfInt<X_OUT> lazySpliterator(Supplier<? extends Spliterator<Integer, X_OUT>> supplier) {
-        return new StreamSpliterators.DelegatingSpliterator.OfInt<>((Supplier<Spliterator.OfInt<X_OUT>>)supplier);
+    final Spliterator.OfInt<X> lazySpliterator(Supplier<? extends Spliterator<Integer, X>> supplier) {
+        return new StreamSpliterators.DelegatingSpliterator.OfInt<>((Supplier<Spliterator.OfInt<X>>)supplier);
     }
 
     @Override
@@ -172,8 +172,8 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
         return Nodes.intBuilder(exactSizeIfKnown);
     }
 
-    private <U> Stream<U, X_OUT> mapToObj(IntFunction<? extends U> mapper, int opFlags) {
-        return new ReferencePipeline.StatelessOp<Integer, X_OUT, U, X_OUT, RuntimeException>(this, StreamShape.INT_VALUE, opFlags) {
+    private <U> Stream<U, X> mapToObj(IntFunction<? extends U> mapper, int opFlags) {
+        return new ReferencePipeline.StatelessOp<Integer, U, X>(this, StreamShape.INT_VALUE, opFlags) {
             @Override
             Sink<Integer> opWrapSink(int flags, Sink<U> sink) {
                 return new Sink.ChainedInt<U>(sink) {
@@ -193,20 +193,20 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     // IntStream
 
     @Override
-    public final PrimitiveIterator.OfInt<X_OUT> iterator() {
+    public final PrimitiveIterator.OfInt<X> iterator() {
         return Spliterators.iterator(spliterator());
     }
 
     @Override
-    public final Spliterator.OfInt<X_OUT> spliterator() {
+    public final Spliterator.OfInt<X> spliterator() {
         return adapt(super.spliterator());
     }
 
     // Stateless intermediate ops from IntStream
 
     @Override
-    public final LongStream<X_OUT> asLongStream() {
-        return new LongPipeline.StatelessOp<>(eraseException(), StreamShape.INT_VALUE, 0) {
+    public final LongStream<X> asLongStream() {
+        return new LongPipeline.StatelessOp<>(this, StreamShape.INT_VALUE, 0) {
             @Override
             Sink<Integer> opWrapSink(int flags, Sink<Long> sink) {
                 return new Sink.ChainedInt<>(sink) {
@@ -220,8 +220,8 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final DoubleStream<X_OUT> asDoubleStream() {
-        return new DoublePipeline.StatelessOp<>(eraseException(), StreamShape.INT_VALUE, 0) {
+    public final DoubleStream<X> asDoubleStream() {
+        return new DoublePipeline.StatelessOp<>(this, StreamShape.INT_VALUE, 0) {
             @Override
             Sink<Integer> opWrapSink(int flags, Sink<Double> sink) {
                 return new Sink.ChainedInt<Double>(sink) {
@@ -235,12 +235,12 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final Stream<Integer, X_OUT> boxed() {
+    public final Stream<Integer, X> boxed() {
         return mapToObj(Integer::valueOf, 0);
     }
 
     @Override
-    public final IntStream<X_OUT> map(IntUnaryOperator mapper) {
+    public final IntStream<X> map(IntUnaryOperator mapper) {
         Objects.requireNonNull(mapper);
         return new StatelessOp<>(this, StreamShape.INT_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -257,13 +257,13 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final <U> Stream<U, X_OUT> mapToObj(IntFunction<? extends U> mapper) {
+    public final <U> Stream<U, X> mapToObj(IntFunction<? extends U> mapper) {
         Objects.requireNonNull(mapper);
         return mapToObj(mapper, StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT);
     }
 
     @Override
-    public final LongStream<X_OUT> mapToLong(IntToLongFunction mapper) {
+    public final LongStream<X> mapToLong(IntToLongFunction mapper) {
         Objects.requireNonNull(mapper);
         return new LongPipeline.StatelessOp<>(eraseException(), StreamShape.INT_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -280,7 +280,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final DoubleStream<X_OUT> mapToDouble(IntToDoubleFunction mapper) {
+    public final DoubleStream<X> mapToDouble(IntToDoubleFunction mapper) {
         Objects.requireNonNull(mapper);
         return new DoublePipeline.StatelessOp<>(eraseException(), StreamShape.INT_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
@@ -297,7 +297,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final IntStream<X_OUT> flatMap(IntFunction<? extends IntStream> mapper) {
+    public final IntStream<X> flatMap(IntFunction<? extends IntStream> mapper) {
         Objects.requireNonNull(mapper);
         return new StatelessOp<>(this, StreamShape.INT_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -350,7 +350,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final IntStream<X_OUT> mapMulti(IntMapMultiConsumer mapper) {
+    public final IntStream<X> mapMulti(IntMapMultiConsumer mapper) {
         Objects.requireNonNull(mapper);
         return new StatelessOp<>(this, StreamShape.INT_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT | StreamOpFlag.NOT_SIZED) {
@@ -374,7 +374,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public IntStream<X_OUT> unordered() {
+    public IntStream<X> unordered() {
         if (!isOrdered())
             return this;
         return new StatelessOp<>(this, StreamShape.INT_VALUE, StreamOpFlag.NOT_ORDERED) {
@@ -386,7 +386,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final IntStream<X_OUT> filter(IntPredicate predicate) {
+    public final IntStream<X> filter(IntPredicate predicate) {
         Objects.requireNonNull(predicate);
         return new StatelessOp<>(this, StreamShape.INT_VALUE,
                 StreamOpFlag.NOT_SIZED) {
@@ -409,7 +409,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final IntStream<X_OUT> peek(IntConsumer action) {
+    public final IntStream<X> peek(IntConsumer action) {
         Objects.requireNonNull(action);
         return new StatelessOp<>(this, StreamShape.INT_VALUE,
                 0) {
@@ -429,14 +429,14 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     // Stateful intermediate ops from IntStream
 
     @Override
-    public final IntStream<X_OUT> limit(long maxSize) {
+    public final IntStream<X> limit(long maxSize) {
         if (maxSize < 0)
             throw new IllegalArgumentException(Long.toString(maxSize));
         return SliceOps.makeInt(this, 0, maxSize);
     }
 
     @Override
-    public final IntStream<X_OUT> skip(long n) {
+    public final IntStream<X> skip(long n) {
         if (n < 0)
             throw new IllegalArgumentException(Long.toString(n));
         if (n == 0)
@@ -446,22 +446,22 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final IntStream<X_OUT> takeWhile(IntPredicate predicate) {
+    public final IntStream<X> takeWhile(IntPredicate predicate) {
         return WhileOps.makeTakeWhileInt(this, predicate);
     }
 
     @Override
-    public final IntStream<X_OUT> dropWhile(IntPredicate predicate) {
+    public final IntStream<X> dropWhile(IntPredicate predicate) {
         return WhileOps.makeDropWhileInt(this, predicate);
     }
 
     @Override
-    public final IntStream<X_OUT> sorted() {
+    public final IntStream<X> sorted() {
         return SortedOps.makeInt(this);
     }
 
     @Override
-    public final IntStream<X_OUT> distinct() {
+    public final IntStream<X> distinct() {
         // While functional and quick to implement, this approach is not very efficient.
         // An efficient version requires an int-specific map/set implementation.
         return boxed().distinct().mapToInt(i -> i);
@@ -470,37 +470,37 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     // Terminal ops from IntStream
 
     @Override
-    public void forEach(IntConsumer action) throws X_OUT {
+    public void forEach(IntConsumer action) throws X {
         evaluate(ForEachOps.makeInt(action, false));
     }
 
     @Override
-    public void forEachOrdered(IntConsumer action) throws X_OUT {
+    public void forEachOrdered(IntConsumer action) throws X {
         evaluate(ForEachOps.makeInt(action, true));
     }
 
     @Override
-    public final int sum() throws X_OUT {
+    public final int sum() throws X {
         return reduce(0, Integer::sum);
     }
 
     @Override
-    public final OptionalInt min() throws X_OUT {
+    public final OptionalInt min() throws X {
         return reduce(Math::min);
     }
 
     @Override
-    public final OptionalInt max() throws X_OUT {
+    public final OptionalInt max() throws X {
         return reduce(Math::max);
     }
 
     @Override
-    public final long count() throws X_OUT {
+    public final long count() throws X {
         return evaluate(ReduceOps.makeIntCounting());
     }
 
     @Override
-    public final OptionalDouble average() throws X_OUT {
+    public final OptionalDouble average() throws X {
         long[] avg = collect(() -> new long[2],
                              (ll, i) -> {
                                  ll[0]++;
@@ -516,25 +516,25 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final IntSummaryStatistics summaryStatistics() throws X_OUT {
+    public final IntSummaryStatistics summaryStatistics() throws X {
         return collect(IntSummaryStatistics::new, IntSummaryStatistics::accept,
                        IntSummaryStatistics::combine);
     }
 
     @Override
-    public final int reduce(int identity, IntBinaryOperator op) throws X_OUT {
+    public final int reduce(int identity, IntBinaryOperator op) throws X {
         return evaluate(ReduceOps.makeInt(identity, op));
     }
 
     @Override
-    public final OptionalInt reduce(IntBinaryOperator op) throws X_OUT {
+    public final OptionalInt reduce(IntBinaryOperator op) throws X {
         return evaluate(ReduceOps.makeInt(op));
     }
 
     @Override
     public final <R> R collect(Supplier<R> supplier,
                                ObjIntConsumer<R> accumulator,
-                               BiConsumer<R, R> combiner) throws X_OUT {
+                               BiConsumer<R, R> combiner) throws X {
         Objects.requireNonNull(combiner);
         BinaryOperator<R> operator = (left, right) -> {
             combiner.accept(left, right);
@@ -544,32 +544,32 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
     }
 
     @Override
-    public final boolean anyMatch(IntPredicate predicate) throws X_OUT {
+    public final boolean anyMatch(IntPredicate predicate) throws X {
         return evaluate(MatchOps.makeInt(predicate, MatchOps.MatchKind.ANY));
     }
 
     @Override
-    public final boolean allMatch(IntPredicate predicate) throws X_OUT {
+    public final boolean allMatch(IntPredicate predicate) throws X {
         return evaluate(MatchOps.makeInt(predicate, MatchOps.MatchKind.ALL));
     }
 
     @Override
-    public final boolean noneMatch(IntPredicate predicate) throws X_OUT {
+    public final boolean noneMatch(IntPredicate predicate) throws X {
         return evaluate(MatchOps.makeInt(predicate, MatchOps.MatchKind.NONE));
     }
 
     @Override
-    public final OptionalInt findFirst() throws X_OUT {
+    public final OptionalInt findFirst() throws X {
         return evaluate(FindOps.makeInt(true));
     }
 
     @Override
-    public final OptionalInt findAny() throws X_OUT {
+    public final OptionalInt findAny() throws X {
         return evaluate(FindOps.makeInt(false));
     }
 
     @Override
-    public final int[] toArray() throws X_OUT {
+    public final int[] toArray() throws X {
         return Nodes.flattenInt((Node.OfInt) evaluateToArrayNode(Integer[]::new))
                         .asPrimitiveArray();
     }
@@ -582,7 +582,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
      * @param <E_IN> type of elements in the upstream source
      * @since 1.8
      */
-    static class Head<E_IN, throws X_OUT> extends IntPipeline<E_IN, X_OUT, X_OUT> {
+    static class Head<E_IN, throws X> extends IntPipeline<E_IN, X> {
         /**
          * Constructor for the source stage of an IntStream.
          *
@@ -592,7 +592,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
          *                    in {@link StreamOpFlag}
          * @param parallel {@code true} if the pipeline is parallel
          */
-        Head(Supplier<? extends Spliterator<Integer, X_OUT>> source,
+        Head(Supplier<? extends Spliterator<Integer, X>> source,
              int sourceFlags, boolean parallel) {
             super(source, sourceFlags, parallel);
         }
@@ -605,7 +605,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
          *                    in {@link StreamOpFlag}
          * @param parallel {@code true} if the pipeline is parallel
          */
-        Head(Spliterator<Integer, X_OUT> source,
+        Head(Spliterator<Integer, X> source,
              int sourceFlags, boolean parallel) {
             super(source, sourceFlags, parallel);
         }
@@ -623,7 +623,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
         // Optimized sequential terminal operations for the head of the pipeline
 
         @Override
-        public void forEach(IntConsumer action) throws X_OUT {
+        public void forEach(IntConsumer action) throws X {
             if (!isParallel()) {
                 adapt(sourceStageSpliterator()).forEachRemaining(action);
             }
@@ -633,7 +633,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
         }
 
         @Override
-        public void forEachOrdered(IntConsumer action) throws X_OUT {
+        public void forEachOrdered(IntConsumer action) throws X {
             if (!isParallel()) {
                 adapt(sourceStageSpliterator()).forEachRemaining(action);
             }
@@ -649,8 +649,8 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
      * @param <E_IN> type of elements in the upstream source
      * @since 1.8
      */
-    abstract static class StatelessOp<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throws X>
-        extends IntPipeline<E_IN, X_IN, X_OUT, X> {
+    abstract static class StatelessOp<E_IN, throws X>
+        extends IntPipeline<E_IN, X> {
         /**
          * Construct a new IntStream by appending a stateless intermediate
          * operation to an existing stream.
@@ -658,7 +658,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
          * @param inputShape The stream shape for the upstream pipeline stage
          * @param opFlags Operation flags for the new stage
          */
-        StatelessOp(AbstractPipeline<?, ?, E_IN, X_IN, ?, ?> upstream,
+        StatelessOp(AbstractPipeline<?, E_IN, X, ?> upstream,
                     StreamShape inputShape,
                     int opFlags) {
             super(upstream, opFlags);
@@ -677,8 +677,8 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
      * @param <E_IN> type of elements in the upstream source
      * @since 1.8
      */
-    abstract static class StatefulOp<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throws X>
-        extends IntPipeline<E_IN, X_IN, X_OUT, X> {
+    abstract static class StatefulOp<E_IN, throws X>
+        extends IntPipeline<E_IN, X> {
         /**
          * Construct a new IntStream by appending a stateful intermediate
          * operation to an existing stream.
@@ -686,7 +686,7 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
          * @param inputShape The stream shape for the upstream pipeline stage
          * @param opFlags Operation flags for the new stage
          */
-        StatefulOp(AbstractPipeline<?, ?, E_IN, X_IN, ?, ?> upstream,
+        StatefulOp(AbstractPipeline<?, E_IN, X, ?> upstream,
                    StreamShape inputShape,
                    int opFlags) {
             super(upstream, opFlags);
@@ -699,8 +699,8 @@ abstract class IntPipeline<E_IN, throws X_IN, throws X_OUT extends X_IN|X, throw
         }
 
         @Override
-        abstract <P_IN, throws XX extends X_IN> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, XX, X> helper,
-                                                         Spliterator<P_IN, XX> spliterator,
-                                                         IntFunction<Integer[]> generator) throws X_OUT;
+        abstract <P_IN> Node<Integer> opEvaluateParallel(PipelineHelper<Integer, X> helper,
+                                                         Spliterator<P_IN, X> spliterator,
+                                                         IntFunction<Integer[]> generator) throws X;
     }
 }
