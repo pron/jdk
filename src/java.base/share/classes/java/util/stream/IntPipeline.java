@@ -265,7 +265,7 @@ abstract class IntPipeline<E_IN, throws X>
     @Override
     public final LongStream<X> mapToLong(IntToLongFunction mapper) {
         Objects.requireNonNull(mapper);
-        return new LongPipeline.StatelessOp<>(eraseException(), StreamShape.INT_VALUE,
+        return new LongPipeline.StatelessOp<>(this, StreamShape.INT_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
             Sink<Integer> opWrapSink(int flags, Sink<Long> sink) {
@@ -282,7 +282,7 @@ abstract class IntPipeline<E_IN, throws X>
     @Override
     public final DoubleStream<X> mapToDouble(IntToDoubleFunction mapper) {
         Objects.requireNonNull(mapper);
-        return new DoublePipeline.StatelessOp<>(eraseException(), StreamShape.INT_VALUE,
+        return new DoublePipeline.StatelessOp<>(this, StreamShape.INT_VALUE,
                 StreamOpFlag.NOT_SORTED | StreamOpFlag.NOT_DISTINCT) {
             @Override
             Sink<Integer> opWrapSink(int flags, Sink<Double> sink) {
