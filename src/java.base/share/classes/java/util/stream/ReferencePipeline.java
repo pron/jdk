@@ -184,10 +184,6 @@ abstract class ReferencePipeline<P_IN, P_OUT, throws X>
 
         return new StatelessOp<>(this, StreamShape.REFERENCE,
                                      StreamOpFlag.NOT_SIZED) {
-            // X4 is an added parameter that doesn't exist in the overloaded method; temporary until we support A|B outside bounds
-            // If we're not adding X4, we infer a result of Sink<P_OUT, X3> rather than Sink<P_OUT, X1|X3>
-            // because inference works on the constructor, and chooses the lower result (it probably solves ChainedReference's
-            // X to its lower bound of X, given that ChainedReference<T, throws X, E_OUT, throws X extends X>
             @Override
             Sink<P_OUT> opWrapSink(int flags, Sink<P_OUT> sink) {
                 return new Sink.ChainedReference<P_OUT, P_OUT>(sink) {
