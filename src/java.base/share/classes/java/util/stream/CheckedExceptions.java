@@ -61,30 +61,6 @@ final class CheckedExceptions {
         throw ex;
     }
 
-    @SuppressWarnings("unchecked")
-    public static <throws X> void unwrap(Runnable r) throws X {
-        try {
-            r.run();
-        } catch (WrappedException ex) {
-            throw (X) ex.getCause();
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T, throws X> T unwrap(Supplier<T> s) throws X {
-        try {
-            return s.get();
-        } catch (WrappedException ex) {
-            throw (X) ex.getCause();
-        }
-    }
-
-    public static <T> Consumer<T> wrap(Consumer<T, ?> c) {
-        return t -> {
-            try { c.accept(t); } catch (Exception ex) { throw wrap(ex); }
-        };
-    }
-
     @SuppressWarnings({"unchecked", "overloads"})
     public static <T, U> BiConsumer<T, U> eraseException(BiConsumer<T, U, ?> x) { return (BiConsumer<T, U>)x; }
 

@@ -823,8 +823,7 @@ abstract class ReferencePipeline<P_IN, P_OUT, throws X>
         @Override
         public <throws X1> void forEach(Consumer<? super E_OUT, X1> action) throws X, X1 {
             if (!isParallel()) {
-                CheckedExceptions.unwrap(() ->
-                    sourceStageSpliterator().forEachRemaining(CheckedExceptions.wrap(action)));
+                sourceStageSpliterator().forEachRemaining(action);
             }
             else {
                 super.forEach(action);
@@ -834,8 +833,7 @@ abstract class ReferencePipeline<P_IN, P_OUT, throws X>
         @Override
         public <throws X1> void forEachOrdered(Consumer<? super E_OUT, X1> action) throws X, X1 {
             if (!isParallel()) {
-                CheckedExceptions.unwrap(() ->
-                    sourceStageSpliterator().forEachRemaining(CheckedExceptions.wrap(action)));
+                sourceStageSpliterator().forEachRemaining(action);
             }
             else {
                 super.forEachOrdered(action);
