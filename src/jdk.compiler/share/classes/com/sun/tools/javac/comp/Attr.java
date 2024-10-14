@@ -5233,6 +5233,13 @@ public class Attr extends JCTree.Visitor {
             //fixup type-parameter bound computed in 'attribTypeVariables'
             typeVar.setUpperBound(checkIntersection(tree, tree.union, tree.bounds));
         }
+
+//        if (tree.throwsParam) { // should this be done here???
+//            typeVar.setThrowsDefault(tree.throwsDefault != null
+//                    ? tree.throwsDefault.type
+//                    : syms.runtimeExceptionType);
+//            Assert.check(typeVar.getThrowsDefault() != null);
+//        }
     }
 
     Type checkIntersection(JCTree tree, final boolean union, List<JCExpression> bounds) {

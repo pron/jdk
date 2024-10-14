@@ -49,7 +49,7 @@ import jdk.internal.javac.PreviewFeature;
  */
 @PreviewFeature(feature = PreviewFeature.Feature.CLASSFILE_API)
 public sealed interface ClassFileBuilder<E extends ClassFileElement, B extends ClassFileBuilder<E, B>>
-        extends Consumer<E, RuntimeException> permits ClassBuilder, FieldBuilder, MethodBuilder, CodeBuilder { // TODO RON
+        extends Consumer<E> permits ClassBuilder, FieldBuilder, MethodBuilder, CodeBuilder { // TODO RON
 
     /**
      * Integrate the {@link ClassFileElement} into the entity being built.

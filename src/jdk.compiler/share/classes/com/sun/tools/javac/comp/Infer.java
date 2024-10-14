@@ -171,8 +171,6 @@ public class Infer {
                             Resolve.MethodResolutionContext resolveContext,
                             Warner warn) throws InferenceException {
         //-System.err.println("instantiateMethod(" + tvars + ", " + mt + ", " + argtypes + ")"); //DEBUG
-//        if (msym.toString().startsWith("<T,X>concat("))
-//            System.out.println("LKLKLKLKLKLKLKLK");
         final InferenceContext inferenceContext = new InferenceContext(this, tvars);  //B0
         try {
             DeferredAttr.DeferredAttrContext deferredAttrContext =
