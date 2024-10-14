@@ -85,7 +85,7 @@ public sealed interface CompoundElement<E extends ClassFileElement>
      */
     default List<E> elementList() {
         List<E> list = new ArrayList<>();
-        forEach(new Consumer<E>() {
+        forEach(new Consumer<>() {
             @Override
             public void accept(E e) {
                 list.add(e);

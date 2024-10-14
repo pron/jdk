@@ -865,11 +865,11 @@ public final class ClassPrinterImpl {
                         case BranchInstruction br -> in.with(leaf(
                                 "target", com.labelToBci(br.target())));
                         case LookupSwitchInstruction si -> in.with(list(
-                                "targets", "target", Stream.<ConstantDesc>concat(Stream.of(si.defaultTarget()) // TODO RON
+                                "targets", "target", Stream.concat(Stream.of(si.defaultTarget())
                                         .map(com::labelToBci), si.cases().stream()
                                                 .map(sc -> com.labelToBci(sc.target())))));
                         case TableSwitchInstruction si -> in.with(list(
-                                "targets", "target", Stream.<ConstantDesc>concat(Stream.of(si.defaultTarget()) // TODO RON
+                                "targets", "target", Stream.concat(Stream.of(si.defaultTarget())
                                         .map(com::labelToBci), si.cases().stream()
                                                 .map(sc -> com.labelToBci(sc.target())))));
                         case DiscontinuedInstruction.JsrInstruction jsr -> in.with(leaf(
