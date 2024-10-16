@@ -776,7 +776,7 @@ public class ClassReader {
      */
     Type sigToTypeParam() {
         boolean throwsParam = false;
-        if (signature[sigp] == '!') {
+        if (signature[sigp] == '^') {
             throwsParam = true;
             sigp++;
         }

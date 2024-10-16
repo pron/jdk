@@ -5825,7 +5825,7 @@ public class Types {
             for (List<Type> ts = typarams; ts.nonEmpty(); ts = ts.tail) {
                 Type.TypeVar tvar = (Type.TypeVar) ts.head;
                 if (tvar.isThrowsParam())
-                    append('!');
+                    append('^');
                 append(tvar.tsym.name);
                 List<Type> bounds = Types.this.getBounds(tvar);
                 if (bounds.length() == 1 && bounds.head instanceof ThrowableUnionClassType tu) {
