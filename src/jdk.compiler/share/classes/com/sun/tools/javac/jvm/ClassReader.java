@@ -612,6 +612,8 @@ public class ClassReader {
                 if (formals != null) {
                     if (actuals.isEmpty())
                         actuals = formals;
+                    // TODO RON: For old class files only?
+                    actuals = types.defaultThrowsParams(formals, actuals, false);
                 }
                 /* actualsCp is final as it will be captured by the inner class below. We could avoid defining
                  * this additional local variable and depend on field ClassType::typarams_field which `actuals` is
