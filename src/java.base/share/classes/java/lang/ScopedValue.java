@@ -412,7 +412,7 @@ public final class ScopedValue<T> {
          * @see ScopedValue#callWhere(ScopedValue, Object, CallableOp)
          * @since 23
          */
-        public <R, throws X> R call(CallableOp<? extends R, X> op) throws X {
+        public <R, throws X extends Throwable> R call(CallableOp<? extends R, X> op) throws X {
             Objects.requireNonNull(op);
             Cache.invalidate(bitmask);
             var prevSnapshot = scopedValueBindings();
@@ -429,7 +429,7 @@ public final class ScopedValue<T> {
          */
         @Hidden
         @ForceInline
-        private <R, throws X> R runWith(Snapshot newSnapshot, CallableOp<R, X> op) {
+        private <R, throws X extends Throwable> R runWith(Snapshot newSnapshot, CallableOp<R, X> op) {
             try {
                 Thread.setScopedValueBindings(newSnapshot);
                 Thread.ensureMaterializedForStackWalk(newSnapshot);
@@ -499,7 +499,7 @@ public final class ScopedValue<T> {
      */
     @PreviewFeature(feature = PreviewFeature.Feature.SCOPED_VALUES)
     @FunctionalInterface
-    public interface CallableOp<T, X extends Throwable> {
+    public interface CallableOp<T, throws X extends Throwable> {
         /**
          * Executes this operation.
          * @return the result, can be null
@@ -561,7 +561,7 @@ public final class ScopedValue<T> {
      * @throws X TBD
      * @throws StructureViolationException if a structure violation is detected
      */
-    public static <T, R, throws X> R callWhere(ScopedValue<T> key,
+    public static <T, R, throws X extends Throwable> R callWhere(ScopedValue<T> key,
                                                           T value,
                                                           CallableOp<? extends R, X> op) throws X {
         return where(key, value).call(op);

@@ -1462,8 +1462,16 @@ public class Check {
                             log.error(arg, Errors.NotWithinBounds(incompatibleArg, forms.head));
                         }
                         forms = forms.tail;
-                     }
-                 }
+                    }
+                }
+
+                forms = tree.type.tsym.type.getTypeArguments();
+                for (JCTree arg : tree.arguments) {
+                    if (arg.type instanceof TypeVar tv && tv.isThrowsParam() && !((TypeVar)forms.head).isThrowsParam())
+                        log.error(arg, Errors.ThrowsVarInstantiatesNonThrowsParam(tv, forms.head));
+                    forms = forms.tail;
+                }
+
 
                 forms = tree.type.tsym.type.getTypeArguments();
 
@@ -2628,7 +2636,7 @@ public class Check {
                     if (m1 == sym) {
                         if (types.isSubSignature(sym.type, types.eraseThrowsParam(types.memberType(site, m2))))
                             warnUnchecked(pos, // TreeInfo.diagnosticPositionFor(m1, tree),
-                                    Warnings.OverrideUncheckedThrown(cannotOverride((MethodSymbol)m1, (MethodSymbol)m2), null)); // TODO RON: different warning
+                                Warnings.OverrideUncheckedThrowsParam(m1, m1.location(), m2, m2.location()));
                         else
                             log.error(pos, Errors.NameClashSameErasureNoOverride(
                                 m1.name, types.memberType(site, m1).asMethodType().getParameterTypes(), m1.location(),
@@ -2668,9 +2676,8 @@ public class Check {
             if (!types.isSubSignature(sym.type, types.memberType(site, s))) {
                 if (types.hasSameArgs(s.erasure(types), sym.erasure(types))) {
                     if (types.isSubSignature(sym.type, types.eraseThrowsParam(types.memberType(site, s)))) {
-                        warnUnchecked(pos, // TreeInfo.diagnosticPositionFor(m1, tree),
-                                Warnings.OverrideUncheckedThrown(cannotOverride(sym, (MethodSymbol)s), null)); // TODO RON: different warning
-
+                          warnUnchecked(pos,
+                                 Warnings.OverrideUncheckedThrowsParam(sym, sym.location(), s, s.location()));
                     } else {
                         log.error(pos,
                                 Errors.NameClashSameErasureNoHide(sym, sym.location(), s, s.location()));
