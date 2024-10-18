@@ -571,7 +571,10 @@ public class TreeCopier<P> implements TreeVisitor<JCTree,P> {
         JCWildcard t = (JCWildcard) node;
         TypeBoundKind kind = M.at(t.kind.pos).TypeBoundKind(t.kind.kind);
         JCTree inner = copy(t.inner, p);
-        return M.at(t.pos).Wildcard(kind, inner);
+        if (inner == null && t.union)
+            return M.at(t.pos).Wildcard(kind, t.union, copy(t.bounds));
+        else
+            return M.at(t.pos).Wildcard(kind, inner);
     }
 
     @Override @DefinedBy(Api.COMPILER_TREE)

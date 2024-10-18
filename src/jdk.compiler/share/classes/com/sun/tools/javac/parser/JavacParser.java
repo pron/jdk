@@ -2428,7 +2428,7 @@ public class JavacParser implements Parser {
                     bounds.append(parseType());
                 }
                 TypeBoundKind t = to(F.at(pos).TypeBoundKind(BoundKind.EXTENDS));
-                result = F.at(pos).Wildcard(t, true, bounds.toList());
+                result = F.at(pos).Wildcard(t, true, bounds.toList()); // TODO RON: Keep wildcard?
             }
             return result;
         }
