@@ -921,12 +921,12 @@ public interface CompletionStage<T, throws X extends Throwable> {
      * @return the new CompletionStage
      * @since 12
      */
-    @SuppressWarnings("unchecked") // TODO RON
+    @SuppressWarnings("unchecked")
     public default <throws X1> CompletionStage<T, X1> exceptionallyAsync
         (Function<Throwable, ? extends T, X1> fn) {
-        return (CompletionStage<T, X1>)handle((r, ex) -> (ex == null)
-                      ? this
-                      : this.<T, X1>handleAsync((r1, ex1) -> fn.apply(ex1)))
+        return handle((r, ex) -> (ex == null)
+                      ? (CompletionStage<T>)this
+                      : this.<T,X1>handleAsync((r1, ex1) -> fn.apply(ex1)))
             .thenCompose(Function.identity());
     }
 
@@ -949,11 +949,11 @@ public interface CompletionStage<T, throws X extends Throwable> {
      * @return the new CompletionStage
      * @since 12
      */
-    @SuppressWarnings("unchecked") // TODO RON
+    @SuppressWarnings("unchecked")
     public default <throws X1> CompletionStage<T, X1> exceptionallyAsync
         (Function<Throwable, ? extends T, X1> fn, Executor executor) {
-        return (CompletionStage<T, X1>)handle((r, ex) -> (ex == null)
-                      ? this
+        return handle((r, ex) -> (ex == null)
+                      ? (CompletionStage<T>)this
                       : this.<T, X1>handleAsync((r1, ex1) -> fn.apply(ex1), executor))
             .thenCompose(Function.identity());
     }
@@ -974,11 +974,11 @@ public interface CompletionStage<T, throws X extends Throwable> {
      * @return the new CompletionStage
      * @since 12
      */
-    @SuppressWarnings("unchecked") // TODO RON
+    @SuppressWarnings("unchecked")
     public default <throws X1 extends Throwable, throws X2> CompletionStage<T, X1|X2> exceptionallyCompose
         (Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn) {
-        return (CompletionStage<T, X1|X2>)handle((r, ex) -> (ex == null)
-                      ? this
+        return handle((r, ex) -> (ex == null)
+                      ? (CompletionStage<T>)this
                       : fn.apply(ex))
             .thenCompose(Function.identity());
     }
@@ -1000,11 +1000,11 @@ public interface CompletionStage<T, throws X extends Throwable> {
      * @return the new CompletionStage
      * @since 12
      */
-    @SuppressWarnings("unchecked") // TODO RON
+    @SuppressWarnings("unchecked")
     public default <throws X1 extends Throwable, throws X2> CompletionStage<T, X1|X2> exceptionallyComposeAsync
         (Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn) {
-        return (CompletionStage<T, X1|X2>)handle((r, ex) -> (ex == null)
-                      ? this
+        return handle((r, ex) -> (ex == null)
+                      ? (CompletionStage<T>)this
                       : this.handleAsync((r1, ex1) -> fn.apply(ex1))
                         .thenCompose(Function.identity()))
             .thenCompose(Function.identity());
@@ -1028,12 +1028,12 @@ public interface CompletionStage<T, throws X extends Throwable> {
      * @return the new CompletionStage
      * @since 12
      */
-    @SuppressWarnings("unchecked") // TODO RON
+    @SuppressWarnings("unchecked")
     public default <throws X1 extends Throwable, throws X2> CompletionStage<T, X1|X2> exceptionallyComposeAsync
         (Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn,
          Executor executor) {
-        return (CompletionStage<T, X1|X2>)handle((r, ex) -> (ex == null)
-                      ? this
+        return handle((r, ex) -> (ex == null)
+                      ? (CompletionStage<T>)this
                       : this.handleAsync((r1, ex1) -> fn.apply(ex1), executor)
                         .thenCompose(Function.identity()))
             .thenCompose(Function.identity());
