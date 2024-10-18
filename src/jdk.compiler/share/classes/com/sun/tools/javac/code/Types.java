@@ -1139,9 +1139,10 @@ public class Types {
                         return true;
                 }
                 // return false; -- t might be a type var bound by s
-            } else if (isSameType(topBound(tv), syms.exceptionType) || isSameType(topBound(tv), syms.throwableType)) {
+            } else if (tv.isThrowsParam()) {
                 // Have `extends X` behave like `extends X|RuntimeException`).
                 if (!t.hasTag(UNDETVAR)
+                        && !t.isCompound()
                         && !(t instanceof TypeVar && t.getUpperBound() == null)
                         && !(t instanceof TypeVar && t.getUpperBound().hasTag(UNDETVAR))
                         && (isSubtype(t, syms.runtimeExceptionType, capture) || isSubtype(t, syms.errorType, capture)))
