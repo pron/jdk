@@ -4408,7 +4408,10 @@ public class Types {
                     TypePair pair = new TypePair(c1, c2);
                     Type m;
                     if (mergeCache.add(pair)) {
-                        m = new WildcardType(lub(wildUpperBound(act1.head),
+                        if (((TypeVar)typarams.head).isThrowsParam())
+                            m = makeThrowableUnionType(List.of(act1.head, act2.head));
+                        else
+                            m = new WildcardType(lub(wildUpperBound(act1.head),
                                                  wildUpperBound(act2.head)),
                                              BoundKind.EXTENDS,
                                              syms.boundClass);
