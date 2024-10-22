@@ -612,15 +612,8 @@ public class ClassReader {
                 if (formals != null) {
                     if (actuals.isEmpty())
                         actuals = formals;
-                    // TODO RON: For old class files only?
-                    actuals = types.defaultThrowsParams(formals, actuals, false);
                 }
-                /* actualsCp is final as it will be captured by the inner class below. We could avoid defining
-                 * this additional local variable and depend on field ClassType::typarams_field which `actuals` is
-                 * assigned to but then we would have a dependendy on the internal representation of ClassType which
-                 * could change in the future
-                 */
-                final List<Type> actualsCp = actuals;
+
                 outer = new ClassType(outer, actuals, t) {
                         boolean completed = false;
                         boolean typeArgsSet = false;
@@ -659,7 +652,12 @@ public class ClassReader {
                             if (!typeArgsSet) {
                                 typeArgsSet = true;
                                 List<Type> formalsCp = ((ClassType)t.type.tsym.type).typarams_field;
+                                List<Type> actualsCp = typarams_field;
                                 if (formalsCp != null && !formalsCp.isEmpty()) {
+                                    // TODO RON: For old class files only?
+                                    actualsCp = types.defaultThrowsParams(formalsCp, actualsCp, false);
+                                    typarams_field = actualsCp;
+
                                     if (actualsCp.length() == formalsCp.length()) {
                                         List<Type> a = actualsCp;
                                         List<Type> f = formalsCp;
