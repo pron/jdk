@@ -120,7 +120,6 @@ public final class BenchmarkGathererImpls {
         @Override public Void apply(Void left, Void right) { return left; }
 
         @Override
-        @SuppressWarnings({"unchecked", "rawtypes"})
         public <RR, throws X2> Gatherer<T, ?, RR, X2> andThen(Gatherer<? super R, ?, ?
                 extends RR, X2> that) {
             if (that.getClass() == MappingGatherer.class) { // Implicit null-check of that
@@ -128,7 +127,7 @@ public final class BenchmarkGathererImpls {
                 var thatMapper = ((MappingGatherer<R,RR>)that).mapper;
                 return new MappingGatherer<>(this.mapper.andThen(thatMapper));
             } else
-                return Gatherer.super.andThen((Gatherer)that); // TODO RON
+                return Gatherer.super.andThen(that);
         }
 
         @Override
@@ -154,7 +153,7 @@ public final class BenchmarkGathererImpls {
         }
 
         @Override
-        @SuppressWarnings({"unchecked", "rawtypes"})
+        @SuppressWarnings("unchecked")
         public <RR, throws X2> Gatherer<TR, ?, RR, X2> andThen(Gatherer<? super TR, ?, ?
                 extends RR, X2> that) {
             if (that.getClass() == FilteringGatherer.class) {
@@ -170,7 +169,7 @@ public final class BenchmarkGathererImpls {
                 var second = thatFilterMapper.predicate;
                 return new FilteringMappingGatherer<>(e -> first.test(e) && second.test(e), thatFilterMapper.mapper);
             } else
-                return Gatherer.super.andThen((Gatherer)that); // TODO RON
+                return Gatherer.super.andThen(that);
         }
     }
 
@@ -188,7 +187,6 @@ public final class BenchmarkGathererImpls {
         @Override public Void apply(Void left, Void right) { return left; }
 
         @Override
-        @SuppressWarnings({"unchecked", "rawtypes"})
         public <RR, throws X2> Gatherer<T, ?, RR, X2> andThen(Gatherer<? super R, ?, ?
                 extends RR, X2> that) {
             if (that.getClass() == MappingGatherer.class) { // Implicit null-check of that
@@ -196,7 +194,7 @@ public final class BenchmarkGathererImpls {
                 var thatMapper = ((MappingGatherer<R, RR>)that).mapper;
                 return new FilteringMappingGatherer<>(this.predicate, this.mapper.andThen(thatMapper));
             } else
-                return Gatherer.super.andThen((Gatherer)that); // TODO RON
+                return Gatherer.super.andThen(that);
         }
 
         @Override
@@ -252,7 +250,7 @@ public final class BenchmarkGathererImpls {
         }
 
         @Override
-        @SuppressWarnings({"unchecked", "rawtypes"})
+        @SuppressWarnings("unchecked")
         public final <RR, throws X2> Gatherer<TR, ?, RR, X2> andThen(Gatherer<? super TR, ?,
                 ? extends RR, X2> that) {
             if (that.getClass() == TakeWhileGatherer.class) {
@@ -261,7 +259,7 @@ public final class BenchmarkGathererImpls {
                 return (Gatherer<TR, ?, RR>)new TakeWhileGatherer<TR>(e -> thisPredicate.test(e) && thatPredicate.test(e));
             }
             else
-                return Gatherer.super.andThen((Gatherer)that); // TODO RON
+                return Gatherer.super.andThen(that);
         }
     }
 
