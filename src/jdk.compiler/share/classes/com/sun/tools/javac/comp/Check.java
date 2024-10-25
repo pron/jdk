@@ -776,8 +776,11 @@ public class Check {
             }
         } else if (t.hasTag(ARRAY)) {
             if (!types.isReifiable(((ArrayType)t).elemtype)) {
-                log.error(pos, Errors.GenericArrayCreation);
-                t = types.createErrorType(t);
+                if (!types.isReifiable(types.eraseThrowsParamToWildcard(((ArrayType)t).elemtype))) {
+                    log.error(pos, Errors.GenericArrayCreation);
+                    t = types.createErrorType(t);
+                } else
+                    warnUnchecked(pos, Warnings.UncheckedCastToTypeThrows(t));
             }
         }
         return t;

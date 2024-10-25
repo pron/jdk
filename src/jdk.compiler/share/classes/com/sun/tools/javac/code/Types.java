@@ -1916,9 +1916,9 @@ public class Types {
                                 if (upcast ? giveWarning(a, b) :
                                     giveWarning(b, a))
                                     if (!upcast && !warnStack.isEmpty() && warnStack.head != noWarnings
-                                            && differOnlyByThrows(b ,a)) {
+                                            && (differOnlyByThrows(b ,a) || isAllParamsThrowsOrUnbound(a))) {
                                         if (warnStack.head.pos() != null)
-                                            chk.warnUnchecked(warnStack.head.pos(), Warnings.UncheckedCastToType);
+                                            chk.warnUnchecked(warnStack.head.pos(), Warnings.UncheckedCastToTypeThrows(a));
                                     } else
                                         warnStack.head.warn(LintCategory.UNCHECKED);
                                 return true;
@@ -3594,6 +3594,20 @@ public class Types {
         return true;
     }
 
+    public boolean isAllParamsThrowsOrUnbound(Type t) {
+        return isAllParamsThrowsOrUnbound(t.tsym.type.getTypeArguments(), t.allparams());
+    }
+    public boolean isAllParamsThrowsOrUnbound(List<Type> formals, List<Type> actuals) {
+        if (formals.isEmpty()) return false;
+        while (!formals.isEmpty() && !actuals.isEmpty()) {
+            if (!isThrowsParam(formals.head) && !(actuals.head instanceof WildcardType wt && wt.isUnbound()))
+                return false;
+            formals = formals.tail;
+            actuals = actuals.tail;
+        }
+        return true;
+    }
+
     public boolean isThrowableUnionParam(TypeVar tvar) { // TODO RON: use throws param
         Type ubound = topBound(tvar); // tvar.getUpperBound();
         return  ubound instanceof ThrowableUnionClassType
@@ -3713,14 +3727,22 @@ public class Types {
                     : defaultThrows(formal, true);
         }
 
+        Type maybeErase(Type formal, Type actual) {
+            return isThrowsParam(formal) && (wildcard || actual.hasTag(TYPEVAR))
+                    ? eraseTo(formal) : actual;
+        }
+
+        Type maybeErase(Type t) {
+            return isThrowsParam(t) ? eraseTo(t): t;
+        }
+
         @Override
         public Type visitClassType(ClassType t, Void ignored) {
             Type outer = t.getEnclosingType();
             Type outer1 = visit(outer, ignored);
             List<Type> typarams = t.getTypeArguments();
             List<Type> formals = t.tsym.type.allparams();
-            List<Type> typarams1 = typarams.mapTwo(formals,
-                    (tp, f) -> isThrowsParam(f) && tp.hasTag(TYPEVAR) ? eraseTo(f): tp);
+            List<Type> typarams1 = typarams.mapTwo(formals, (tp, f) -> maybeErase(f, tp));
             typarams1 = visit(typarams1, ignored);
 
             if (outer1 == outer && typarams1 == typarams) return t;
@@ -3731,7 +3753,7 @@ public class Types {
 
         @Override
         public Type visitForAll(ForAll t, Void ignored) {
-            Type qtype0 = subst(t.qtype, t.tvars, t.tvars.map(f -> isThrowsParam(f) ? eraseTo(f): f));
+            Type qtype0 = subst(t.qtype, t.tvars, t.tvars.map(this::maybeErase));
             Type qtype1 = visit(qtype0, ignored);
 
             List<Type> tvars1 = t.tvars.filter(v -> !isThrowsParam(v));

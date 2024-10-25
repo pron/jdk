@@ -3160,7 +3160,7 @@ public class Attr extends JCTree.Visitor {
             if (!types.isReifiable(types.eraseThrowsParamToWildcard(elemtype)))
                 log.error(tree.pos(), Errors.GenericArrayCreation);
             else
-                chk.warnUnchecked(tree.pos(), Warnings.UncheckedCastToType);
+                chk.warnUnchecked(tree.pos(), Warnings.UncheckedNewArrayThrows(elemtype));
         }
         result = check(tree, owntype, KindSelector.VAL, resultInfo);
     }
@@ -4213,8 +4213,8 @@ public class Attr extends JCTree.Visitor {
             preview.checkSourceLevel(pos, Feature.PRIMITIVE_PATTERNS);
             return true;
         } else if (warner.hasLint(LintCategory.UNCHECKED)) {
-            if (types.isAllParamsThrows(pattType)) { // TODO: new warning
-                chk.warnUnchecked(pos, Warnings.UncheckedCastToType);
+            if (types.isReifiable(types.eraseThrowsParamToWildcard(pattType))) {
+                chk.warnUnchecked(pos, Warnings.UncheckedCastToTypeThrows(pattType));
                 return true;
             } else {
                 log.error(pos,
