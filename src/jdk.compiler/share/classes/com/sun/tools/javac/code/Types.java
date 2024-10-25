@@ -2451,6 +2451,7 @@ public class Types {
                                     res = mapErasedDefaultThrowable(res.asMethodType(), sym.type.asMethodType(), ownerParams);
                                 return res;
                             } else {
+                                baseParams = baseParams.map(Types.this::fillInDefaultThrows);
                                 return subst(sym.type, ownerParams, baseParams);
                             }
                         }
@@ -3685,6 +3686,22 @@ public class Types {
         return ts.isEmpty() && ss.isEmpty();
     }
 
+    private Type fillInDefaultThrows(Type t) {
+        if (isAllParamsThrows(t)) {
+            List<Type> formals = t.tsym.type.getTypeArguments();
+            List<Type> actuals0 = t.getTypeArguments();
+            List<Type> actuals = defaultThrowsParams(formals, actuals0, false);
+            if (actuals != actuals0) {
+                t = new ClassType(t.getEnclosingType(), actuals, t.tsym, t.metadata) {
+                    @Override
+                    protected boolean needsStripping() {
+                        return true;
+                    }
+                };
+            }
+        }
+        return t;
+    }
     private List<Type> eraseDefaultThrowable(List<Type> ts) {
         var suffix = suffixThrowsParams(ts);
         var newSuffix = suffix.map(t -> suffix.any(s -> s.equalsIgnoreMetadata(t)) ? defaultThrows(t, false) : t);
