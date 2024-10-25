@@ -853,8 +853,6 @@ public class Infer {
                 for (Type b : uv.getBounds(to)) {
                     b = typeFunc.apply(inferenceContext, b);
                     if (optFilter != null && optFilter.test(inferenceContext, b)) continue;
-//                    if (b.toString().startsWith("capture") && b.toString().contains("|X1|X2"))
-//                        System.out.println("PLPLPLPLPLPLPL");
                     boolean success = checkBound(t, b, from, to, warn);
                     if (!success) {
                         report(from, to);

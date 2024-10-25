@@ -5243,7 +5243,6 @@ public class Attr extends JCTree.Visitor {
     }
 
     Type checkIntersection(JCTree tree, final boolean union, List<JCExpression> bounds) {
-        // XXXXX
         Set<Symbol> boundSet = new HashSet<>();
         if (bounds.nonEmpty()) {
             // accept class or interface or typevar as first bound.
