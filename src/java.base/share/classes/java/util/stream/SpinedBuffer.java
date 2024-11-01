@@ -593,8 +593,8 @@ class SpinedBuffer<E>
             arrayForEach(curChunk, 0, elementIndex, consumer);
         }
 
-        abstract class BaseSpliterator<T_SPLITR extends Spliterator.OfPrimitive<E, RuntimeException, T_CONS, T_SPLITR>>
-                implements Spliterator.OfPrimitive<E, RuntimeException, T_CONS, T_SPLITR> {
+        abstract class BaseSpliterator<T_SPLITR extends Spliterator.OfPrimitive<E, T_CONS, T_SPLITR>>
+                implements Spliterator.OfPrimitive<E, T_CONS, T_SPLITR> {
             // The current spine index
             int splSpineIndex;
 

@@ -579,9 +579,9 @@ class StreamSpliterators {
             return getClass().getName() + "[" + get() + "]";
         }
 
-        static class OfPrimitive<T, throws X, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
+        static class OfPrimitive<T, throws X, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR, X>>
             extends DelegatingSpliterator<T, X, T_SPLITR>
-            implements Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR> {
+            implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR, X> {
             OfPrimitive(Supplier<? extends T_SPLITR> supplier) {
                 super(supplier);
             }
@@ -780,10 +780,10 @@ class StreamSpliterators {
         }
 
         abstract static class OfPrimitive<T, throws X,
-                T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>,
+                T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR, X>,
                 T_CONS>
                 extends SliceSpliterator<T, X, T_SPLITR>
-                implements Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR> {
+                implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR, X> {
 
             OfPrimitive(T_SPLITR s, long sliceOrigin, long sliceFence) {
                 this(s, sliceOrigin, sliceFence, 0, Math.min(s.estimateSize(), sliceFence));
@@ -1098,9 +1098,9 @@ class StreamSpliterators {
                 throws X,
                 T_CONS,
                 T_BUFF extends ArrayBuffer.OfPrimitive<T_CONS>,
-                T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
+                T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR, X>>
                 extends UnorderedSliceSpliterator<T, X, T_SPLITR>
-                implements Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR> {
+                implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR, X> {
             OfPrimitive(T_SPLITR s, long skip, long limit) {
                 super(s, skip, limit);
             }

@@ -616,7 +616,7 @@ public interface Spliterator<T, throws X> {
      * @see Spliterator.OfDouble
      * @since 1.8
      */
-    public interface OfPrimitive<T, throws X, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
+    public interface OfPrimitive<T, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR, X>, throws X>
             extends Spliterator<T, X> {
         @Override
         T_SPLITR trySplit();
@@ -671,7 +671,7 @@ public interface Spliterator<T, throws X> {
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public interface OfInt<throws X> extends OfPrimitive<Integer, X, IntConsumer, OfInt<X>> {
+    public interface OfInt<throws X> extends OfPrimitive<Integer, IntConsumer, OfInt<X>, X> {
 
         @Override
         OfInt<X> trySplit();
@@ -737,7 +737,7 @@ public interface Spliterator<T, throws X> {
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public interface OfLong<throws X> extends OfPrimitive<Long, X, LongConsumer, OfLong<X>> {
+    public interface OfLong<throws X> extends OfPrimitive<Long, LongConsumer, OfLong<X>, X> {
 
         @Override
         OfLong<X> trySplit();
@@ -803,7 +803,7 @@ public interface Spliterator<T, throws X> {
      * @since 1.8
      */
     @SuppressWarnings("overloads")
-    public interface OfDouble<throws X> extends OfPrimitive<Double, X, DoubleConsumer, OfDouble<X>> {
+    public interface OfDouble<throws X> extends OfPrimitive<Double, DoubleConsumer, OfDouble<X>, X> {
 
         @Override
         OfDouble<X> trySplit();

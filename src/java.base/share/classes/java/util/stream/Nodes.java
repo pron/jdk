@@ -842,7 +842,7 @@ final class Nodes {
         }
 
         private abstract static class OfPrimitive<E, T_CONS, T_ARR,
-                                                  T_SPLITR extends Spliterator.OfPrimitive<E, RuntimeException, T_CONS, T_SPLITR>,
+                                                  T_SPLITR extends Spliterator.OfPrimitive<E, T_CONS, T_SPLITR>,
                                                   T_NODE extends Node.OfPrimitive<E, T_CONS, T_ARR, T_SPLITR, T_NODE>>
                 extends AbstractConcNode<E, T_NODE>
                 implements Node.OfPrimitive<E, T_CONS, T_ARR, T_SPLITR, T_NODE> {
@@ -1115,10 +1115,10 @@ final class Nodes {
         }
 
         private abstract static class OfPrimitive<T, T_CONS, T_ARR,
-                                                  T_SPLITR extends Spliterator.OfPrimitive<T, RuntimeException, T_CONS, T_SPLITR>,
+                                                  T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>,
                                                   N extends Node.OfPrimitive<T, T_CONS, T_ARR, T_SPLITR, N>>
                 extends InternalNodeSpliterator<T, T_SPLITR, N>
-                implements Spliterator.OfPrimitive<T, RuntimeException, T_CONS, T_SPLITR> {
+                implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR> {
 
             OfPrimitive(N cur) {
                 super(cur);
@@ -2111,7 +2111,7 @@ final class Nodes {
 
         @SuppressWarnings("serial")
         private static class OfPrimitive<T, T_CONS, T_ARR,
-                                         T_SPLITR extends Spliterator.OfPrimitive<T, RuntimeException, T_CONS, T_SPLITR>,
+                                         T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>,
                                          T_NODE extends Node.OfPrimitive<T, T_CONS, T_ARR, T_SPLITR, T_NODE>>
                 extends ToArrayTask<T, T_NODE, OfPrimitive<T, T_CONS, T_ARR, T_SPLITR, T_NODE>> {
             private final T_ARR array;

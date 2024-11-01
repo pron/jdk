@@ -774,9 +774,9 @@ final class Streams {
             }
         }
 
-        private abstract static class OfPrimitive<T, throws X, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR>>
+        private abstract static class OfPrimitive<T, throws X, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR, X>>
                 extends ConcatSpliterator<T, X, T_SPLITR>
-                implements Spliterator.OfPrimitive<T, X, T_CONS, T_SPLITR> {
+                implements Spliterator.OfPrimitive<T, T_CONS, T_SPLITR, X> {
             private OfPrimitive(T_SPLITR aSpliterator, T_SPLITR bSpliterator) {
                 super(aSpliterator, bSpliterator);
             }
