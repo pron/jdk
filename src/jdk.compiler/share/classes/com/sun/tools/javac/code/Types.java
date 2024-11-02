@@ -3545,6 +3545,7 @@ public class Types {
     // </editor-fold>
 
     private boolean isThrowsParam(Type t) {
+        // TODO RON: return false if feature off
         TypeVar tv = (TypeVar)t;
         return tv.isThrowsParam();
 
@@ -3612,6 +3613,7 @@ public class Types {
     }
 
     public boolean isThrowableUnionParam(TypeVar tvar) { // TODO RON: use throws param
+        // TODO RON: return false if feature off
         Type ubound = topBound(tvar); // tvar.getUpperBound();
         return  ubound instanceof ThrowableUnionClassType
                     || isSameType(ubound, syms.throwableType)
