@@ -1909,10 +1909,11 @@ public class Types {
                             if (!(a.tsym == highSub.tsym && a.tsym == lowSub.tsym)) {
                                 Assert.error(a.tsym + " != " + highSub.tsym + " != " + lowSub.tsym);
                             }
-                            if (!disjointTypes(aHigh.allparams(), highSub.allparams())
-                                && !disjointTypes(aHigh.allparams(), lowSub.allparams())
-                                && !disjointTypes(aLow.allparams(), highSub.allparams())
-                                && !disjointTypes(aLow.allparams(), lowSub.allparams())) {
+                            List<Type> formals = a.tsym.type.allparams();
+                            if (!disjointTypes(aHigh.allparams(), highSub.allparams(), formals)
+                                && !disjointTypes(aHigh.allparams(), lowSub.allparams(), formals)
+                                && !disjointTypes(aLow.allparams(), highSub.allparams(), formals)
+                                && !disjointTypes(aLow.allparams(), lowSub.allparams(), formals)) {
                                 if (upcast ? giveWarning(a, b) :
                                     giveWarning(b, a))
                                     if (!upcast && !warnStack.isEmpty() && warnStack.head != noWarnings
@@ -2015,11 +2016,12 @@ public class Types {
     // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="disjointTypes">
-    public boolean disjointTypes(List<Type> ts, List<Type> ss) {
+    public boolean disjointTypes(List<Type> ts, List<Type> ss, List<Type> formals) {
         while (ts.tail != null && ss.tail != null) {
-            if (disjointType(ts.head, ss.head)) return true;
+            if (disjointType(maybeCovariant(ts.head, formals.head), maybeCovariant(ss.head, formals.head))) return true;
             ts = ts.tail;
             ss = ss.tail;
+            formals = formals.tail;
         }
         return false;
     }
@@ -5081,7 +5083,8 @@ public class Types {
         while (commonSupers.nonEmpty()) {
             Type t1 = asSuper(from, commonSupers.head.tsym);
             Type t2 = commonSupers.head; // same as asSuper(to, commonSupers.head.tsym);
-            if (disjointTypes(t1.getTypeArguments(), t2.getTypeArguments()))
+            List<Type> formals = t1.tsym.type.getTypeArguments();
+            if (disjointTypes(t1.getTypeArguments(), t2.getTypeArguments(), formals))
                 return false;
             giveWarning = giveWarning || (reverse ? giveWarning(t2, t1) : giveWarning(t1, t2));
             commonSupers = commonSupers.tail;
@@ -5109,7 +5112,8 @@ public class Types {
         Type t1 = asSuper(from, to.tsym);
         if (t1 == null) return false;
         Type t2 = to;
-        if (disjointTypes(t1.getTypeArguments(), t2.getTypeArguments()))
+        List<Type> formals = t1.tsym.type.getTypeArguments();
+        if (disjointTypes(t1.getTypeArguments(), t2.getTypeArguments(), formals))
             return false;
         if (!isReifiable(target) &&
             (reverse ? giveWarning(t2, t1) : giveWarning(t1, t2)))
