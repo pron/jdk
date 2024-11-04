@@ -144,7 +144,7 @@ import java.util.Objects;
  * and {@code get} methods
  * @since 1.8
  */
-public class CompletableFuture<T, throws X extends Throwable> implements Future<T, X>, CompletionStage<T, X> {
+public class CompletableFuture<T, throws X extends Throwable = Exception> implements Future<T, X>, CompletionStage<T, X> {
 
     /*
      * Overview:
@@ -736,7 +736,7 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
     private <V, throws X1> CompletableFuture<V, X|X1> uniApplyNow(
         Object r, Executor e, Function<? super T,? extends V, X1> f) {
         Throwable x;
-        CompletableFuture<V> d = newIncompleteFuture();
+        CompletableFuture<V, RuntimeException> d = newIncompleteFuture();
         if (r instanceof AltResult) {
             if ((x = ((AltResult)r).ex) != null) {
                 d.result = encodeThrowable(x, r);
@@ -869,14 +869,14 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
         Object r;
         if ((r = result) != null)
             return uniRunNow(r, e, f);
-        CompletableFuture<Void> d = newIncompleteFuture();
+        CompletableFuture<Void, RuntimeException> d = newIncompleteFuture();
         unipush(new UniRun<T>(e, d, this, f));
         return d;
     }
 
     private CompletableFuture<Void, X> uniRunNow(Object r, Executor e, Runnable f) {
         Throwable x;
-        CompletableFuture<Void> d = newIncompleteFuture();
+        CompletableFuture<Void, RuntimeException> d = newIncompleteFuture();
         if (r instanceof AltResult && (x = ((AltResult)r).ex) != null)
             d.result = encodeThrowable(x, r);
         else
@@ -947,7 +947,7 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
     private <throws X1> CompletableFuture<T, X|X1> uniWhenCompleteStage(
         Executor e, BiConsumer<? super T, ? super Throwable, X1> f) {
         if (f == null) throw new NullPointerException();
-        CompletableFuture<T> d = newIncompleteFuture();
+        CompletableFuture<T, RuntimeException> d = newIncompleteFuture();
         Object r;
         if ((r = result) == null)
             unipush(new UniWhenComplete<T>(e, d, this, f));
@@ -1010,7 +1010,7 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
     private <V, throws X1> CompletableFuture<V, X1> uniHandleStage(
         Executor e, BiFunction<? super T, Throwable, ? extends V, X1> f) {
         if (f == null) throw new NullPointerException();
-        CompletableFuture<V> d = newIncompleteFuture();
+        CompletableFuture<V, RuntimeException> d = newIncompleteFuture();
         Object r;
         if ((r = result) == null)
             unipush(new UniHandle<T,V>(e, d, this, f));
@@ -1068,7 +1068,7 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
     private <throws X1> CompletableFuture<T, X1>  uniExceptionallyStage(
         Executor e, Function<Throwable, ? extends T, X1> f) {
         if (f == null) throw new NullPointerException();
-        CompletableFuture<T> d = newIncompleteFuture();
+        CompletableFuture<T, RuntimeException> d = newIncompleteFuture();
         Object r;
         if ((r = result) == null)
             unipush(new UniExceptionally<T>(e, d, this, f));
@@ -1128,7 +1128,7 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
     private <throws X1 extends Throwable, throws X2> CompletableFuture<T, X1|X2> uniComposeExceptionallyStage(
         Executor e, Function<Throwable, ? extends CompletionStage<T, X1>, X2> f) {
         if (f == null) throw new NullPointerException();
-        CompletableFuture<T> d = newIncompleteFuture();
+        CompletableFuture<T, RuntimeException> d = newIncompleteFuture();
         Object r, s; Throwable x;
         if ((r = result) == null)
             unipush(new UniComposeExceptionally<T>(e, d, this, f));
@@ -1235,7 +1235,7 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
     private <V, throws X1 extends Throwable, throws X2> CompletableFuture<V, X|X1|X2> uniComposeStage(
         Executor e, Function<? super T, ? extends CompletionStage<V, X1>, X2> f) {
         if (f == null) throw new NullPointerException();
-        CompletableFuture<V> d = newIncompleteFuture();
+        CompletableFuture<V, RuntimeException> d = newIncompleteFuture();
         Object r, s; Throwable x;
         if ((r = result) == null)
             unipush(new UniCompose<T,V>(e, d, this, f));
@@ -1466,7 +1466,7 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
         CompletableFuture<U, ?> b; Object r, s;
         if (f == null || (b = o.toCompletableFuture()) == null)
             throw new NullPointerException();
-        CompletableFuture<Void> d = newIncompleteFuture();
+        CompletableFuture<Void, RuntimeException> d = newIncompleteFuture();
         if ((r = result) == null || (s = b.result) == null)
             bipush(b, new BiAccept<T,U>(e, d, this, b, f));
         else if (e == null)
@@ -2655,13 +2655,13 @@ public class CompletableFuture<T, throws X extends Throwable> implements Future<
         int n; Object r;
         if ((n = cfs.length) <= 1)
             return (n == 0)
-                ? new CompletableFuture<Object>()
+                ? new CompletableFuture<Object, RuntimeException>()
                 : uniCopyStage(cfs[0]);
         for (CompletableFuture<?, X> cf : cfs)
             if ((r = cf.result) != null)
-                return new CompletableFuture<Object>(encodeRelay(r));
+                return new CompletableFuture<Object, RuntimeException>(encodeRelay(r));
         cfs = cfs.clone();
-        CompletableFuture<Object> d = new CompletableFuture<>();
+        CompletableFuture<Object, RuntimeException> d = new CompletableFuture<>();
         for (CompletableFuture<?, ?> cf : cfs)
             cf.unipush(new AnyOf(d, cf, cfs));
         // If d was completed while we were adding completions, we should

@@ -151,7 +151,7 @@ import java.util.function.Function;
  * @author Doug Lea
  * @since 1.8
  */
-public interface CompletionStage<T, throws X extends Throwable> {
+public interface CompletionStage<T, throws X extends Throwable = Exception> {
 
     /**
      * Returns a new CompletionStage that, when this stage completes
@@ -925,7 +925,7 @@ public interface CompletionStage<T, throws X extends Throwable> {
     public default <throws X1> CompletionStage<T, X1> exceptionallyAsync
         (Function<Throwable, ? extends T, X1> fn) {
         return handle((r, ex) -> (ex == null)
-                      ? (CompletionStage<T>)this
+                      ? (CompletionStage<T, RuntimeException>)this
                       : this.<T,X1>handleAsync((r1, ex1) -> fn.apply(ex1)))
             .thenCompose(Function.identity());
     }
@@ -953,7 +953,7 @@ public interface CompletionStage<T, throws X extends Throwable> {
     public default <throws X1> CompletionStage<T, X1> exceptionallyAsync
         (Function<Throwable, ? extends T, X1> fn, Executor executor) {
         return handle((r, ex) -> (ex == null)
-                      ? (CompletionStage<T>)this
+                      ? (CompletionStage<T, RuntimeException>)this
                       : this.<T, X1>handleAsync((r1, ex1) -> fn.apply(ex1), executor))
             .thenCompose(Function.identity());
     }
@@ -978,7 +978,7 @@ public interface CompletionStage<T, throws X extends Throwable> {
     public default <throws X1 extends Throwable, throws X2> CompletionStage<T, X1|X2> exceptionallyCompose
         (Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn) {
         return handle((r, ex) -> (ex == null)
-                      ? (CompletionStage<T>)this
+                      ? (CompletionStage<T, RuntimeException>)this
                       : fn.apply(ex))
             .thenCompose(Function.identity());
     }
@@ -1004,7 +1004,7 @@ public interface CompletionStage<T, throws X extends Throwable> {
     public default <throws X1 extends Throwable, throws X2> CompletionStage<T, X1|X2> exceptionallyComposeAsync
         (Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn) {
         return handle((r, ex) -> (ex == null)
-                      ? (CompletionStage<T>)this
+                      ? (CompletionStage<T, RuntimeException>)this
                       : this.handleAsync((r1, ex1) -> fn.apply(ex1))
                         .thenCompose(Function.identity()))
             .thenCompose(Function.identity());
@@ -1033,7 +1033,7 @@ public interface CompletionStage<T, throws X extends Throwable> {
         (Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn,
          Executor executor) {
         return handle((r, ex) -> (ex == null)
-                      ? (CompletionStage<T>)this
+                      ? (CompletionStage<T, RuntimeException>)this
                       : this.handleAsync((r1, ex1) -> fn.apply(ex1), executor)
                         .thenCompose(Function.identity()))
             .thenCompose(Function.identity());
