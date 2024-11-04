@@ -613,7 +613,12 @@ public class Types {
         boolean tPrimitive = t.isPrimitive();
         boolean sPrimitive = s.isPrimitive();
         if (tPrimitive == sPrimitive) {
-            return isSubtypeUnchecked(t, s, warn);
+            if (isSubtypeUnchecked(t, s, warn))
+                return true;
+            if (isSubtypeUnchecked(t, eraseThrowsParam(s), warn)) {
+                warn.warn(LintCategory.UNCHECKED);
+                return true;
+            }
         }
         boolean tUndet = t.hasTag(UNDETVAR);
         boolean sUndet = s.hasTag(UNDETVAR);
@@ -3749,7 +3754,7 @@ public class Types {
         }
 
         Type maybeErase(Type formal, Type actual) {
-            return isThrowsParam(formal) && (wildcard || actual.hasTag(TYPEVAR))
+            return isThrowsParam(formal) // && (wildcard || actual.hasTag(TYPEVAR))
                     ? eraseTo(formal) : actual;
         }
 
@@ -4861,11 +4866,14 @@ public class Types {
             return false;
 
         if (hasSameArgs(r1, r2))
-            return covariantReturnType(r1.getReturnType(), r2res, warner);
+            return covariantReturnType(r1.getReturnType(), r2res, warner)
+                    || covariantReturnType(r1.getReturnType(), eraseThrowsParam(r2res), warner);
         if (isSubtypeUnchecked(r1.getReturnType(), r2res, warner))
             return true;
-        if (!isSubtype(r1.getReturnType(), erasure(r2res)))
-            return false;
+        if (!isSubtype(r1.getReturnType(), erasure(r2res))) {
+            if (!isSubtype(r1.getReturnType(), eraseThrowsParam(r2res)))
+                return false;
+        }
         warner.warn(LintCategory.UNCHECKED);
         return true;
     }
