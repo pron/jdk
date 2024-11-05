@@ -1902,6 +1902,10 @@ public class Types {
                         Type lowSub = asSub(bLow, aLow.tsym);
                         Type highSub = (lowSub == null) ? null : asSub(bHigh, aHigh.tsym);
                         if (highSub == null) {
+                            lowSub = asSub(eraseThrowsParam(bLow), aLow.tsym);
+                            highSub = (lowSub == null) ? null : asSub(eraseThrowsParam(bHigh), aHigh.tsym);
+                        }
+                        if (highSub == null) {
                             final boolean REWRITE_TYPEVARS = true;
                             aHigh = rewriteQuantifiers(a, HIGH, REWRITE_TYPEVARS);
                             aLow  = rewriteQuantifiers(a, LOW,  REWRITE_TYPEVARS);
@@ -1909,6 +1913,10 @@ public class Types {
                             bLow  = rewriteQuantifiers(b, LOW,  REWRITE_TYPEVARS);
                             lowSub = asSub(bLow, aLow.tsym);
                             highSub = (lowSub == null) ? null : asSub(bHigh, aHigh.tsym);
+                            if (highSub == null) {
+                                lowSub = asSub(eraseThrowsParam(bLow), aLow.tsym);
+                                highSub = (lowSub == null) ? null : asSub(eraseThrowsParam(bHigh), aHigh.tsym);
+                            }
                         }
                         if (highSub != null) {
                             if (!(a.tsym == highSub.tsym && a.tsym == lowSub.tsym)) {
