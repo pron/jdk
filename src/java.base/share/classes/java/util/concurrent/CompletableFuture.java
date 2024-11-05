@@ -3031,9 +3031,23 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
      * @return the exceptionally completed CompletableFuture
      * @since 9
      */
-    public static <U, throws X extends Throwable = Throwable> CompletableFuture<U, X> failedFuture(X ex) {
+    @SuppressWarnings("unchecked")
+    public static <U, throws X> CompletableFuture<U, X> failedFuture(X ex) {
+        return (CompletableFuture<U, X>)failedFuture((Throwable)ex);
+    }
+
+    /**
+     * Returns a new CompletableFuture that is already completed
+     * exceptionally with the given exception.
+     *
+     * @param ex the exception
+     * @param <U> the type of the value
+     * @return the exceptionally completed CompletableFuture
+     * @since 9
+     */
+    public static <U> CompletableFuture<U> failedFuture(Throwable ex) {
         if (ex == null) throw new NullPointerException();
-        return new CompletableFuture<U, X>(new AltResult(ex));
+        return new CompletableFuture<U>(new AltResult(ex)); // TODO RON wrap Throwables that aren't exceptions
     }
 
     /**
@@ -3047,9 +3061,24 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
      * @return the exceptionally completed CompletionStage
      * @since 9
      */
-    public static <U, throws X extends Throwable = Throwable> CompletionStage<U, X> failedStage(X ex) {
+    @SuppressWarnings("unchecked")
+    public static <U, throws X> CompletionStage<U, X> failedStage(X ex) {
+        return (CompletionStage<U, X>)failedStage((Throwable)ex);
+    }
+
+    /**
+     * Returns a new CompletionStage that is already completed
+     * exceptionally with the given exception and supports only those
+     * methods in interface {@link CompletionStage}.
+     *
+     * @param ex the exception
+     * @param <U> the type of the value
+     * @return the exceptionally completed CompletionStage
+     * @since 9
+     */
+    public static <U> CompletionStage<U> failedStage(Throwable ex) {
         if (ex == null) throw new NullPointerException();
-        return new MinimalStage<U>(new AltResult(ex));
+        return new MinimalStage<U>(new AltResult(ex)); // TODO RON wrap Throwables that aren't exceptions
     }
 
     /**
