@@ -72,7 +72,7 @@ import java.util.function.Supplier;
  * @see Stream
  * @see <a href="package-summary.html">java.util.stream</a>
  */
-public interface IntStream<throws X> extends BaseStream<Integer, X, IntStream<X>> {
+public interface IntStream<throws X> extends BaseStream<Integer, IntStream<X>, X> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match

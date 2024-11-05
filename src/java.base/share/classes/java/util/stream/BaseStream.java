@@ -55,7 +55,7 @@ import java.util.Spliterator;
  * @see DoubleStream
  * @see <a href="package-summary.html">java.util.stream</a>
  */
-public interface BaseStream<T, throws X, S extends BaseStream<T, X, S>>
+public interface BaseStream<T, S extends BaseStream<T, S, X>, throws X>
         extends AutoCloseable {
     /**
      * Returns an iterator for the elements of this stream.

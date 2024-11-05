@@ -72,7 +72,7 @@ import java.util.function.Supplier;
  *
  * @param <X> throws
  */
-public interface LongStream<throws X> extends BaseStream<Long, X, LongStream<X>> {
+public interface LongStream<throws X> extends BaseStream<Long, LongStream<X>, X> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match

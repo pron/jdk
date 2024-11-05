@@ -71,7 +71,7 @@ import java.util.function.Supplier;
  *
  * @param <X> throws
  */
-public interface DoubleStream<throws X> extends BaseStream<Double, X, DoubleStream<X>> {
+public interface DoubleStream<throws X> extends BaseStream<Double, DoubleStream<X>, X> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match

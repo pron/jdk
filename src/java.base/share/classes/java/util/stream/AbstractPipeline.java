@@ -71,8 +71,8 @@ import java.util.function.Supplier;
  * @param <S> type of the subclass implementing {@code BaseStream}
  * @since 1.8
  */
-abstract class AbstractPipeline<E_IN, E_OUT, throws X, S extends BaseStream<E_OUT, X, S>>
-        extends PipelineHelper<E_OUT, X> implements BaseStream<E_OUT, X, S> {
+abstract class AbstractPipeline<E_IN, E_OUT, throws X, S extends BaseStream<E_OUT, S, X>>
+        extends PipelineHelper<E_OUT, X> implements BaseStream<E_OUT, S, X> {
     private static final String MSG_STREAM_LINKED = "stream has already been operated upon or closed";
     private static final String MSG_CONSUMED = "source already consumed or closed";
 

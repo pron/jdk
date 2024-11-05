@@ -164,7 +164,7 @@ import java.util.function.UnaryOperator;
  * @see DoubleStream
  * @see <a href="package-summary.html">java.util.stream</a>
  */
-public interface Stream<T, throws X> extends BaseStream<T, X, Stream<T, X>> {
+public interface Stream<T, throws X> extends BaseStream<T, Stream<T, X>, X> {
 
     /**
      * Returns a stream consisting of the elements of this stream that match
