@@ -3742,6 +3742,10 @@ public class Types {
         return erased;
     }
 
+    /**
+     * "Erase" all occurrences of trows type parameters to their default type.
+     * This is the primary backward-compatibility mechanism for throws type parameters.
+     */
     public Type eraseThrowsParam(Type t) {
         return t.map(new EraseThrowsParam(false));
     }
