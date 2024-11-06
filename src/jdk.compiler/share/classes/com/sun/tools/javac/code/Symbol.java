@@ -2174,8 +2174,12 @@ public abstract class Symbol extends AnnoConstruct implements PoolConstant, Elem
             // assert types.asSuper(origin.type, other.owner) != null;
             Type mt = types.memberType(origin.type, this);
             Type ot = types.memberType(origin.type, other);
-            return (types.isSubSignature(mt, ot) || types.isSubSignature(mt, types.eraseThrowsParam(ot))) &&
-                (!checkResult || types.resultSubtype(mt, ot, types.noWarnings));
+            return (types.isSubSignature(mt, ot)
+                    || types.isSubSignature(mt, types.eraseThrowsParam(ot))
+                    || types.isSubSignature(types.eraseThrowsParam(mt), ot)) &&
+                (!checkResult || types.resultSubtype(mt, ot, types.noWarnings)
+                              || types.resultSubtype(mt, types.eraseThrowsParam(ot), types.noWarnings)
+                              || types.resultSubtype(types.eraseThrowsParam(mt), ot, types.noWarnings));
         }
 
         private boolean isOverridableIn(TypeSymbol origin) {
