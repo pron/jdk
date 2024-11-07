@@ -3312,6 +3312,15 @@ public class ClassReader {
             missingTypeVariables = List.nil();
             foundTypeVariables = List.nil();
             filling = false;
+
+            // TODO RON: Put this someplace else?
+            ClassType ct = (ClassType)c.type;
+            if (ct != null) {
+                if (ct.supertype_field != null && ct.supertype_field.tsym != null)
+                    ct.supertype_field = types.fillInDefaultThrows(ct.supertype_field);
+                if (ct.interfaces_field != null)
+                    ct.interfaces_field = ct.interfaces_field.map(types::fillInDefaultThrows);
+            }
         }
     }
 

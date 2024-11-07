@@ -3703,7 +3703,7 @@ public class Types {
         return ts.isEmpty() && ss.isEmpty();
     }
 
-    private Type fillInDefaultThrows(Type t) {
+    public Type fillInDefaultThrows(Type t) {
         if (isAllParamsThrows(t)) {
             List<Type> formals = t.tsym.type.getTypeArguments();
             List<Type> actuals0 = t.getTypeArguments();
