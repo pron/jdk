@@ -3928,11 +3928,6 @@ public class Attr extends JCTree.Visitor {
                 types.isSubtype(checkedEx, nonProper);
             });
         });
-        if (uncaughtByProperTypes.isEmpty()) {
-            nonProperAsUndet.forEach(nonProper -> {
-                types.isSubtype(syms.runtimeExceptionType, nonProper);
-            });
-        }
 
         /** In addition, for all j (1 <= j <= n), the constraint reduces to the bound throws Ej
          */
