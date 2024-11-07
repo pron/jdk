@@ -2158,10 +2158,10 @@ public class Check {
             for (Symbol s3 : t.tsym.members().getSymbolsByName(s1.name)) {
                 if (s3 == s1 || s3 == s2 || s3.kind != MTH || (s3.flags() & (BRIDGE|SYNTHETIC)) != 0) continue;
                 Type st3 = types.memberType(site,s3);
-                if (types.overrideEquivalent(st3, st1) &&
-                        types.overrideEquivalent(st3, st2) &&
-                        types.returnTypeSubstitutable(st3, st1) &&
-                        types.returnTypeSubstitutable(st3, st2)) {
+                if ((types.overrideEquivalent(st3, st1) || types.overrideEquivalent(st3, types.eraseThrowsParam(st1))) &&
+                        (types.overrideEquivalent(st3, st2) || types.overrideEquivalent(st3, types.eraseThrowsParam(st2))) &&
+                        (types.returnTypeSubstitutable(st3, st1) || types.returnTypeSubstitutable(st3, types.eraseThrowsParam(st1))) &&
+                        (types.returnTypeSubstitutable(st3, st2)) || types.returnTypeSubstitutable(st3, types.eraseThrowsParam(st2))) {
                     return true;
                 }
             }
