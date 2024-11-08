@@ -3141,11 +3141,11 @@ public class ClassReader {
         }
         if (ct.supertype_field == null)
             ct.supertype_field =
-                    optPoolEntry(n, idx -> poolReader.getClass(idx).erasure(types), Type.noType);
+                    optPoolEntry(n, idx -> unparameterized(poolReader.getClass(idx)), Type.noType);
         n = nextChar();
         List<Type> is = List.nil();
         for (int i = 0; i < n; i++) {
-            Type _inter = poolReader.getClass(nextChar()).erasure(types);
+            Type _inter = unparameterized(poolReader.getClass(nextChar()));
             is = is.prepend(_inter);
         }
         if (ct.interfaces_field == null)
@@ -3161,6 +3161,27 @@ public class ClassReader {
             }
         }
         typevars = typevars.leave();
+    }
+
+    private ClassType unparameterized(ClassSymbol tsym) {
+        return new ClassType(types.erasure(tsym.type.getEnclosingType()),
+                List.nil(), tsym,
+                tsym.type.getMetadata()) {
+            boolean typeArgsSet = false;
+
+            @Override
+            public List<Type> getTypeArguments() {
+                if (!typeArgsSet) {
+                    typeArgsSet = true;
+                    List<Type> formals = tsym.type.getTypeArguments();
+                    if (formals != null && !formals.isEmpty()) {
+                        // TODO RON: For old class files only?
+                        typarams_field = types.defaultThrowsParams(formals, typarams_field, false);
+                    }
+                }
+                return super.getTypeArguments();
+            }
+        };
     }
 
     private MethodSymbol lookupMethod(TypeSymbol tsym, Name name, List<Type> argtypes) {
@@ -3312,15 +3333,6 @@ public class ClassReader {
             missingTypeVariables = List.nil();
             foundTypeVariables = List.nil();
             filling = false;
-
-            // TODO RON: Put this someplace else?
-            ClassType ct = (ClassType)c.type;
-            if (ct != null) {
-                if (ct.supertype_field != null && ct.supertype_field.tsym != null)
-                    ct.supertype_field = types.fillInDefaultThrows(ct.supertype_field);
-                if (ct.interfaces_field != null)
-                    ct.interfaces_field = ct.interfaces_field.map(types::fillInDefaultThrows);
-            }
         }
     }
 
