@@ -2180,15 +2180,19 @@ public class Types {
                     if (!t.isParameterized())
                         return true;
 
+                    boolean result = true;
                     for (Type param : t.allparams()) {
                         if (param instanceof WildcardType w && w.bound != null && w.bound.isThrowsParam() && w.getExtendsBound() != null
-                            && isSameType(w.getExtendsBound(), w.bound.getThrowsDefault())
+                            // && isSameType(w.getExtendsBound(), w.bound.getThrowsDefault())
                             && isSameType(w.getExtendsBound(), w.bound.getUpperBound()))
                                 continue;
+                        if (param instanceof UndetVar uv && ((TypeVar)uv.qtype).isThrowsParam()
+                                && isSameType(uv, ((TypeVar)uv.qtype).getUpperBound()))
+                            continue;
                         if (!param.isUnbound())
-                            return false;
+                            result = false;
                     }
-                    return true;
+                    return result;
                 }
             }
 
