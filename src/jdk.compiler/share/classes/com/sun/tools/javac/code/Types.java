@@ -2186,6 +2186,8 @@ public class Types {
                             // && isSameType(w.getExtendsBound(), w.bound.getThrowsDefault())
                             && isSameType(w.getExtendsBound(), w.bound.getUpperBound()))
                                 continue;
+                        // In the presence of raw types, throws params resolve to their default (in the THROWS solution phase)
+                        // rather than to their bounds. This pushes them up to their bounds.
                         if (param instanceof UndetVar uv && ((TypeVar)uv.qtype).isThrowsParam()
                                 && isSameType(uv, ((TypeVar)uv.qtype).getUpperBound()))
                             continue;
