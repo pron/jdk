@@ -1197,8 +1197,7 @@ public abstract class Type extends AnnoConstruct implements TypeMirror, PoolCons
             return
                 this != tsym.type && // necessary, but not sufficient condition
                 tsym.type.allparams().nonEmpty() &&
-                allparams().isEmpty() &&
-                !types.isAllParamsThrows(this);
+                allparams().isEmpty();
         }
 
         public boolean contains(Type elem) {
