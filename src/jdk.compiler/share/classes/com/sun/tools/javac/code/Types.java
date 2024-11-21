@@ -2180,21 +2180,27 @@ public class Types {
                     if (!t.isParameterized())
                         return true;
 
-                    boolean result = true;
-                    for (Type param : t.allparams()) {
-                        if (param instanceof WildcardType w && w.bound != null && w.bound.isThrowsParam() && w.getExtendsBound() != null
-                            // && isSameType(w.getExtendsBound(), w.bound.getThrowsDefault())
-                            && isSameType(w.getExtendsBound(), w.bound.getUpperBound()))
-                                continue;
-                        // In the presence of raw types, throws params resolve to their default (in the THROWS solution phase)
-                        // rather than to their bounds. This pushes them up to their bounds.
-                        if (param instanceof UndetVar uv && ((TypeVar)uv.qtype).isThrowsParam()
-                                && isSameType(uv, ((TypeVar)uv.qtype).getUpperBound()))
-                            continue;
-                        if (!param.isUnbound())
-                            result = false;
+                    List<Type> actuals = t.allparams();
+                    List<Type> formals = t.tsym.type.allparams();
+                    while (!actuals.isEmpty() && !formals.isEmpty()) {
+                        TypeVar formal = (TypeVar)formals.head;
+                        Type param = maybeCovariant(actuals.head, formal);
+
+                        // If we have a throws typevar that's instantiated to its bound -- we're reifiable
+                        if (formal.isThrowsParam()) {
+                            Type bound = ((WildcardType)param).getExtendsBound();
+                            if (bound != null && !isSameType(bound, formal.getUpperBound()))
+                                return false;
+                        } else if (!param.isUnbound()) {
+                            return false;
+                        }
+
+                        actuals = actuals.tail;
+                        formals = formals.tail;
                     }
-                    return result;
+                    if (!actuals.isEmpty() || !formals.isEmpty())
+                        return false;
+                    return true;
                 }
             }
 
