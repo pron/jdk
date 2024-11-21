@@ -1573,7 +1573,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
     }
 
     /** Recursively constructs a tree of completions. */
-    static <throws X> CompletableFuture<Void, X> andTree(CompletableFuture<?, X>[] cfs,
+    static <throws X extends Throwable> CompletableFuture<Void, X> andTree(CompletableFuture<?, X>[] cfs,
                                            int lo, int hi) {
         CompletableFuture<Void, X> d = new CompletableFuture<Void, X>();
         if (lo > hi) // empty
@@ -2629,7 +2629,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
      */
     @SafeVarargs
     @SuppressWarnings("varargs")
-    public static <throws X> CompletableFuture<Void, X> allOf(CompletableFuture<?, X>... cfs) {
+    public static <throws X extends Throwable> CompletableFuture<Void, X> allOf(CompletableFuture<?, X>... cfs) {
         return andTree(cfs, 0, cfs.length - 1);
     }
 
@@ -2651,7 +2651,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
      */
     @SafeVarargs
     @SuppressWarnings("varargs")
-    public static <throws X> CompletableFuture<Object, X> anyOf(CompletableFuture<?, X>... cfs) {
+    public static <throws X extends Throwable> CompletableFuture<Object, X> anyOf(CompletableFuture<?, X>... cfs) {
         int n; Object r;
         if ((n = cfs.length) <= 1)
             return (n == 0)
