@@ -3681,6 +3681,8 @@ public class Types {
         if (delta > 0) {
             List<Type> suffix = suffixThrowsParams(formals);
             int numFilled = suffix.length() - delta;
+            if (numFilled < 0) // happens with raw types
+                return actuals;
             for (int i = 0; i < numFilled; i++)
                 suffix = suffix.tail;
             for (;!suffix.isEmpty(); suffix = suffix.tail) {
