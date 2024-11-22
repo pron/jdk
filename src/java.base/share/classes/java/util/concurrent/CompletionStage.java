@@ -151,7 +151,7 @@ import java.util.function.Function;
  * @author Doug Lea
  * @since 1.8
  */
-public interface CompletionStage<T, throws X extends Throwable = Exception> {
+public interface CompletionStage<T, throws X = Exception> {
 
     /**
      * Returns a new CompletionStage that, when this stage completes
@@ -685,7 +685,7 @@ public interface CompletionStage<T, throws X extends Throwable = Exception> {
      * @param <X2> throws
      * @return the new CompletionStage
      */
-    public <U, throws X1 extends Throwable, throws X2> CompletionStage<U, X|X1|X2> thenCompose
+    public <U, throws X1, throws X2> CompletionStage<U, X|X1|X2> thenCompose
         (Function<? super T, ? extends CompletionStage<U, X1>, X2> fn);
 
     /**
@@ -712,7 +712,7 @@ public interface CompletionStage<T, throws X extends Throwable = Exception> {
      * @param <X2> throws
      * @return the new CompletionStage
      */
-    public <U, throws X1 extends Throwable, throws X2> CompletionStage<U, X|X1|X2> thenComposeAsync
+    public <U, throws X1, throws X2> CompletionStage<U, X|X1|X2> thenComposeAsync
         (Function<? super T, ? extends CompletionStage<U, X1>, X2> fn);
 
     /**
@@ -739,7 +739,7 @@ public interface CompletionStage<T, throws X extends Throwable = Exception> {
      * @param <X2> throws
      * @return the new CompletionStage
      */
-    public <U, throws X1 extends Throwable, throws X2> CompletionStage<U, X|X1|X2> thenComposeAsync
+    public <U, throws X1, throws X2> CompletionStage<U, X|X1|X2> thenComposeAsync
         (Function<? super T, ? extends CompletionStage<U, X1>, X2> fn,
          Executor executor);
 
@@ -975,7 +975,7 @@ public interface CompletionStage<T, throws X extends Throwable = Exception> {
      * @since 12
      */
     @SuppressWarnings("unchecked")
-    public default <throws X1 extends Throwable, throws X2> CompletionStage<T, X1|X2> exceptionallyCompose
+    public default <throws X1, throws X2> CompletionStage<T, X1|X2> exceptionallyCompose
         (Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn) {
         return handle((r, ex) -> (ex == null)
                       ? (CompletionStage<T, RuntimeException>)this
@@ -1001,7 +1001,7 @@ public interface CompletionStage<T, throws X extends Throwable = Exception> {
      * @since 12
      */
     @SuppressWarnings("unchecked")
-    public default <throws X1 extends Throwable, throws X2> CompletionStage<T, X1|X2> exceptionallyComposeAsync
+    public default <throws X1, throws X2> CompletionStage<T, X1|X2> exceptionallyComposeAsync
         (Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn) {
         return handle((r, ex) -> (ex == null)
                       ? (CompletionStage<T, RuntimeException>)this
@@ -1029,7 +1029,7 @@ public interface CompletionStage<T, throws X extends Throwable = Exception> {
      * @since 12
      */
     @SuppressWarnings("unchecked")
-    public default <throws X1 extends Throwable, throws X2> CompletionStage<T, X1|X2> exceptionallyComposeAsync
+    public default <throws X1, throws X2> CompletionStage<T, X1|X2> exceptionallyComposeAsync
         (Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn,
          Executor executor) {
         return handle((r, ex) -> (ex == null)

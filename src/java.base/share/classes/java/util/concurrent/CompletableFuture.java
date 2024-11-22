@@ -144,7 +144,7 @@ import java.util.Objects;
  * and {@code get} methods
  * @since 1.8
  */
-public class CompletableFuture<T, throws X extends Throwable = Exception> implements Future<T, X>, CompletionStage<T, X> {
+public class CompletableFuture<T, throws X = Exception> implements Future<T, X>, CompletionStage<T, X> {
 
     /*
      * Overview:
@@ -1125,7 +1125,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
         }
     }
 
-    private <throws X1 extends Throwable, throws X2> CompletableFuture<T, X1|X2> uniComposeExceptionallyStage(
+    private <throws X1, throws X2> CompletableFuture<T, X1|X2> uniComposeExceptionallyStage(
         Executor e, Function<Throwable, ? extends CompletionStage<T, X1>, X2> f) {
         if (f == null) throw new NullPointerException();
         CompletableFuture<T, RuntimeException> d = newIncompleteFuture();
@@ -1168,7 +1168,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
         }
     }
 
-    private static <U, T extends U, throws X extends Throwable> CompletableFuture<U, X> uniCopyStage(
+    private static <U, T extends U, throws X> CompletableFuture<U, X> uniCopyStage(
         CompletableFuture<T, X> src) {
         Object r;
         CompletableFuture<U, X> d = src.newIncompleteFuture();
@@ -1232,7 +1232,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
         }
     }
 
-    private <V, throws X1 extends Throwable, throws X2> CompletableFuture<V, X|X1|X2> uniComposeStage(
+    private <V, throws X1, throws X2> CompletableFuture<V, X|X1|X2> uniComposeStage(
         Executor e, Function<? super T, ? extends CompletionStage<V, X1>, X2> f) {
         if (f == null) throw new NullPointerException();
         CompletableFuture<V, RuntimeException> d = newIncompleteFuture();
@@ -1573,7 +1573,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
     }
 
     /** Recursively constructs a tree of completions. */
-    static <throws X extends Throwable> CompletableFuture<Void, X> andTree(CompletableFuture<?, X>[] cfs,
+    static <throws X> CompletableFuture<Void, X> andTree(CompletableFuture<?, X>[] cfs,
                                            int lo, int hi) {
         CompletableFuture<Void, X> d = new CompletableFuture<Void, X>();
         if (lo > hi) // empty
@@ -2485,19 +2485,19 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
     }
 
     @Override
-    public <U, throws X1 extends Throwable, throws X2> CompletableFuture<U, X|X1|X2> thenCompose(
+    public <U, throws X1, throws X2> CompletableFuture<U, X|X1|X2> thenCompose(
         Function<? super T, ? extends CompletionStage<U, X1>, X2> fn) {
         return uniComposeStage(null, fn);
     }
 
     @Override
-    public <U, throws X1 extends Throwable, throws X2> CompletableFuture<U, X|X1|X2> thenComposeAsync(
+    public <U, throws X1, throws X2> CompletableFuture<U, X|X1|X2> thenComposeAsync(
         Function<? super T, ? extends CompletionStage<U, X1>, X2> fn) {
         return uniComposeStage(defaultExecutor(), fn);
     }
 
     @Override
-    public <U, throws X1 extends Throwable, throws X2> CompletableFuture<U, X|X1|X2> thenComposeAsync(
+    public <U, throws X1, throws X2> CompletableFuture<U, X|X1|X2> thenComposeAsync(
         Function<? super T, ? extends CompletionStage<U, X1>, X2> fn,
         Executor executor) {
         return uniComposeStage(screenExecutor(executor), fn);
@@ -2577,7 +2577,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
      * @since 12
      */
     @Override
-    public <throws X1 extends Throwable, throws X2> CompletableFuture<T, X1|X2> exceptionallyCompose(
+    public <throws X1, throws X2> CompletableFuture<T, X1|X2> exceptionallyCompose(
         Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn) {
         return uniComposeExceptionallyStage(null, fn);
     }
@@ -2586,7 +2586,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
      * @since 12
      */
     @Override
-    public <throws X1 extends Throwable, throws X2> CompletableFuture<T, X1|X2> exceptionallyComposeAsync(
+    public <throws X1, throws X2> CompletableFuture<T, X1|X2> exceptionallyComposeAsync(
         Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn) {
         return uniComposeExceptionallyStage(defaultExecutor(), fn);
     }
@@ -2595,7 +2595,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
      * @since 12
      */
     @Override
-    public <throws X1 extends Throwable, throws X2> CompletableFuture<T, X1|X2> exceptionallyComposeAsync(
+    public <throws X1, throws X2> CompletableFuture<T, X1|X2> exceptionallyComposeAsync(
         Function<Throwable, ? extends CompletionStage<T, X1>, X2> fn,
         Executor executor) {
         return uniComposeExceptionallyStage(screenExecutor(executor), fn);
@@ -2629,7 +2629,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
      */
     @SafeVarargs
     @SuppressWarnings("varargs")
-    public static <throws X extends Throwable> CompletableFuture<Void, X> allOf(CompletableFuture<?, X>... cfs) {
+    public static <throws X> CompletableFuture<Void, X> allOf(CompletableFuture<?, X>... cfs) {
         return andTree(cfs, 0, cfs.length - 1);
     }
 
@@ -2651,7 +2651,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
      */
     @SafeVarargs
     @SuppressWarnings("varargs")
-    public static <throws X extends Throwable> CompletableFuture<Object, X> anyOf(CompletableFuture<?, X>... cfs) {
+    public static <throws X> CompletableFuture<Object, X> anyOf(CompletableFuture<?, X>... cfs) {
         int n; Object r;
         if ((n = cfs.length) <= 1)
             return (n == 0)
@@ -2831,7 +2831,7 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
      * @return a new CompletableFuture
      * @since 9
      */
-    public <U, throws X1 extends Throwable> CompletableFuture<U, X1> newIncompleteFuture() {
+    public <U, throws X1> CompletableFuture<U, X1> newIncompleteFuture() {
         return new CompletableFuture<U, X1>();
     }
 
@@ -3167,10 +3167,10 @@ public class CompletableFuture<T, throws X extends Throwable = Exception> implem
     /**
      * A subclass that just throws UOE for most non-CompletionStage methods.
      */
-    static final class MinimalStage<T, throws X extends Throwable> extends CompletableFuture<T, X> {
+    static final class MinimalStage<T, throws X> extends CompletableFuture<T, X> {
         MinimalStage() { }
         MinimalStage(Object r) { super(r); }
-        @Override public <U, throws X extends Throwable> CompletableFuture<U, X> newIncompleteFuture() {
+        @Override public <U, throws X> CompletableFuture<U, X> newIncompleteFuture() {
             return new MinimalStage<U, X>(); }
         @Override public T get() {
             throw new UnsupportedOperationException(); }
