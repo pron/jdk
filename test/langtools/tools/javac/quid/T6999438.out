@@ -1,2 +1,2 @@
-T6999438.java:8:9: compiler.err.illegal.char: #
+T6999438.java:8:8: compiler.err.expected: token.identifier
 1 error

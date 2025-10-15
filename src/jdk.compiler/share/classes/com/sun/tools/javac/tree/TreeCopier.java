@@ -289,6 +289,21 @@ public class TreeCopier<P> implements TreeVisitor<JCTree,P> {
     }
 
     @DefinedBy(Api.COMPILER_TREE)
+    public JCTree visitStringTemplate(StringTemplateTree node, P p) {
+        JCStringTemplate t = (JCStringTemplate) node;
+        JCExpression templateTypeExpr = null;
+        if (t.templateTypeExpr != null) {
+            templateTypeExpr = copy(t.templateTypeExpr, p);
+        }
+        List<JCExpression> expressions = copy(t.expressions, p);
+        ListBuffer<List<JCAnnotation>> annotations = new ListBuffer<>();
+        for (List<JCAnnotation> argAnnotation : annotations) {
+            annotations.add(copy(argAnnotation, p));
+        }
+        return M.at(t.pos).StringTemplate(templateTypeExpr, t.fragments, expressions, annotations.toList());
+    }
+
+    @DefinedBy(Api.COMPILER_TREE)
     public JCTree visitMethod(MethodTree node, P p) {
         JCMethodDecl t  = (JCMethodDecl) node;
         JCModifiers mods = copy(t.mods, p);

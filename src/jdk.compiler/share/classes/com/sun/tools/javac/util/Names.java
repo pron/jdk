@@ -231,6 +231,12 @@ public class Names {
     // special annotation names
     public final Name requiresIdentityInternal;
 
+    // snippets
+    public final Name makeSnippet;
+    public final Name makeLanguage;
+    public final Name makeTemplate;
+    public final Name makeParameter;
+
     public final Name.Table table;
 
     @SuppressWarnings("this-escape")
@@ -410,14 +416,19 @@ public class Names {
         permits = fromString("permits");
         sealed = fromString("sealed");
 
+        // special annotations:
+        requiresIdentityInternal = fromString("jdk.internal.RequiresIdentity+Annotation");
+
+        // templated string
+        makeSnippet = fromString("makeSnippet");
+        makeLanguage = fromString("makeLanguage");
+        makeTemplate = fromString("makeTemplate");
+        makeParameter = fromString("makeParameter");
 
         // pattern switches
         typeSwitch = fromString("typeSwitch");
         enumSwitch = fromString("enumSwitch");
         enumConstant = fromString("enumConstant");
-
-        // special annotations:
-        requiresIdentityInternal = fromString("jdk.internal.RequiresIdentity+Annotation");
     }
 
     protected Name.Table createTable(Options options) {

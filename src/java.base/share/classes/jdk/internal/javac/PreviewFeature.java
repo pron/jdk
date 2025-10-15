@@ -68,6 +68,8 @@ public @interface PreviewFeature {
         // keeping the constant of a feature that has been integrated or dropped, serves the purpose of muting such warnings.
 
         //---
+        @JEP(number=459, title="String Templates", status="Second Preview")
+        STRING_TEMPLATES,
         IMPLICIT_CLASSES, //to be removed when boot JDK is 25
         SCOPED_VALUES,
         @JEP(number=505, title="Structured Concurrency", status="Fifth Preview")

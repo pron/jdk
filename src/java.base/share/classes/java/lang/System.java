@@ -59,6 +59,7 @@ import java.util.function.Supplier;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
+import jdk.internal.javac.PreviewFeature;
 import jdk.internal.javac.Restricted;
 import jdk.internal.loader.NativeLibraries;
 import jdk.internal.logger.LoggerFinderLoader.TemporaryLoggerFinder;
@@ -2180,6 +2181,14 @@ public final class System {
                 return StringConcatHelper.lookupStatic(name, methodType);
             }
 
+            public long stringConcatHelperPrepend(long indexCoder, byte[] buf, String value) {
+                return StringConcatHelper.prepend(indexCoder, buf, value, "");
+            }
+
+            public boolean stringConcatHelpeIsLatin1(long lengthCoder) {
+                return StringConcatHelper.isLatin1(lengthCoder);
+            }
+
             public long stringConcatInitialCoder() {
                 return StringConcatHelper.initialCoder();
             }
@@ -2190,6 +2199,23 @@ public final class System {
 
             public long stringConcatMix(long lengthCoder, char value) {
                 return StringConcatHelper.mix(lengthCoder, value);
+            }
+
+            @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
+            public long stringConcatCoder(char value) {
+                return StringConcatHelper.coder(value);
+            }
+
+            @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
+            public long stringBuilderConcatMix(long lengthCoder,
+                                               StringBuilder sb) {
+                return sb.mix(lengthCoder);
+            }
+
+            @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
+            public long stringBuilderConcatPrepend(long lengthCoder, byte[] buf,
+                                                   StringBuilder sb) {
+                return sb.prepend(lengthCoder, buf);
             }
 
             public Object uncheckedStringConcat1(String[] constants) {

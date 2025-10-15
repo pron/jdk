@@ -125,7 +125,7 @@ public class ToolProviderTest extends TestRunner {
         if (!out.isEmpty()) {
             error("stdout: unexpected output");
         }
-        if (!err.contains("illegal character")) {
+        if (!err.contains("illegal start of type")) {
             error("stderr: expected output not found");
         }
     }

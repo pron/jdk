@@ -221,3 +221,8 @@ compiler.warn.restricted.method
 # Pending removal
 compiler.note.implicit.annotation.processing
 compiler.warn.proc.use.proc.or.implicit
+
+# experimental (templates)
+compiler.err.unexpected.template
+compiler.err.bad.target.for.template
+compiler.misc.bad.target.for.template

@@ -2732,6 +2732,7 @@ public class Resolve {
             Type res = super.typeOf(dt, pt);
             if (!res.isErroneous()) {
                 switch (TreeInfo.skipParens(dt.tree).getTag()) {
+                    case STRING_TEMPLATE:
                     case LAMBDA:
                     case REFERENCE:
                         return dt;

@@ -999,6 +999,32 @@ public class Types {
        }
     }
 
+    public boolean isSnippet(Type t) {
+        Type sup = asSuper(t, syms.snippetType.tsym);
+        return sup != null;
+    }
+
+    public boolean isValidSnippetTarget(Type target) {
+        if (!isSnippet(target) || target.isRaw()) return false;
+        Type snippetLanguage = snippetLanguage(target);
+        // snippet language must be a denotable, non-generic class type
+        if (!snippetLanguage.hasTag(CLASS) ||
+                snippetLanguage.tsym.type.getTypeArguments().nonEmpty() ||
+                snippetLanguage.isIntersection() ||
+                snippetLanguage.isUnion()) return false;
+        Type sup = asSuper(snippetLanguage, syms.snippetLanguageType.tsym);
+        return sup != null &&
+                isSameType(snippetLanguage, sup.getTypeArguments().head);
+    }
+
+    public Type snippetLanguage(Type snippetType) {
+        Type snippetLanguage = snippetType.getTypeArguments().head;
+        if (snippetLanguage instanceof WildcardType wt) {
+            snippetLanguage = wt.bound;
+        }
+        return snippetLanguage;
+    }
+
     // <editor-fold defaultstate="collapsed" desc="isSubtype">
     /**
      * Is t an unchecked subtype of s?

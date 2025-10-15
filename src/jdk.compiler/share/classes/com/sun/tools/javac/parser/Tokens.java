@@ -207,6 +207,7 @@ public class Tokens {
         GTGTEQ(">>="),
         GTGTGTEQ(">>>="),
         MONKEYS_AT("@"),
+        POUND("#"),
         CUSTOM;
 
         public final String name;

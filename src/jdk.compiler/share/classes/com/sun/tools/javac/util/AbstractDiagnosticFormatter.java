@@ -239,6 +239,7 @@ public abstract class AbstractDiagnosticFormatter implements DiagnosticFormatter
                 switch(tree.getTag()) {
                     case PARENS:
                         return expr2String(((JCParens)tree).expr);
+                    case STRING_TEMPLATE:
                     case LAMBDA:
                     case REFERENCE:
                     case CONDEXPR:

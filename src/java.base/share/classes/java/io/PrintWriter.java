@@ -25,6 +25,9 @@
 
 package java.io;
 
+import jdk.internal.javac.PreviewFeature;
+
+import java.lang.Snippet.PlainText;
 import java.util.Objects;
 import java.util.Formatter;
 import java.util.Locale;
@@ -654,6 +657,23 @@ public class PrintWriter extends Writer {
     }
 
     /**
+     * Prints a {@link Snippet}.  If the argument is {@code null} then the string
+     * {@code "null"} is printed.  Otherwise, the {@link Snippet snippet's}
+     * join results are converted into bytes according to the default charset,
+     * and these bytes are written in exactly the manner of the
+     * {@link #write(int)} method.
+     *
+     * @param      st   The {@code Snippet} to be printed
+     * @see Charset#defaultCharset()
+     *
+     * @since  23
+     */
+    @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
+    public void print(Snippet<PlainText> st) {
+        write(st == null ? "null" : PlainText.join(st));
+    }
+
+    /**
      * Prints a string.  If the argument is {@code null} then the string
      * {@code "null"} is printed.  Otherwise, the string's characters are
      * converted into bytes according to the default charset,
@@ -965,21 +985,25 @@ public class PrintWriter extends Writer {
      */
     public PrintWriter format(String format, Object ... args) {
         synchronized (lock) {
-            try {
-                ensureOpen();
-                if ((formatter == null)
-                    || (formatter.locale() != Locale.getDefault()))
-                    formatter = new Formatter(this);
-                formatter.format(Locale.getDefault(), format, args);
-                if (autoFlush)
-                    out.flush();
-            } catch (InterruptedIOException x) {
-                Thread.currentThread().interrupt();
-            } catch (IOException x) {
-                trouble = true;
-            }
+            implFormat(format, args);
         }
         return this;
+    }
+
+    private void implFormat(String format, Object ... args) {
+        try {
+            ensureOpen();
+            if ((formatter == null)
+                || (formatter.locale() != Locale.getDefault()))
+                formatter = new Formatter(this);
+            formatter.format(Locale.getDefault(), format, args);
+            if (autoFlush)
+                out.flush();
+        } catch (InterruptedIOException x) {
+            Thread.currentThread().interrupt();
+        } catch (IOException x) {
+            trouble = true;
+        }
     }
 
     /**
@@ -1025,20 +1049,24 @@ public class PrintWriter extends Writer {
      */
     public PrintWriter format(Locale l, String format, Object ... args) {
         synchronized (lock) {
-            try {
-                ensureOpen();
-                if ((formatter == null) || (formatter.locale() != l))
-                    formatter = new Formatter(this, l);
-                formatter.format(l, format, args);
-                if (autoFlush)
-                    out.flush();
-            } catch (InterruptedIOException x) {
-                Thread.currentThread().interrupt();
-            } catch (IOException x) {
-                trouble = true;
-            }
+            implFormat(l, format, args);
         }
         return this;
+    }
+
+    private void implFormat(Locale l, String format, Object ... args) {
+        try {
+            ensureOpen();
+            if ((formatter == null) || (formatter.locale() != l))
+                formatter = new Formatter(this, l);
+            formatter.format(l, format, args);
+            if (autoFlush)
+                out.flush();
+        } catch (InterruptedIOException x) {
+            Thread.currentThread().interrupt();
+        } catch (IOException x) {
+            trouble = true;
+        }
     }
 
     /**

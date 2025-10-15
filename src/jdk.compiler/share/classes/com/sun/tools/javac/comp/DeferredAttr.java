@@ -964,6 +964,17 @@ public class DeferredAttr extends JCTree.Visitor {
                     }
                 }
             }
+
+            @Override
+            public void visitStringTemplate(JCStringTemplate tree) {
+                Check.CheckContext checkContext = resultInfo.checkContext;
+                Type pt = resultInfo.pt;
+                if (!inferenceContext.inferencevars.contains(pt)) {
+                    if (!types.isSnippet(pt)) {
+                        checkContext.report(tree, diags.fragment(Fragments.BadTargetForTemplate(pt)));
+                    }
+                }
+            }
         }
 
         /* This visitor looks for return statements, its analysis will determine if
@@ -1150,7 +1161,7 @@ public class DeferredAttr extends JCTree.Visitor {
     static class PolyScanner extends FilterScanner {
 
         PolyScanner() {
-            super(EnumSet.of(CONDEXPR, PARENS, LAMBDA, REFERENCE, SWITCH_EXPRESSION));
+            super(EnumSet.of(CONDEXPR, PARENS, LAMBDA, REFERENCE, SWITCH_EXPRESSION, STRING_TEMPLATE));
         }
     }
 
@@ -1238,6 +1249,13 @@ public class DeferredAttr extends JCTree.Visitor {
                 depVars.addAll(inferenceContext.freeVarsIn(descType.getThrownTypes()));
             }
             scanLambdaBody(tree, descType.getReturnType());
+        }
+
+        @Override
+        public void visitStringTemplate(JCStringTemplate tree) {
+            if (pt.containsAny(inferenceContext.inferenceVars())) {
+                stuckVars.addAll(inferenceContext.freeVarsIn(pt));
+            }
         }
 
         @Override
@@ -1341,6 +1359,11 @@ public class DeferredAttr extends JCTree.Visitor {
             if (tree.getOverloadKind() != JCMemberReference.OverloadKind.UNOVERLOADED) {
                 stuck = true;
             }
+        }
+
+        @Override
+        public void visitStringTemplate(JCStringTemplate tree) {
+            stuck = true; // @@@: should not be stuck if not a poly
         }
     }
 

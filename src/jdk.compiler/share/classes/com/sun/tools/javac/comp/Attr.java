@@ -5010,6 +5010,89 @@ public class Attr extends JCTree.Visitor {
         return (tag == CLASS) ? syms.stringType : syms.typeOfTag[tag.ordinal()];
     }
 
+    public void visitStringTemplate(JCStringTemplate tree) {
+        Env<AttrContext> localEnv = env.dup(tree, env.info.dup());
+        Type snippetType;
+        if (tree.polyKind == PolyKind.POLY) {
+            if (pt().isErroneous() || (pt().hasTag(NONE) && pt() != Type.recoveryType && pt() != Infer.anyPoly)) {
+                if (pt().hasTag(NONE) && (env.info.enclVar == null || !env.info.enclVar.type.isErroneous())) {
+                    //string template only allowed in assignment or method invocation/cast context
+                    log.error(tree.pos(), Errors.UnexpectedTemplate);
+                }
+                resultInfo = recoveryInfo;
+            }
+            snippetType = pt();
+        } else {
+            Type languageType = chk.checkRefType(tree, attribType(tree.templateTypeExpr, localEnv));
+            snippetType = new ClassType(Type.noType, List.of(languageType), syms.snippetType.tsym);
+        }
+
+        if (!snippetType.hasTag(NONE) && !types.isValidSnippetTarget(snippetType)) {
+            log.error(tree, Errors.BadTargetForTemplate(snippetType));
+            resultInfo = recoveryInfo;
+        }
+
+        ResultInfo nestedInfo = resultInfo.dup(snippetType);
+        for (JCExpression arg : tree.expressions) {
+            ResultInfo argumentInfo = unknownExprInfo;
+            if (isNestedPolyStringTemplate(arg)) {
+                argumentInfo = nestedInfo;
+            }
+            chk.checkNonVoid(arg.pos(), attribTree(arg, localEnv, argumentInfo));
+        }
+
+        MethodSymbol fakeOwner = new MethodSymbol(0, names.empty, Type.noType, env.enclClass.sym);
+        ListBuffer<VarSymbol> annotationTargets = new ListBuffer<>();
+        List<JCExpression> expressions = tree.expressions;
+        for (List<JCAnnotation> annotations : tree.annotations) {
+            VarSymbol annotationTarget = new VarSymbol(0, names.empty, expressions.head.type, fakeOwner);
+            annotate.annotateLater(annotations, env, annotationTarget);
+            annotationTargets.add(annotationTarget);
+            expressions = expressions.tail;
+        }
+        annotate.flush();
+        tree.annotationTargets = annotationTargets.toList();
+        tree.templateType = types.snippetLanguage(snippetType);
+
+        Type owntype = (resultInfo != recoveryInfo) ?
+                snippetType : types.createErrorType(snippetType);
+        result = check(tree, owntype, KindSelector.VAL, resultInfo);
+    }
+
+    boolean isNestedPolyStringTemplate(JCExpression expression) {
+        return switch (expression) {
+            case JCStringTemplate st -> st.polyKind == PolyKind.POLY;
+            case JCConditional cond -> isNestedPolyStringTemplate(cond.truepart) || isNestedPolyStringTemplate(cond.falsepart);
+            case JCParens p -> isNestedPolyStringTemplate(p.expr);
+            case JCSwitchExpression s -> {
+                for (JCCase jcCase : s.cases) {
+                    if (jcCase.body instanceof JCExpression bodyExpr) {
+                        if (isNestedPolyStringTemplate(bodyExpr)) {
+                            yield true;
+                        }
+                    } else {
+                        class YieldScanner extends TreeScanner {
+                            boolean hasNestedPolyStringTemplates = false;
+
+                            @Override
+                            public void visitYield(JCYield tree) {
+                                super.visitYield(tree);
+                                hasNestedPolyStringTemplates |= isNestedPolyStringTemplate(tree.value);
+                            }
+                        }
+                        YieldScanner yieldScanner = new YieldScanner();
+                        yieldScanner.scan(jcCase.body);
+                        if (yieldScanner.hasNestedPolyStringTemplates) {
+                            yield true;
+                        }
+                    }
+                }
+                yield false;
+            }
+            default -> false;
+        };
+    }
+
     public void visitTypeIdent(JCPrimitiveTypeTree tree) {
         result = check(tree, syms.typeOfTag[tree.typetag.ordinal()], KindSelector.TYP, resultInfo);
     }

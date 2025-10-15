@@ -244,6 +244,12 @@ public class Symtab {
     public final Type objectInputType;
     public final Type objectOutputType;
 
+    // For snippets
+    public final Type snippetType;
+    public final Type snippetLanguageType;
+    public final Type snippetTemplateType;
+    public final Type snippetTemplateParameterType;
+
     /** The symbol representing the length field of an array.
      */
     public final VarSymbol lengthVar;
@@ -640,6 +646,12 @@ public class Symtab {
         synthesizeBoxTypeIfMissing(doubleType);
         synthesizeBoxTypeIfMissing(floatType);
         synthesizeBoxTypeIfMissing(voidType);
+
+        // For snippets
+        snippetType = enterClass("java.lang.Snippet");
+        snippetLanguageType = enterClass("java.lang.Snippet$Language");
+        snippetTemplateType = enterClass("java.lang.Snippet$Template");
+        snippetTemplateParameterType = enterClass("java.lang.Snippet$Template$Parameter");
 
         // Enter a synthetic class that is used to mark internal
         // proprietary classes in ct.sym.  This class does not have a

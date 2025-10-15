@@ -47,7 +47,7 @@ public class Snippets {
      * Snippet of bytecodes
      */
     @FunctionalInterface
-    public interface Snippet {
+    public interface BytecodeSnippet {
         /**
          * Emit the bytecode snippet to the CodeBuilder.
          *
@@ -58,14 +58,14 @@ public class Snippets {
         /**
          * Load a constant onto the operand stack.
          */
-        static <T extends ConstantDesc> Snippet loadConstant(T v) {
+        static <T extends ConstantDesc> BytecodeSnippet loadConstant(T v) {
             return cob -> cob.loadConstant(v);
         }
 
         /**
          * Load an enum constant onto the operand stack.
          */
-        static Snippet loadEnum(Enum<?> e) {
+        static BytecodeSnippet loadEnum(Enum<?> e) {
             var classDesc = e.getClass().describeConstable().get();
             return cob -> cob.getstatic(classDesc, e.name(), classDesc);
         }
@@ -73,7 +73,7 @@ public class Snippets {
         /**
          * Load an Integer, boxed int value onto the operand stack.
          */
-        static Snippet loadInteger(int value) {
+        static BytecodeSnippet loadInteger(int value) {
             return cob ->
                     cob.loadConstant(value)
                        .invokestatic(CD_Integer, "valueOf", MethodTypeDesc.of(CD_Integer, CD_int));
@@ -85,10 +85,10 @@ public class Snippets {
          * @param fn The snippet building function for a given element
          * @return Snippets
          */
-        static <T> Snippet[] buildAll(Collection<T> elements, Function<T, Snippet> fn) {
+        static <T> BytecodeSnippet[] buildAll(Collection<T> elements, Function<T, BytecodeSnippet> fn) {
             return elements.stream()
                     .map(fn)
-                    .toArray(Snippet[]::new);
+                    .toArray(BytecodeSnippet[]::new);
         }
     }
 
@@ -99,7 +99,7 @@ public class Snippets {
      * @param classDesc The type of the operand
      * @param load The snippet to load the operand onto the operand stack
      */
-    public record Loadable(ClassDesc classDesc, Snippet load) implements Snippet {
+    public record Loadable(ClassDesc classDesc, BytecodeSnippet load) implements BytecodeSnippet {
         /**
          * Generate the bytecode to load the Loadable onto the operand stack.
          * @param cob  The CodeBuilder to add the bytecode for loading
@@ -122,16 +122,16 @@ public class Snippets {
          * @param index  The index of the element in the containing collection
          * @return A snippet of bytecodes to process the element
          */
-        Snippet build(T element, int index);
+        BytecodeSnippet build(T element, int index);
 
-        default Snippet[] buildAll(Collection<T> elements) {
-            var loadElementSnippets = new ArrayList<Snippet>(elements.size());
+        default BytecodeSnippet[] buildAll(Collection<T> elements) {
+            var loadElementSnippets = new ArrayList<BytecodeSnippet>(elements.size());
             for (var element: elements) {
                 loadElementSnippets.add(build(element, loadElementSnippets.size()));
             }
 
             assert(loadElementSnippets.size() == elements.size());
-            return loadElementSnippets.toArray(Snippet[]::new);
+            return loadElementSnippets.toArray(BytecodeSnippet[]::new);
         }
     }
 
@@ -321,7 +321,7 @@ public class Snippets {
          * @return The Loadable snippet
          * @throws NullPointerException
          */
-        abstract public Loadable build(Snippet[] loadElementSnippets);
+        abstract public Loadable build(BytecodeSnippet[] loadElementSnippets);
     }
 
     /**
@@ -351,7 +351,7 @@ public class Snippets {
     public static class ArraySnippetBuilder extends CollectionSnippetBuilder {
         final MethodTypeDesc MTD_PageHelper;
         final ClassDesc classDesc;
-        Snippet[] loadElementSnippets;
+        BytecodeSnippet[] loadElementSnippets;
 
         public ArraySnippetBuilder(ClassDesc elementType) {
             super(elementType);
@@ -416,7 +416,7 @@ public class Snippets {
         }
 
         @Override
-        public Loadable build(Snippet[] loadElementSnippets) {
+        public Loadable build(BytecodeSnippet[] loadElementSnippets) {
             this.loadElementSnippets = Objects.requireNonNull(loadElementSnippets);
             if (shouldPaginate(loadElementSnippets.length)) {
                 setupHelpers();
@@ -448,7 +448,7 @@ public class Snippets {
         }
 
         @Override
-        public Loadable build(Snippet[] loadElementSnippets) {
+        public Loadable build(BytecodeSnippet[] loadElementSnippets) {
             if (loadElementSnippets.length <= 2) {
                 this.loadElementSnippets = loadElementSnippets;
                 return new Loadable(CD_Set, this::buildTinySet);

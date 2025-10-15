@@ -62,7 +62,7 @@ public class StreamsTest extends TestRunner {
         tb.writeJavaFiles(src,
             "import java.util.*; class C { # }");
         test(asList("-d", classes.toString(), src.resolve("C.java").toString()),
-                null, "illegal character: '#'");
+                null, "illegal start of type");
     }
 
     @Test // warnings should be written to stderr

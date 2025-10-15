@@ -51,6 +51,7 @@ import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
 import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCParens;
 import com.sun.tools.javac.tree.JCTree.JCReturn;
+import com.sun.tools.javac.tree.JCTree.JCStringTemplate;
 import com.sun.tools.javac.tree.JCTree.JCSwitchExpression;
 import com.sun.tools.javac.tree.TreeCopier;
 import com.sun.tools.javac.tree.TreeInfo;
@@ -259,6 +260,17 @@ public class ArgumentAttr extends JCTree.Visitor {
     @Override
     public void visitSwitchExpression(JCSwitchExpression that) {
         processArg(that, speculativeTree -> new SwitchExpressionType(that, env, speculativeTree));
+    }
+
+    @Override
+    public void visitStringTemplate(JCStringTemplate that) {
+        if (that.polyKind == JCTree.JCPolyExpression.PolyKind.POLY) {
+            //always stuck, just use a deferred type
+            setResult(that, deferredAttr.new DeferredType(that, env));
+        } else {
+            //not a poly expression, just call Attr
+            setResult(that, attr.attribTree(that, env, attr.unknownExprInfo));
+        }
     }
 
     @Override

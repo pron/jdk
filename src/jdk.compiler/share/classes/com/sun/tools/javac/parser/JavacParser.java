@@ -831,6 +831,70 @@ public class JavacParser implements Parser {
         return t;
     }
 
+    /**
+     * StringTemplate =
+     *    [STRINGFRAGMENT] [EmbeddedExpression]
+     *  | STRINGLITERAL
+     *
+     * EmbeddedExpression =
+     *  LBRACE term RBRACE
+     */
+    JCExpression stringTemplate() {
+        int oldmode = mode;
+        accept(POUND);
+        JCExpression snippetType = null;
+        if (token.kind == IDENTIFIER) {
+            selectTypeMode();
+            snippetType = parseType();
+        }
+        if (token.kind != STRINGFRAGMENT &&
+                token.kind != STRINGLITERAL) {
+            // not a string template
+            return syntaxError(token.pos, Errors.ExpectedStr("\""));
+        }
+        selectExprMode();
+        Token stringToken = token;
+        int pos = stringToken.pos;
+        int endPos = stringToken.endPos;
+        TokenKind kind = stringToken.kind;
+        String string = token.stringVal();
+        List<String> fragments = List.of(string);
+        List<JCExpression> expressions = List.nil();
+        List<List<JCAnnotation>> annotations = List.nil();
+        nextToken();
+        if (kind != STRINGLITERAL) {
+            while (token.kind == STRINGFRAGMENT) {
+                stringToken = token;
+                endPos = stringToken.endPos;
+                string = stringToken.stringVal();
+                fragments = fragments.append(string);
+                nextToken();
+            }
+            while (token.pos < endPos && token.kind != DEFAULT && token.kind != ERROR) {
+                accept(LBRACE);
+                List<JCAnnotation> argumentAnnotations = annotationsOpt(ANNOTATION);
+                JCExpression expression = token.kind == RBRACE ? F.at(pos).Literal(TypeTag.BOT, null)
+                        : term(EXPR);
+                expressions = expressions.append(expression);
+                annotations = annotations.append(argumentAnnotations);
+                if (token.kind != ERROR) {
+                    accept(RBRACE);
+                }
+            }
+            // clean up remaining expression tokens if error
+            while (token.pos < endPos && token.kind != DEFAULT) {
+                nextToken();
+            }
+            S.setPrevToken(stringToken);
+        }
+        if (200 < expressions.size()) { // StringConcatFactory.MAX_INDY_CONCAT_ARG_SLOTS
+            log.error(DiagnosticFlag.SYNTAX, token.pos, Errors.TooManyEmbeddedExpressions);
+        }
+        JCExpression t = toP(F.at(pos).StringTemplate(snippetType, fragments, expressions, annotations));
+        setMode(oldmode);
+        return t;
+    }
+
     JCExpression literal(Name prefix) {
         return literal(prefix, token.pos);
     }
@@ -1508,6 +1572,15 @@ public class JavacParser implements Parser {
                 t = literal(names.empty);
             } else return illegal();
             break;
+        case POUND:
+             if (typeArgs == null && isMode(EXPR)) {
+                 checkSourceLevel(Feature.STRING_TEMPLATES);
+                 selectExprMode();
+                 t = stringTemplate();
+             } else {
+                 return illegal();
+             }
+             break;
         case NEW:
             if (typeArgs != null) return illegal();
             if (isMode(EXPR)) {
@@ -2019,7 +2092,7 @@ public class JavacParser implements Parser {
                         case BANG: case TILDE:
                         case LPAREN: case THIS: case SUPER:
                         case INTLITERAL: case LONGLITERAL: case FLOATLITERAL:
-                        case DOUBLELITERAL: case CHARLITERAL: case STRINGLITERAL:
+                        case DOUBLELITERAL: case CHARLITERAL: case STRINGLITERAL: case POUND:
                         case STRINGFRAGMENT:
                         case TRUE: case FALSE: case NULL:
                         case NEW: case IDENTIFIER: case ASSERT: case ENUM: case UNDERSCORE:
@@ -2943,7 +3016,7 @@ public class JavacParser implements Parser {
                 Token next = S.token(1);
                 boolean isYieldStatement;
                 switch (next.kind) {
-                    case PLUS: case SUB: case STRINGLITERAL: case CHARLITERAL:
+                    case PLUS: case SUB: case STRINGLITERAL: case CHARLITERAL: case POUND:
                     case STRINGFRAGMENT:
                     case INTLITERAL: case LONGLITERAL: case FLOATLITERAL: case DOUBLELITERAL:
                     case NULL: case IDENTIFIER: case UNDERSCORE: case TRUE: case FALSE:

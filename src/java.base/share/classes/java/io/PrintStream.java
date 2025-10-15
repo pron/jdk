@@ -25,7 +25,11 @@
 
 package java.io;
 
+import jdk.internal.javac.PreviewFeature;
+
+import java.lang.Snippet.PlainText;
 import java.util.Formatter;
+import java.util.Formatter.FormattedText;
 import java.util.Locale;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
@@ -824,6 +828,24 @@ public class PrintStream extends FilterOutputStream
     }
 
     /**
+     * Prints a {@link Snippet}. If the argument is {@code null} then the string
+     * {@code "null"} is printed.  Otherwise, the {@link Snippet snippet's}
+     * join results are converted into bytes according to the character encoding given
+     * to the constructor, or the default charset if none
+     * specified. These bytes are written in exactly the manner of the
+     * {@link #write(int)} method.
+     *
+     * @param      st   The {@link Snippet} to be printed
+     * @see Charset#defaultCharset()
+     *
+     * @since  23
+     */
+    @PreviewFeature(feature=PreviewFeature.Feature.STRING_TEMPLATES)
+    public void print(Snippet<PlainText> st) {
+        write(st == null ? "null" : PlainText.join(st));
+    }
+
+    /**
      * Prints a string.  If the argument is {@code null} then the string
      * {@code "null"} is printed.  Otherwise, the string's characters are
      * converted into bytes according to the character encoding given to the
@@ -1233,10 +1255,7 @@ public class PrintStream extends FilterOutputStream
     public PrintStream format(Locale l, String format, Object ... args) {
         try {
             synchronized (this) {
-                ensureOpen();
-                if ((formatter == null) || (formatter.locale() != l))
-                    formatter = new Formatter(this, l);
-                formatter.format(l, format, args);
+                implFormat(l, format, args);
             }
         } catch (InterruptedIOException x) {
             Thread.currentThread().interrupt();
@@ -1244,6 +1263,113 @@ public class PrintStream extends FilterOutputStream
             trouble = true;
         }
         return this;
+    }
+
+    private void implFormat(Locale l, String format, Object ... args) throws IOException {
+        ensureOpen();
+        if ((formatter == null) || (formatter.locale() != l))
+            formatter = new Formatter(this, l);
+        formatter.format(l, format, args);
+    }
+
+    /**
+     * Writes a {@link Snippet} to this output stream using the specified
+     * format and values.
+     *
+     * <p> The locale always used is the one returned by {@link
+     * java.util.Locale#getDefault(Locale.Category)} with
+     * {@link java.util.Locale.Category#FORMAT FORMAT} category specified,
+     * regardless of any previous invocations of other formatting methods on
+     * this object.
+     *
+     * @param  fs {@link Snippet} containing
+     *         a format string as described in <a
+     *         href="../util/Formatter.html#syntax">Format string syntax</a>
+     *
+     *
+     * @throws  java.util.IllegalFormatException
+     *          If a format string contains an illegal syntax, a format
+     *          specifier that is incompatible with the given arguments,
+     *          insufficient arguments given the format string, or other
+     *          illegal conditions.  For specification of all possible
+     *          formatting errors, see the <a
+     *          href="../util/Formatter.html#detail">Details</a> section of the
+     *          formatter class specification.
+     *
+     * @throws  NullPointerException
+     *          If the {@code format} is {@code null}
+     *
+     * @return  This output stream
+     *
+     * @since  23
+     */
+    public PrintStream format(Snippet<FormattedText> fs) {
+        try {
+            synchronized (this) {
+                implFormat(fs);
+            }
+        } catch (InterruptedIOException x) {
+            Thread.currentThread().interrupt();
+        } catch (IOException x) {
+            trouble = true;
+        }
+        return this;
+    }
+
+    private void implFormat(Snippet<FormattedText> fs) throws IOException {
+        ensureOpen();
+        if ((formatter == null) || (formatter.locale() != Locale.getDefault(Locale.Category.FORMAT)))
+            formatter = new Formatter((Appendable) this);
+        formatter.format(Locale.getDefault(Locale.Category.FORMAT), fs);
+    }
+
+    /**
+     * Writes a {@link Snippet} to this output stream using the specified
+     * format and values.
+     *
+     * @param  l
+     *         The {@linkplain java.util.Locale locale} to apply during
+     *         formatting.  If {@code l} is {@code null} then no localization
+     *         is applied.
+     *
+     * @param  fs {@link Snippet} containing
+     *         a format string as described in <a
+     *         href="../util/Formatter.html#syntax">Format string syntax</a>
+     *
+     * @throws  java.util.IllegalFormatException
+     *          If a format string contains an illegal syntax, a format
+     *          specifier that is incompatible with the given arguments,
+     *          insufficient arguments given the format string, or other
+     *          illegal conditions.  For specification of all possible
+     *          formatting errors, see the <a
+     *          href="../util/Formatter.html#detail">Details</a> section of the
+     *          formatter class specification.
+     *
+     * @throws  NullPointerException
+     *          If the {@code format} is {@code null}
+     *
+     * @return  This output stream
+     *
+     * @since  23
+     */
+    public PrintStream format(Locale l, Snippet<FormattedText> fs) {
+        try {
+            synchronized (this) {
+                implFormat(l, fs);
+            }
+        } catch (InterruptedIOException x) {
+            Thread.currentThread().interrupt();
+        } catch (IOException x) {
+            trouble = true;
+        }
+        return this;
+    }
+
+    private void implFormat(Locale l, Snippet<FormattedText> fs) throws IOException {
+        ensureOpen();
+        if ((formatter == null) || (formatter.locale() != l))
+            formatter = new Formatter(this, l);
+        formatter.format(l, fs);
     }
 
     /**

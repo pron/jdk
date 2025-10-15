@@ -1775,7 +1775,6 @@ public class Thread implements Runnable {
     /**
      * Returns the thread's thread group or {@code null} if the thread has
      * terminated.
-     *
      * <p> The thread group returned for a virtual thread is the special
      * <a href="ThreadGroup.html#virtualthreadgroup"><em>ThreadGroup for
      * virtual threads</em></a>.

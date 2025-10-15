@@ -559,6 +559,15 @@ public class TreeMaker implements JCTree.Factory {
         return tree;
     }
 
+    public JCStringTemplate StringTemplate(JCExpression templateTypeExpr,
+                                           List<String> fragments,
+                                           List<JCExpression> expressions,
+                                           List<List<JCAnnotation>> annotations) {
+        JCStringTemplate tree = new JCStringTemplate(templateTypeExpr, fragments, expressions, annotations);
+        tree.pos = pos;
+        return tree;
+    }
+
     public JCPrimitiveTypeTree TypeIdent(TypeTag typetag) {
         JCPrimitiveTypeTree tree = new JCPrimitiveTypeTree(typetag);
         tree.pos = pos;

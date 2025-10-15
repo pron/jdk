@@ -48,7 +48,7 @@ import jdk.tools.jlink.internal.plugins.SystemModulesPlugin.ModuleInfo;
 import jdk.tools.jlink.internal.plugins.SystemModulesPlugin.SystemModulesClassGenerator.DedupSnippets;
 
 /**
- * Build a Snippet to load a ModuleDescriptor onto the operand stack.
+ * Build a BytecodeSnippet to load a ModuleDescriptor onto the operand stack.
  */
 class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo> {
     private static final ClassDesc CD_MODULE_DESCRIPTOR =
@@ -67,11 +67,11 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
     }
 
     @Override
-    public Snippet build(ModuleInfo moduleInfo, int index) {
+    public BytecodeSnippet build(ModuleInfo moduleInfo, int index) {
         return new ModuleDescriptorSnippet(clb, moduleInfo.descriptor(), moduleInfo.packages(), index);
     }
 
-    class ModuleDescriptorSnippet implements Snippet {
+    class ModuleDescriptorSnippet implements BytecodeSnippet {
         static final ClassDesc CD_EXPORTS =
             ClassDesc.ofInternalName("java/lang/module/ModuleDescriptor$Exports");
         static final ClassDesc CD_OPENS =
@@ -117,11 +117,11 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
 
         final ModuleDescriptor md;
         final int index;
-        final Snippet requiresArray;
-        final Snippet exportsArray;
-        final Snippet opensArray;
-        final Snippet providesArray;
-        final Snippet packagesSet;
+        final BytecodeSnippet requiresArray;
+        final BytecodeSnippet exportsArray;
+        final BytecodeSnippet opensArray;
+        final BytecodeSnippet providesArray;
+        final BytecodeSnippet packagesSet;
 
         ModuleDescriptorSnippet(ClassBuilder clb, ModuleDescriptor md, Set<String> packages, int index) {
             if (md.isAutomatic()) {
@@ -143,7 +143,7 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
          * Set<Modifier> mods = ...
          * Builder.newRequires(mods, mn, compiledVersion);
          */
-        Snippet loadRequire(Requires require) {
+        BytecodeSnippet loadRequire(Requires require) {
             return cob -> {
                 dedupSnippets.requiresModifiersSets().get(require.modifiers()).emit(cob);
                 cob.loadConstant(require.name());
@@ -160,12 +160,12 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
             };
         }
 
-        private Snippet buildRequiresArray(ClassBuilder clb) {
+        private BytecodeSnippet buildRequiresArray(ClassBuilder clb) {
             return new ArraySnippetBuilder(CD_REQUIRES)
                     .enablePagination("module" + index + "Requires")
                     .classBuilder(clb)
                     .ownerClassDesc(ownerClassDesc)
-                    .build(Snippet.buildAll(sorted(md.requires()), this::loadRequire));
+                    .build(BytecodeSnippet.buildAll(sorted(md.requires()), this::loadRequire));
         }
 
         /*
@@ -179,7 +179,7 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
          * pn = export.source()
          * targets = export.targets()
          */
-        Snippet loadExports(Exports export) {
+        BytecodeSnippet loadExports(Exports export) {
             return cob -> {
                 dedupSnippets.exportsModifiersSets().get(export.modifiers()).emit(cob);
                 cob.loadConstant(export.source());
@@ -197,12 +197,12 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
             };
         }
 
-        private Snippet buildExportsArray(ClassBuilder clb) {
+        private BytecodeSnippet buildExportsArray(ClassBuilder clb) {
             return new ArraySnippetBuilder(CD_EXPORTS)
                     .classBuilder(clb)
                     .ownerClassDesc(ownerClassDesc)
                     .enablePagination("module" + index + "Exports")
-                    .build(Snippet.buildAll(sorted(md.exports()), this::loadExports));
+                    .build(BytecodeSnippet.buildAll(sorted(md.exports()), this::loadExports));
         }
 
         /*
@@ -217,7 +217,7 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
          * targets = open.targets()
          * Builder.newOpens(mods, pn, targets);
          */
-        Snippet loadOpens(Opens open) {
+        BytecodeSnippet loadOpens(Opens open) {
             return cob -> {
                 dedupSnippets.opensModifiersSets().get(open.modifiers()).emit(cob);
                 cob.loadConstant(open.source());
@@ -235,12 +235,12 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
             };
         }
 
-        private Snippet buildOpensArray(ClassBuilder clb) {
+        private BytecodeSnippet buildOpensArray(ClassBuilder clb) {
             return new ArraySnippetBuilder(CD_OPENS)
                     .classBuilder(clb)
                     .ownerClassDesc(ownerClassDesc)
                     .enablePagination("module" + index + "Opens")
-                    .build(Snippet.buildAll(sorted(md.opens()), this::loadOpens));
+                    .build(BytecodeSnippet.buildAll(sorted(md.opens()), this::loadOpens));
         }
 
         /*
@@ -250,14 +250,14 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
          * providers = List.of(new String[] { provide.providers() }
          * Builder.newProvides(service, providers);
          */
-        private Snippet loadProvides(ClassBuilder clb, Provides provide, int offset) {
+        private BytecodeSnippet loadProvides(ClassBuilder clb, Provides provide, int offset) {
             return cob -> {
                 var providersArray = new ArraySnippetBuilder(CD_String)
                         .classBuilder(clb)
                         .ownerClassDesc(ownerClassDesc)
                         .enablePagination("module" + index + "Provider" + offset)
                         .pageSize(STRING_PAGE_SIZE)
-                        .build(Snippet.buildAll(provide.providers(), Snippet::loadConstant));
+                        .build(BytecodeSnippet.buildAll(provide.providers(), BytecodeSnippet::loadConstant));
 
                 cob.loadConstant(provide.service());
                 providersArray.emit(cob);
@@ -271,7 +271,7 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
             };
         }
 
-        private Snippet buildProvidesArray(ClassBuilder clb) {
+        private BytecodeSnippet buildProvidesArray(ClassBuilder clb) {
             IndexedElementSnippetBuilder<Provides> builder = (e, i) -> loadProvides(clb, e, i);
             return new ArraySnippetBuilder(CD_PROVIDES)
                     .classBuilder(clb)
@@ -280,13 +280,13 @@ class ModuleDescriptorBuilder implements IndexedElementSnippetBuilder<ModuleInfo
                     .build(builder.buildAll(sorted(md.provides())));
         }
 
-        private Snippet buildPackagesSet(ClassBuilder clb, Collection<String> packages) {
+        private BytecodeSnippet buildPackagesSet(ClassBuilder clb, Collection<String> packages) {
             return new SetSnippetBuilder(CD_String)
                     .classBuilder(clb)
                     .ownerClassDesc(ownerClassDesc)
                     .enablePagination("module" + index + "Packages")
                     .pageSize(STRING_PAGE_SIZE)
-                    .build(Snippet.buildAll(sorted(packages), Snippet::loadConstant));
+                    .build(BytecodeSnippet.buildAll(sorted(packages), BytecodeSnippet::loadConstant));
         }
 
         @Override

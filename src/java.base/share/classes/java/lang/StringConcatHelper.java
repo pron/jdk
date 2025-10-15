@@ -27,6 +27,7 @@
 package java.lang;
 
 import jdk.internal.misc.Unsafe;
+import jdk.internal.util.FormatConcatItem;
 import jdk.internal.util.DecimalDigits;
 import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.Stable;
@@ -224,6 +225,19 @@ final class StringConcatHelper {
     }
 
     /**
+     * Mix value length and coder into current length and coder.
+     * @param lengthCoder String length with coder packed into higher bits
+     *                    the upper word.
+     * @param value       value to mix in
+     * @return            new length and coder
+     * @since 21
+     */
+    static long mix(long lengthCoder, FormatConcatItem value) {
+        lengthCoder = value.mix(lengthCoder);
+        return checkOverflow(lengthCoder);
+    }
+
+    /**
      * Prepends constant and the stringly representation of value into buffer,
      * given the coder and final index. Index is measured in chars, not in bytes!
      *
@@ -376,6 +390,37 @@ final class StringConcatHelper {
             index -= prefix.length();
             prefix.getBytes(buf, index, String.UTF16);
             return index | UTF16;
+        }
+    }
+
+    /**
+     * Prepends constant and the stringly representation of value into buffer,
+     * given the coder and final index. Index is measured in chars, not in bytes!
+     *
+     * @param indexCoder final char index in the buffer, along with coder packed
+     *                   into higher bits.
+     * @param buf        buffer to append to
+     * @param value      boolean value to encode
+     * @param prefix     a constant to prepend before value
+     * @return           updated index (coder value retained)
+     * @since 21
+     */
+    static long prepend(long indexCoder, byte[] buf,
+                        FormatConcatItem value, String prefix) {
+        indexCoder = prependConcatItem(indexCoder, buf, value);
+        indexCoder = prepend(indexCoder, buf, prefix, "");
+        return indexCoder;
+    }
+
+    // where
+
+    private static long prependConcatItem(long indexCoder, byte[] buf, FormatConcatItem value) {
+        try {
+            return value.prepend(indexCoder, buf);
+        } catch (Error ex) {
+            throw ex;
+        } catch (Throwable ex) {
+            throw new AssertionError("FormatConcatItem prepend error", ex);
         }
     }
 
@@ -593,6 +638,11 @@ final class StringConcatHelper {
         } catch (NoSuchMethodException|IllegalAccessException e) {
             throw new AssertionError(e);
         }
+    }
+
+    @ForceInline
+    static boolean isLatin1(long indexCoder) {
+        return indexCoder < UTF16;
     }
 
     /**

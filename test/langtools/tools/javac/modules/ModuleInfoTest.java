@@ -572,7 +572,7 @@ public class ModuleInfoTest extends ModuleTestBase {
         testMalformedName(base, "m1@long", "module-info.java:1:10: compiler.err.expected: '{'");
         testMalformedName(base, "@m1", "module-info.java:1:7: compiler.err.expected: token.identifier");
         testMalformedName(base, "!", "module-info.java:1:7: compiler.err.expected: token.identifier");
-        testMalformedName(base, "m1#long", "module-info.java:1:10: compiler.err.illegal.char: #");
+        testMalformedName(base, "m1#long", "module-info.java:1:10: compiler.err.expected: '{'");
         testMalformedName(base, "m1\\long", "module-info.java:1:10: compiler.err.illegal.char: \\");
         testMalformedName(base, "module.", "module-info.java:1:15: compiler.err.expected: token.identifier");
         testMalformedName(base, ".module", "module-info.java:1:7: compiler.err.expected: token.identifier");
